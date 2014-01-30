@@ -45,6 +45,10 @@ trait DenseVectorOps {
     static (DenseVector) ("apply", T, (MInt, MBoolean) :: DenseVector(T), effect = mutable) implements allocates(DenseVector, ${$0}, ${$1}, ${array_empty[T]($0)})
     static (DenseVector) ("apply", T, varArgs(T) :: DenseVector(T)) implements allocates(DenseVector, ${unit($0.length)}, ${unit(true)}, ${array_fromseq($0)})
 
+    // since MArray can have multiple concrete representations, we need to deep copy instead of simply struct wrapping
+    // static (DenseVector) ("apply", T, MArray(T) :: DenseVector(T)) implements allocates(DenseVector, ${array_length($0)}, ${unit(true)}, ${$0})
+    static (DenseVector) ("apply", T, MArray(T) :: DenseVector(T)) implements composite ${ (0 :: array_length($0)) { i => $0(i) } }
+
     // helper
     compiler (DenseVector) ("densevector_alloc_raw", T, (MInt, MBoolean, MArray(T)) :: DenseVector(T)) implements allocates(DenseVector, ${$0}, ${$1}, ${$2})
     compiler (DenseVector) ("densevector_fromarray", T, (MArray(T), MBoolean) :: DenseVector(T)) implements allocates(DenseVector, ${array_length($0)}, ${$1}, ${$0})
@@ -137,6 +141,8 @@ trait DenseVectorOps {
       infix ("mt") (Nil :: MUnit, effect = write(0)) implements composite ${
         densevector_set_isrow($0, !$0.isRow)
       }
+
+      infix ("toArray") (Nil :: MArray(T), aliasHint = extracts(0)) implements getter(0, "_data") // should we create a copy if $self is mutable?
 
       infix ("toMat") (Nil :: DenseMatrix(T)) implements composite ${
         if ($self.isRow) {
@@ -361,7 +367,7 @@ trait DenseVectorOps {
         array_copy(src, $1, dest, $3, $4)
       }
 
-      parallelize as ParallelCollectionBuffer(T, lookupOp("densevector_dc_alloc"), lookupOp("length"), lookupOverloaded("apply",2), lookupOp("update"), lookupOp("densevector_set_length"), lookupOp("densevector_appendable"), lookupOp("densevector_append"), lookupOp("densevector_copy"))
+      parallelize as ParallelCollectionBuffer(T, lookupOp("densevector_dc_alloc"), lookupOp("length"), lookupOverloaded("apply",3), lookupOp("update"), lookupOp("densevector_set_length"), lookupOp("densevector_appendable"), lookupOp("densevector_append"), lookupOp("densevector_copy"))
     }
 
     // Add DenseVector to Arith

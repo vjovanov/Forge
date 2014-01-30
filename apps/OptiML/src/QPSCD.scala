@@ -12,8 +12,8 @@ object QPSCDInterpreter extends OptiMLApplicationInterpreter with QPSCD {
 }
 
 trait QPSCD extends OptiMLApplication {
-  val HOGWILD = System.getProperty("qpscd.hogwild","false").toBoolean
   val NUM_EPOCHS = 100
+  val SYNC = 10
 
   type BQP = Record {
     val Q: DenseMatrix[Double]
@@ -46,26 +46,18 @@ trait QPSCD extends OptiMLApplication {
    *  @param ub_i     The upper bound on the ith variable lb_i
    *  @param x        x-vector (Modified by reference)
    */
-  def boundQPSCD(q_i: Rep[DenseVectorView[Double]], i: Rep[Int], p_i: Rep[Double], lb_i: Rep[Double], ub_i: Rep[Double], q_ii: Rep[Double], x: Rep[DenseVector[Double]]) = {
+  def boundQPSCD(q_i: Rep[DenseVectorView[Double]], i: Rep[Int], p_i: Rep[Double], lb_i: Rep[Double], ub_i: Rep[Double], q_ii: Rep[Double], x: Rep[ForgeArray[Double]]) = {
     // memoize xk_i since we will write over it with x{k+1}_i
     val xk_i = x(i)
     // compute the ith component of the gradient
-    val d_i = x *:* q_i
+    val d_i = DenseVector(x) *:* q_i
     val gradf_i = d_i + p_i
     // compute new value for the coordinate, with projection x^(k+1)_i
     val step = max(q_ii, 1e-6)
     val xkp1_i_cand = max(xk_i - gradf_i / step, lb_i)
     val xkp1_i = min(xkp1_i_cand, ub_i)
 
-    // return updated parameter vector (TODO: use untilconverged_deltas)?
-    // DenseVector(i -> xpk1_i)
-    if (HOGWILD) {
-      x(i) = xkp1_i
-      x
-    }
-    else {
-      (0::x.length) { p_i => if (i == p_i) xkp1_i else x(p_i) }
-    }
+    x(i) = xkp1_i
   }
 
   /**
@@ -76,24 +68,12 @@ trait QPSCD extends OptiMLApplication {
    * @param bqp       the boxed QP to operate on
    * @param perm      the permutation to use
    */
-  def boundQPSCDEpoch(x: Rep[DenseVector[Double]], bqp: Rep[BQP], perm: Rep[IndexVector]) = {
-    if (HOGWILD) {
-      // parallel with mutable, racy updates
-      for (i <- 0::perm.length) {
-        val idx = perm(i)
-        boundQPSCD(bqp.Q(idx), idx, bqp.p(idx), bqp.lbound(idx), bqp.ubound(idx), bqp.diag(idx), x)
-        ()
-      }
-      x
-    }
-    else {
-      // sequential: iterate over perm in order, each element in x one at a time
-      var i = -1
-      untilconverged_buffered(x, minIter = perm.length-1, maxIter = perm.length) { x =>
-        i += 1
-        val idx = perm(i)
-        boundQPSCD(bqp.Q(idx), idx, bqp.p(idx), bqp.lbound(idx), bqp.ubound(idx), bqp.diag(idx), x)
-      }
+  def boundQPSCDEpoch(x: Rep[ForgeArray[Double]], bqp: Rep[BQP], perm: Rep[IndexVector]) = {
+    // HogWild! parallel with mutable, racy updates
+    for (i <- 0::perm.length) {
+      val idx = perm(i)
+      boundQPSCD(bqp.Q(idx), idx, bqp.p(idx), bqp.lbound(idx), bqp.ubound(idx), bqp.diag(idx), x)
+      ()
     }
   }
 
@@ -113,12 +93,11 @@ trait QPSCD extends OptiMLApplication {
     val lb = readVector(in + "/lb.csv")
     val ub = readVector(in + "/ub.csv")
 
-    val x = DenseVector.zeros(p.length)
+    val x = array_numa_empty[Double](p.length, ghost = ghostAll)
     val perm = shuffle(0::p.length)
     val bqp = newBQP(Q, p, lb, ub, Q.diag)
 
     println("finished loading input. Q: " + Q.numRows + " x " + Q.numCols + ", p: " + p.length + ", lb: " + lb.length + ", ub: " + ub.length)
-    if (HOGWILD) println("HogWild!")
     tic(bqp)
 
     // toy inputs for testing
@@ -126,24 +105,22 @@ trait QPSCD extends OptiMLApplication {
     // val perm = (0::2)
     // val bqp = newBQP(DenseMatrix((1.,2.),(3.,4.)), DenseVector(1.,1.), DenseVector(0.,0.), DenseVector(1.,1.), DenseVector(1.,4.))
 
-    val x_star =
-      if (HOGWILD) {
-        var i = 0
-        val xm = x.mutable
-        while (i < NUM_EPOCHS) {
-          boundQPSCDEpoch(xm, bqp, perm)
-          i += 1
+    val x_star = {
+      var i = 0
+      while (i < NUM_EPOCHS) {
+        if (i % SYNC == 0) {
+          array_numa_combine_average(x)
         }
-        xm
+        boundQPSCDEpoch(x, bqp, perm)
+        i += 1
       }
-      else {
-        untilconverged_buffered(x, minIter = NUM_EPOCHS-1) { x =>
-          boundQPSCDEpoch(x, bqp, perm)
-        }
-      }
+      x
+    }
 
-    toc(x_star)
-    writeVector(x_star, out)
+
+    val x_star_v = DenseVector(x_star)
+    toc(x_star_v)
+    writeVector(x_star_v, out)
     // println("found x_star: ")
     // x_star.pprint
   }
