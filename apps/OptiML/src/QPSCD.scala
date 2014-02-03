@@ -50,7 +50,14 @@ trait QPSCD extends OptiMLApplication {
     // memoize xk_i since we will write over it with x{k+1}_i
     val xk_i = x(i)
     // compute the ith component of the gradient
-    val d_i = DenseVector(x) *:* q_i
+    // val d_i = DenseVector(x) *:* q_i // this creates an allocation in C-land, which can crash because we don't have mem management. why doesn't it fuse away? try:
+    // val d_i = DenseVector(x.unsafeImmutable) *:* q_i // unfortunately unsafeImmutable loses the DeliteArrayNuma type. why?
+    var d_i = 0.0
+    var j = 0
+    while (j < q_i.length) {
+      d_i += x(j)*q_i(j)
+      j += 1
+    }
     val gradf_i = d_i + p_i
     // compute new value for the coordinate, with projection x^(k+1)_i
     val step = max(q_ii, 1e-6)
@@ -92,8 +99,13 @@ trait QPSCD extends OptiMLApplication {
     val p = readVector(in + "/p.csv")
     val lb = readVector(in + "/lb.csv")
     val ub = readVector(in + "/ub.csv")
+    val init_x = readVector(in + "/x.csv")
 
     val x = array_numa_empty[Double](p.length, ghost = ghostAll)
+    for (i <- 0::init_x.length) {
+      x(i) = init_x(i)
+    }
+
     val perm = shuffle(0::p.length)
     val bqp = newBQP(Q, p, lb, ub, Q.diag)
 
@@ -123,5 +135,8 @@ trait QPSCD extends OptiMLApplication {
     writeVector(x_star_v, out)
     // println("found x_star: ")
     // x_star.pprint
+
+    val err = sqrt(sum(square(Q*x_star_v.t + p)))
+    println("error: " + err)
   }
 }
