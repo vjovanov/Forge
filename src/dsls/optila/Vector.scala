@@ -80,9 +80,9 @@ trait VectorOps {
         out.unsafeImmutable
       }
 
-      infix ("mutable") (Nil :: DenseVector(T), effect = mutable, aliasHint = copies(0)) implements single ${
+      infix ("mutable") (Nil :: DenseVector(T), effect = mutable, aliasHint = copies(0)) implements composite ${
         val out = DenseVector[\$TT]($self.length, $self.isRow)
-        for (i <- 0 until out.length) {
+        for (i <- 0::out.length) {
           out(i) = $self(i)
         }
         out

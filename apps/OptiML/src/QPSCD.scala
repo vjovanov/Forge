@@ -51,7 +51,7 @@ trait QPSCD extends OptiMLApplication {
     val xk_i = x(i)
     // compute the ith component of the gradient
     // val d_i = DenseVector(x) *:* q_i // this creates an allocation in C-land, which can crash because we don't have mem management. why doesn't it fuse away? try:
-    // val d_i = DenseVector(x.unsafeImmutable) *:* q_i // unfortunately unsafeImmutable loses the DeliteArrayNuma type. why?
+    // val d_i = DenseVector(x.unsafeImmutable) *:* q_i // unfortunately unsafeImmutable loses the DeliteArrayNuma type, because ForgeArray[T] = DeliteArray[T], not DeliteArrayNuma[T]. using array_clone eliminates the DenseVector wrapper, but the underlying array alloc is still there.
     var d_i = 0.0
     var j = 0
     while (j < q_i.length) {
@@ -95,22 +95,37 @@ trait QPSCD extends OptiMLApplication {
 
     val in = args(0)
     val out = args(1)
-    val Q = readMatrix(in + "/Q.csv", ",")
-    val p = readVector(in + "/p.csv")
-    val lb = readVector(in + "/lb.csv")
-    val ub = readVector(in + "/ub.csv")
-    val init_x = readVector(in + "/x.csv")
-
+   
+    val Q = readMatrix(in + "/ji.Q.csv.chunks/", ",")
+    val p = readVector(in + "/ji.p.lst")
+    val lb = readVector(in + "/ji.lb.lst")
+    val ub = readVector(in + "/ji.ub.lst")
+    val init_x = readVector(in + "/ji.x.lst")
+    
+    println("finished loading input. Q: " + Q.numRows + " x " + Q.numCols + ", p: " + p.length + ", lb: " + lb.length + ", ub: " + ub.length)
+ 
     val x = array_numa_empty[Double](p.length, ghost = ghostAll)
+
+    //var perm = shuffle(0::p.length).Clone
+    val bqp = newBQP(Q, p, lb, ub, Q.diag)
+
+    // TODO: now we are also seeing a strange runtime code generation bug on multiple, but not all, thread counts (e.g. 1, 2 work while 4, 10, 20 break),
+    // only when the below for loop is above computing perm/bqp, rather than below! wtf?
+
+    // generatedCache/cpp/src/runtime/Executable1.cpp: In function âvoid Java_Executable1_00024_hostExecutable1(JNIEnv*, _jobject*)â:
+    // generatedCache/cpp/src/runtime/Executable1.cpp:49: error: âget1_xop_x2058â was not declared in this scope
+
     for (i <- 0::init_x.length) {
       x(i) = init_x(i)
     }
-
-    val perm = shuffle(0::p.length)
-    val bqp = newBQP(Q, p, lb, ub, Q.diag)
-
-    println("finished loading input. Q: " + Q.numRows + " x " + Q.numCols + ", p: " + p.length + ", lb: " + lb.length + ", ub: " + ub.length)
+    
     tic(bqp)
+  
+    //val initErr = sqrt(sum(square(Q*DenseVector(x).t + p)))
+    //println("init error: " + initErr)
+    //println("init x: ")
+    //DenseVector(x).pprint
+    //println("sum(x): " + sum(DenseVector(x)))
 
     // toy inputs for testing
     // val x = DenseVector(1.,1.)
@@ -120,6 +135,12 @@ trait QPSCD extends OptiMLApplication {
     val x_star = {
       var i = 0
       while (i < NUM_EPOCHS) {
+        println(i)
+
+        // TODO: apparently we can't have a var where the rhs has a simple effect.. causes the assert on line 439 of Effects.scala to fire
+        //if (i % 3 == 0) {
+          val perm = shuffle(0::p.length)
+        //}
         if (i % SYNC == 0) {
           array_numa_combine_average(x)
         }
@@ -129,6 +150,7 @@ trait QPSCD extends OptiMLApplication {
       x
     }
 
+    println("finished computing x_star")
 
     val x_star_v = DenseVector(x_star)
     toc(x_star_v)

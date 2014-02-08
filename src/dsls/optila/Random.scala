@@ -29,9 +29,15 @@ trait RandomOps {
       $0(randomInt($0.length))
     }
 
-    direct (Rand) ("randomInt", Nil, MInt :: MInt, effect = simple) implements codegen($cala, ${
+    val randomInt = direct (Rand) ("randomInt", Nil, MInt :: MInt, effect = simple) 
+      
+    impl (randomInt) (codegen($cala, ${
       Global.randRef.nextInt($0)
-    })
+    }))
+
+    impl (randomInt) (codegen(cpp, ${
+      rand() % $0
+    }))
 
     direct (Rand) ("randomGaussian", Nil, Nil :: MDouble, effect = simple) implements codegen($cala, ${
       Global.randRef.nextGaussian()

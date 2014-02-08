@@ -32,7 +32,7 @@ trait IOOps {
     val Elem = tpePar("Elem")
 
     // whitespace delimited by default
-    direct (IO) ("readVector", Elem, MethodSignature(List(("path",MString),("schemaBldr",DenseVector(MString) ==> Elem),("delim",MString,"\"\\s+\"")), DenseVector(Elem)), effect = simple) implements single ${
+    direct (IO) ("readVector", Elem, MethodSignature(List(("path",MString),("schemaBldr",DenseVector(MString) ==> Elem),("delim",MString,"\"\\s+\"")), DenseVector(Elem)), effect = simple) implements composite ${
       val a = ForgeFileReader.readLines($path){ line =>
         val tokens = line.trim.fsplit(delim)
         val tokenVector = (0::array_length(tokens)) { i => tokens(i) }
@@ -41,7 +41,7 @@ trait IOOps {
       densevector_fromarray(a, true)
     }
 
-    direct (IO) ("readMatrix", Elem, MethodSignature(List(("path",MString),("schemaBldr",MString ==> Elem),("delim",MString,"\"\\s+\"")), DenseMatrix(Elem)), effect = simple) implements single ${
+    direct (IO) ("readMatrix", Elem, MethodSignature(List(("path",MString),("schemaBldr",MString ==> Elem),("delim",MString,"\"\\s+\"")), DenseMatrix(Elem)), effect = simple) implements composite ${
       val a = ForgeFileReader.readLinesFlattened($path){ line:Rep[String] =>
         val tokens = line.trim.fsplit(delim)
         array_fromfunction(array_length(tokens), i => schemaBldr(tokens(i)))
@@ -51,7 +51,9 @@ trait IOOps {
     }
 
     compiler (IO) ("readFirstLine", Nil, ("path",MString) :: MString) implements codegen($cala, ${
-      val xfs = new java.io.BufferedReader(new java.io.FileReader($path))
+      val p = new java.io.File($path)
+      val f = if (p.isDirectory) p.listFiles.apply(0) else p
+      val xfs = new java.io.BufferedReader(new java.io.FileReader(f))
       val line = xfs.readLine()
       xfs.close()
       line
