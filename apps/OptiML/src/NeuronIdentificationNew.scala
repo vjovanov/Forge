@@ -9,10 +9,6 @@ object NeuronIdInterpreter extends OptiMLApplicationInterpreter with NeuronId
 
 trait NeuronId extends OptiMLApplication {
 
-
-/**
- *
- */
   def gaussImage(mux: Rep[Double], muy: Rep[Double], sigx: Rep[Double], sigy: Rep[Double], theta: Rep[Double], imgHeight: Rep[Int], imgWidth: Rep[Int]): Rep[DenseMatrix[Double]] = {
     val a = (cos(theta)~^2)/(2*sigx~^2)+(sin(theta)~^2)/(2*sigy~^2)
     val b = -sin(2*theta)/(4*sigx~^2)+sin(2*theta)/(4*sigy~^2)
@@ -25,9 +21,7 @@ trait NeuronId extends OptiMLApplication {
     }
   }
 
-/**
- *
- */
+
   def calcCellImgs(muX: Rep[DenseVector[Double]], muY: Rep[DenseVector[Double]], sigX: Rep[DenseVector[Double]], sigY: Rep[DenseVector[Double]], theta: Rep[DenseVector[Double]], imgHeight: Rep[Int], imgWidth: Rep[Int]): Rep[DenseVector[DenseMatrix[Double]]] = {
     val numImgs = muX.length // == nCells
     (0::numImgs) { i =>
@@ -35,24 +29,34 @@ trait NeuronId extends OptiMLApplication {
     }
   }
 
-/**
- *
- */
-  def calcCellImgsByParam(muXVals: Rep[DenseMatrix[Double]], muYVals: Rep[DenseMatrix[Double]], sigXVals: Rep[DenseMatrix[Double]], sigYVals: Rep[DenseMatrix[Double]], thetaVals: Rep[DenseMatrix[Double]], nCells: Rep[Int], imgHeight: Rep[Int], imgWidth: Rep[Int]): Rep[DenseVector[DenseMatrix[Double]]] = {
-    val numImgs = nCells*muXVals.numCols*muXVals.numCols*sigXVals.numCols*sigYVals.numCols*thetaVals.numCols
 
-    // nCells x image x param
-    (0::numImgs) { i =>
-      // compute image for every possible parameter configuration
-      val (cellInd, muXInd, muYInd, sigXInd, sigYInd, thetaInd) = unflatten(i, (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
-
-      gaussImage(muXVals(cellInd,muXInd), muYVals(cellInd,muYInd), sigXVals(cellInd,sigXInd), sigYVals(cellInd,sigYInd), thetaVals(cellInd,thetaInd), imgHeight, imgWidth)
-    }
+  def calcCellImgsByParam(muXVals: Rep[DenseMatrix[Double]], muYVals: Rep[DenseMatrix[Double]], sigXVals: Rep[DenseMatrix[Double]], sigYVals: Rep[DenseMatrix[Double]], thetaVals: Rep[DenseMatrix[Double]], nCells: Rep[Int], imgHeight: Rep[Int], imgWidth: Rep[Int]): Rep[DenseVector[DenseMatrix[Double]]] = 
+      {
+        val numMuVals = muXVals.numCols
+        val numSigVals = sigXVals.numCols
+        val numThetaVals = thetaVals.numCols
+        //Question: cumulative product? paramSizeCumProd=[1 cumprod([numMuVals, numMuVals, numSigVals, numSigVals])];
+        val prod = (numMuVals~^2)*(numSigVals~^2)*numThetaVals
+        val cellImgsByParam = (0::imgSize, 0::nCells, 0::prod) { (x, y, z) => 0 }
+//**Question: stacked for loops 
+        (0::nCells, 0::numMuVals, 0::numMuVals, 0::numSigVals, 0::numSigVals, 0::numThetaVals) {
+            (cInd, muInd1, muInd2, sigInd1, sigInd2, thetaInd) =>
+            val lInd = (DenseVector(muInd1, muInd2, sigInd1, sigInd2, thetaInd) - 1)*:*(paramSizeCumProd) + 1;
+//**Question: setting this part of the matrix: cellImgsByParam(:,:,cInd,linInd) to this line
+               calcCellImgs(muXVals(cInd,muInd1), muYVals(cInd, muInd2), sigXVals(cInd, sigInd1), sigYVals(cInd, sigInd2), thetaVals(cInd,thetaInd), imgHeight, imgWidth)
+        }
+        (cellImgsByParam)
   }
 
-/**
- *
- */
+  def getCellNeighbors(cellImgs: Rep[DenseVector[DenseMatrix[Double]]): (DenseVector[DenseVector[Double], DenseMatrix[Double]) = {
+    val nCells = cellImgs(0).numCols
+    val cellImgOverlaps = calcCellImgOverlaps(cellImgs)
+    val neighbors = (0::nCells) { (i) =>
+        cellImgOverlaps(0,0) = 0; cellImgOverlaps.getRow(i).find(_ > 0.15)
+        }
+    (neighbors, cellImgOverlaps)
+  }
+
   def getAllfVals(thisft: Rep[DenseVectorView[Double]], noiseSigma: Rep[Double], fOffsetVec: Rep[DenseVector[Double]]): (Rep[DenseMatrix[Double]], Rep[IndexVector]) = {
     val activeCells = thisft.find(_ >= 2*noiseSigma)
     val nCells = thisft.length
@@ -89,9 +93,6 @@ trait NeuronId extends OptiMLApplication {
   }
 
 
-/**
- *
- */
   def getCellImg(cellImgsPermuted: Rep[DenseVector[DenseMatrix[Double]]], c: Rep[Int]) = {
     val nxpix = cellImgsPermuted.length
     val nypix = cellImgsPermuted(0).numRows
@@ -101,9 +102,7 @@ trait NeuronId extends OptiMLApplication {
     }
   }
 
-/**
- *
- */
+
   def replaceCellImgInPlace(cellImgsPermuted: Rep[DenseVector[DenseMatrix[Double]]], c: Rep[Int], thisLoopCellImg: Rep[DenseMatrix[Double]]) = {
     val nxpix = cellImgsPermuted.length
     val nypix = cellImgsPermuted(0).numRows
@@ -117,29 +116,18 @@ trait NeuronId extends OptiMLApplication {
     ()
   }
 
-  
-/**
- *
- */  
- def logpFgivenfwithCellImgs_allfvals_diffVals(F: Rep[DenseMatrix[Double]], allfvals: Rep[DenseMatrix[Double]], cellImgsPermuted: Rep[DenseVector[DenseMatrix[Double]]], noiseSigma: Rep[Double], bg: Rep[DenseMatrix[Double]]): Rep[DenseVector[Double]] = {
+
+ def logpFgivenf(F: Rep[DenseMatrix[Double]], allfvals: Rep[DenseMatrix[Double]], cellImgs: Rep[DenseVector[DenseMatrix[Double]]], noiseSigma: Rep[Double], bg: Rep[DenseMatrix[Double]]): Rep[DenseVector[Double]] = {
     val numfvecs = allfvals.numCols
-    val nxpix = cellImgsPermuted.length
-    val nypix = cellImgsPermuted(0).numRows
-
-    // logp (1 x numfvecs)
-    sum(0,nxpix) { x =>
-      val m = cellImgsPermuted(x)
-
-      // m2 comes out out as nypix x numfvecs
-      val m2 = m*allfvals
-
-      (m2.colIndices.map { j => sum(log(normpdf(F.getCol(x), m2.getCol(j) + bg.getCol(x), noiseSigma)*0.01)) })
+    //Question: pi in matlab>
+    val logSigmaTerm = log(0.01) - log(sqrt(2 * 3.14) * noiseSigma)
+    (0::numfvecs) { i =>
+        val thisBG = bg + cellImgs*allfvals.getCol(i);
+        partialLogp = -0.5 * (((F - thisBG)/noiseSigma)~^2)+logSigmaTerm;
+        sum(sum(partialLogp))/F.numRows
     }
   }
 
-/**
- *
- */
   def logLik(imgs: Rep[DenseVector[DenseMatrix[Double]]],
              noiseSigma: Rep[Double],
              bg: Rep[DenseMatrix[Double]],
@@ -183,87 +171,121 @@ trait NeuronId extends OptiMLApplication {
     val thisSigYInds = (0::nCells) { i => sigYVals(i).find(e => round(10000*e) == round(10000*thisSigY(i))).apply(0) }
     val thisThetaInds = (0::nCells) { i => thetaVals(i).find(e => round(10000*e) == round(10000*thisTheta(i))).apply(0) }
 
+//** clear muXVals muYVals sigXVals sigYVals thetaVals
     // initialize cell images for current parameter guesses
     val cellImgs = calcCellImgs(thisMuX, thisMuY, thisSigX, thisSigY, thisTheta, imgHeight, imgWidth)
+    val (neighbors, cellImgOverlaps) = getCellNeighbors(cellImgs)
+    val (cvxHulls, areas, binImages) = getConvexHull(cellImgs)
 
-    val cellImgsPermuted = ((0::imgWidth) { x =>
-      // permute cell image to get (nypix x nCells) * (nCells x numfvecs) matrix multiplication
-      (0::imgHeight, 0::cellImgs.length) { (y,n) => cellImgs(n).apply(y,x) }
-    }).mutable
+//Question: Reshaping/flattening? //reshape everything
+   //cellImgs=reshape(cellImgs, [imgSize(1)*imgSize(2), nCells]);
+   //cellImgsByParam=reshape(cellImgsByParam, [imgSize(1)*imgSize(2), nCells, size(cellImgsByParam,4)]);
+   //bg=reshape(bg, [imgSize(1)*imgSize(2), 1]);
 
-    // find the times when at least one cell is "active"
-    // this is defined as when one or more cells have a most likely f value
-    // greater than 2 times the noise std dev
-    val activeTimes = thisf.maxCols.find(_ >= 2*noiseSigma) // >= needed to reproduce matlab behavior
-
+    //
+    val numSigmasThresh = 3
+    val (singleCellActiveTimes,activeTimes) = calcSingleCellActiveTimes(thisf, numSigmasThresh, noiseSigma, neighbors);
+    //minimum number of frames to use to estimate the cell shape
+    val minNumActiveTimes=15;
+    val maxNumActiveTimes=40;
+    
+    // set the vector used for the conditional f dist
     val fOffsetVec = (-ceil(numfvals/2.0) :: ceil(numfvals/2.0)+1).toDouble*fInc
-
-    // compute likelihood parameters
-    // activeCells can overlap, so the outer loop must be sequential
-    untilconverged(0, minIter = activeTimes.length, maxIter = activeTimes.length) { i =>
-      println("iteration " + i + " of " + activeTimes.length)
-
-      val t = activeTimes(i)
+//** clear numfvals fInc
+    // loop over cells and do EM on each separately, during only its solo or
+    // nearly solo active times
+    for(cInd <- (0::nCells) {
+        //check to see whether this cell has enough times when it is active by
+        //itself (no neighbors active)
+        //then pick the best active times to use, depending on condition
+        val (theseActiveTimes, neighborsActiveOk] = findBestActiveTimes(cInd,singleCellActiveTimes, activeTimes, minNumActiveTimes, maxNumActiveTimes, neighbors, thisf, noiseSigma)
+        // val (meanNeighborRatios, ratioToMeanNeighbor, meanNeighborDifference) = calculateMeanNeighborRatio(cInd, theseActiveTimes, neighbors, thisf)
+        //if there are no active times, set the likelihood of the current
+        //parameters to > the max value
+        if(theseActiveTimes.length < 1) {
+            muX(cInd,thisMuXInds(cInd)) =1;
+            muY(cInd,thisMuYInds(cInd))=1;
+            sigX(cInd,thisSigXInds(cInd))=1;
+            sigY(cInd,thisSigYInds(cInd))=1;
+            theta(cInd,thisThetaInds(cInd))=1;
+        }
+        else if(theseActiveTimes.numRows > 1) {
+            theseActiveTimes = theseActiveTimes.t
+        }  
+        if(theseActiveTimes.numRows > 1) { 
+            //error reporting?:   error('theseActiveTimes is the wrong size....')
+        }
+      //now go through the active times and add to the likelihood of each
+      //shape parameter
+      val tInd = 0;
+      for(t <- theseActiveTimes) {
       val F = imgs(t)
+      //**  F=reshape(F, [imgSize(1)*imgSize(2), 1]); 
       val thisft = thisf.getCol(t)
+//    get the options for fval combos for this time: commented out in matlab code
+//        activeCells=[neighbors{cInd}(thisft(neighbors{cInd})>numSigmasThresh*noiseSigma), cInd];
+//        if length(activeCells)>1
+//            if ~neighborsActiveOk
+//                error('Something went wrong in finding active cells.')
+//            end
+//            if size(activeCells,1)>1
+//                activeCells=activeCells';
+//            end
+//        end
+        val activeCells=cInd;
+	 // actual EM
+        val (allfvals, fValsCell) =getAllfVals_singleCluster(thisft,activeCells,fOffsetVec,nCells);
 
-      // get the options for fval combos for this time
-      val (allfvals,activeCells) = getAllfVals(thisft, noiseSigma, fOffsetVec)
+        //E
+        val thisLoopCellImgs=cellImgs;
+        // q(f') = log( p(f=f'|F;sigmas, mus) ) = logp*p(f=f';sigmas,mus)/p(F;sigmas,mus)
+        // where f' is a specific vector of f values for all cells
+        // elopq exp(q*p(F)/p(f=f'))
+        val elogp = exp(logpFgivenf(F, allfvals, thisLoopCellImgs, noiseSigma, bg));
+        //*** M-step: if variables are reshaped properly, how to do:
+        //linInd=sum(([muInd thisMuYInds(cInd) thisSigXInds(cInd) thisSigYInds(cInd) thisThetaInds(cInd)]-1).*paramSizeCumProd)+1;
+        //thisLoopCellImgs.getCol(cInd)=cellImgsByParam(:,cInd,linInd);
+        //logpThisParam=logpFgivenf(F, allfvals, thisLoopCellImgs, noiseSigma, bg);
+        //logLik{1}(cInd,muInd)=logLik{1}(cInd,muInd)+sum(logpThisParam.*elogp);
+	   for (muInd <- (0::numMuVals)) {
+	          // muX
+        	  val idxX = flatten((c, muInd, thisMuYInds(c), thisSigXInds(c), thisSigYInds(c), thisThetaInds(c)), (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
+          	  replaceCellImgInPlace(cellImgsPermuted, c, cellImgsByParam(idxX))
+          	  val logpThisParamX = logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg)
+          	  muX(c,muInd) = muX(c,muInd) + sum(logpThisParamX*elogp)
 
-      // q(f') = log( p(f=f'|F;sigmas, mus) ) = logp*p(f=f';sigmas,mus)/p(F;sigmas,mus)
-      // where f' is a specific vector of f values for all cells
-      // elopq exp(q*p(F)/p(f=f'))
-      val elogp = exp(logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg))
+          	  // muY
+         	  val idxY = flatten((c, thisMuXInds(c), muInd, thisSigXInds(c), thisSigYInds(c), thisThetaInds(c)), (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
+          	  replaceCellImgInPlace(cellImgsPermuted, c, cellImgsByParam(idxY))
+          	  val logpThisParamY = logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg)
+          	  muY(c,muInd) = muY(c,muInd) + sum(logpThisParamY*elogp)
+           }
 
-      // loop over active cells and update likelihood parameters in parallel
-      for (c <- activeCells) {
-        val oldCellImg = getCellImg(cellImgsPermuted, c)
+           for (sigInd <- (0::numSigVals)) {
+         	  // sigX
+          	  val idxX = flatten((c, thisMuXInds(c), thisMuYInds(c), sigInd, thisSigYInds(c), thisThetaInds(c)), (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
+          	  replaceCellImgInPlace(cellImgsPermuted, c, cellImgsByParam(idxX))
+               	  val logpThisParamX = logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg)
+          	  sigX(c,sigInd) = sigX(c,sigInd) + sum(logpThisParamX*elogp)
 
-        for (muInd <- (0::numMuVals)) {
-          // muX
-          val idxX = flatten((c, muInd, thisMuYInds(c), thisSigXInds(c), thisSigYInds(c), thisThetaInds(c)), (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
-          replaceCellImgInPlace(cellImgsPermuted, c, cellImgsByParam(idxX))
-          val logpThisParamX = logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg)
-          muX(c,muInd) = muX(c,muInd) + sum(logpThisParamX*elogp)
-
-          // muY
-          val idxY = flatten((c, thisMuXInds(c), muInd, thisSigXInds(c), thisSigYInds(c), thisThetaInds(c)), (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
-          replaceCellImgInPlace(cellImgsPermuted, c, cellImgsByParam(idxY))
-          val logpThisParamY = logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg)
-          muY(c,muInd) = muY(c,muInd) + sum(logpThisParamY*elogp)
-        }
-
-        for (sigInd <- (0::numSigVals)) {
-          // sigX
-          val idxX = flatten((c, thisMuXInds(c), thisMuYInds(c), sigInd, thisSigYInds(c), thisThetaInds(c)), (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
-          replaceCellImgInPlace(cellImgsPermuted, c, cellImgsByParam(idxX))
-          val logpThisParamX = logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg)
-          sigX(c,sigInd) = sigX(c,sigInd) + sum(logpThisParamX*elogp)
-
-          // sigY
-          val idxY = flatten((c, thisMuXInds(c), thisMuYInds(c), thisSigXInds(c), sigInd, thisThetaInds(c)), (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
-          replaceCellImgInPlace(cellImgsPermuted, c, cellImgsByParam(idxY))
-          val logpThisParamY = logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg)
-          sigY(c,sigInd) = sigY(c,sigInd) + sum(logpThisParamY*elogp)
-        }
-
-        for (thetaInd <- (0::numThetaVals)) {
-          // theta
-          val idx = flatten((c, thisMuXInds(c), thisMuYInds(c), thisSigXInds(c), thisSigYInds(c), thetaInd), (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
-          replaceCellImgInPlace(cellImgsPermuted, c, cellImgsByParam(idx))
-          val logpThisParam = logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg)
-          theta(c,thetaInd) = theta(c,thetaInd) + sum(logpThisParam*elogp)
-        }
-
-        replaceCellImgInPlace(cellImgsPermuted, c, oldCellImg)
-      }
-
-      i + 1
+          	  // sigY
+          	  val idxY = flatten((c, thisMuXInds(c), thisMuYInds(c), thisSigXInds(c), sigInd, thisThetaInds(c)), (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
+          	  replaceCellImgInPlace(cellImgsPermuted, c, cellImgsByParam(idxY))
+          	  val logpThisParamY = logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg)
+          	  sigY(c,sigInd) = sigY(c,sigInd) + sum(logpThisParamY*elogp)
+           }
+         
+           for (thetaInd <- (0::numThetaVals)) {
+         	  // theta
+          	  val idx = flatten((c, thisMuXInds(c), thisMuYInds(c), thisSigXInds(c), thisSigYInds(c), thetaInd), (nCells, muXVals.numCols, muYVals.numCols, sigXVals.numCols, sigYVals.numCols, thetaVals.numCols))
+          	  replaceCellImgInPlace(cellImgsPermuted, c, cellImgsByParam(idx))
+          	  val logpThisParam = logpFgivenfwithCellImgs_allfvals_diffVals(F, allfvals, cellImgsPermuted, noiseSigma, bg)
+          	  theta(c,thetaInd) = theta(c,thetaInd) + sum(logpThisParam*elogp)
+           }
+       }
     }
-
     pack(muX, muY, sigX, sigY, theta)
   }
-
 
   def main() {
     // no nice binary format for optiml yet, so we pass in data as multiple files using a naming convention
