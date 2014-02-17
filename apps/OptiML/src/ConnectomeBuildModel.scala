@@ -39,11 +39,15 @@ trait ConnectomeBuildModel extends OptiMLApplication {
     }
     println("done!")
 
-    println("reading expected output...")
-    val expected_out = readVector[DenseVector[Double]](args(2), { line => 
-      (0::line.length) { i => line(i).toDouble } 
-    }, ",")
-    println("done!")
+    // println("reading expected output...")
+    // val expected_out = readVector[DenseVector[Double]](args(2), { line => 
+    //   (0::line.length) { i => line(i).toDouble } 
+    // }, ",")
+    // println("done!")
+
+    val expected_mrows = readVector[Int](args(2), { line => line(0).toInt })
+    val expected_mcols = readVector[Int](args(3), { line => line(0).toInt })
+    val expected_msignal = readVector[Double](args(4), { line => line(0).toDouble })
 
     // println("reading vox.dat")
     // val fe = readVector[Tup4[Double,DenseVector[Int],DenseVector[Int],DenseVector[DenseMatrix[Double]]]](args(1), {line =>
@@ -72,7 +76,7 @@ trait ConnectomeBuildModel extends OptiMLApplication {
     // }, "\\|")
     // println("done!")
 
-    val vox_sparse_pSig = (0::fe.length) { vv =>
+    val M_rcs = (0::fe.length) { vv =>
       val (s0, tot_fiber_idx, unique_fiber_idx, voxTensors) = unpack(fe(vv))
       val tot_fibers_num = tot_fiber_idx.length
       val unique_fibers_num = unique_fiber_idx.length
@@ -103,26 +107,76 @@ trait ConnectomeBuildModel extends OptiMLApplication {
         voxelPSignal(i, j) - meanVoxelPSignal(j)
       }
 
-      //DenseVector.reshape_matrix(demeaned_pSig)
-      //demeaned_pSig
-      DenseVector.flatten[Double]((0::bv.numRows) { i => ((0::unique_fibers_num) { j => demeaned_pSig(i, j) }) })
+      val vox_sparse_pSig = DenseVector.flatten[Double]((0::bv.numRows) { i => ((0::unique_fibers_num) { j => demeaned_pSig(i, j) }) })
+    
+      val sparse_rows = (0::(unique_fiber_idx.length * bvals.length)) { i =>
+        (i % bvals.length) + (vv * bvals.length) + 1
+      }
+
+      val sparse_cols = (0::(unique_fiber_idx.length * bvals.length)) { i =>
+        unique_fiber_idx(i % unique_fibers_num)
+      }
+
+      pack(sparse_rows, sparse_cols, vox_sparse_pSig)
     }
 
-    (0::fe.length) { vv =>
-      val r = vox_sparse_pSig(vv)
-      val x = expected_out(vv)
-      if(r.length != x.length) {
-        print("error. lengths do not match. ")
-        print(r.length)
-        print(" vs ")
-        println(x.length)
-      }
-      else {
-        val e = r - x
-        val erx = sqrt(e *:* e)
-        println(erx)
-      }
+    val m_rows = DenseVector.flatten[Int](M_rcs map { _._1 })
+    val m_cols = DenseVector.flatten[Int](M_rcs map { _._2 })
+    val m_signal = DenseVector.flatten[Double](M_rcs map { _._3 })
+
+    // (0::fe.length) { vv =>
+    //   val r = vox_sparse_pSig(vv)
+    //   val x = expected_out(vv)
+    //   if(r.length != x.length) {
+    //     print("error. lengths do not match. ")
+    //     print(r.length)
+    //     print(" vs ")
+    //     println(x.length)
+    //   }
+    //   else {
+    //     val e = r - x
+    //     val erx = sqrt(e *:* e)
+    //     println(erx)
+    //   }
+    //}
+
+    if((m_rows.length != m_cols.length)
+      ||(m_rows.length != m_signal.length)
+      ||(m_rows.length != expected_mrows.length)
+      ||(m_rows.length != expected_mcols.length)
+      ||(m_rows.length != expected_msignal.length)) {
+
+      println("error. output length mismatch.")
+      println(m_rows.length)
+      println(m_cols.length)
+      println(m_signal.length)
+      println(expected_mrows.length)
+      println(expected_mcols.length)
+      println(expected_msignal.length)
+      exit(-1)
     }
+
+    val edfx = (0::m_signal.length) { k =>
+      if(m_rows(k) != expected_mrows(k)) {
+        print("error. row indices do not match: ")
+        print(m_rows(k))
+        print(" vs ")
+        println(expected_mrows(k))
+      }
+      if(m_cols(k) != expected_mcols(k)) {
+        print("error. col indices do not match: ")
+        print(m_cols(k))
+        print(" vs ")
+        println(expected_mcols(k))
+      }
+      val e = m_signal(k) - expected_msignal(k)
+      val erx = sqrt(e * e)
+      erx
+    }
+
+    println("")
+    print("max error: ")
+    println(edfx.max)
 
   }
 
