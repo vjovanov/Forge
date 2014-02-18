@@ -48,7 +48,7 @@ trait NeuronId extends OptiMLApplication {
         (cellImgsByParam)
   }
 
-  def getCellNeighbors(cellImgs: Rep[DenseVector[DenseMatrix[Double]]): (DenseVector[DenseVector[Double], DenseMatrix[Double]) = {
+  def getCellNeighbors(cellImgs: Rep[DenseVector[DenseMatrix[Double]]]): (Rep[DenseVector[DenseVector[Double]]], Rep[DenseMatrix[Double]]) = {
     val nCells = cellImgs(0).numCols
     val cellImgOverlaps = calcCellImgOverlaps(cellImgs)
     val neighbors = (0::nCells) { (i) =>
@@ -56,12 +56,9 @@ trait NeuronId extends OptiMLApplication {
         }
     (neighbors, cellImgOverlaps)
   }
-
-  def getAllfVals(thisft: Rep[DenseVectorView[Double]], noiseSigma: Rep[Double], fOffsetVec: Rep[DenseVector[Double]]): (Rep[DenseMatrix[Double]], Rep[IndexVector]) = {
-    val activeCells = thisft.find(_ >= 2*noiseSigma)
-    val nCells = thisft.length
-
-    // number of combinations of fvals is determined by the number of active cells
+  
+  def getAllfVals_singleCluster(thisft: Rep[DenseVectorView[Double]], activeCells: Rep[Double], fOffsetVec: Rep[DenseVector[Double]], nCells: Rep[Double]): (Rep[DenseMatrix[Double]]) = {
+     // number of combinations of fvals is determined by the number of active cells
     val numfvecs = pow(fOffsetVec.length, activeCells.length).toInt
 
     // construct a consecutive numbering to allow us to quickly determine an assignment later
@@ -89,7 +86,19 @@ trait NeuronId extends OptiMLApplication {
       }
     }
 
-    (allfvals, activeCells)
+    (allfvals)
+  }
+  
+  def calcCellImgOverlaps(cellImgs: Rep[DenseVector[DenseMatrix[Double]]]):
+      (Rep[DenseMatrix[Double]]) = {
+    val nCells = cellImgs(0).numCols;
+
+    val cellImgOverlaps = (0::nCells, 0::nCells) { (x,y) => 1 }
+    (0::nCells) { (cInd) =>
+        /** Question: Accessing **/
+    
+    }
+    (cellImgOverlaps)
   }
 
 
@@ -126,7 +135,7 @@ trait NeuronId extends OptiMLApplication {
         partialLogp = -0.5 * (((F - thisBG)/noiseSigma)~^2)+logSigmaTerm;
         sum(sum(partialLogp))/F.numRows
     }
-  }
+ }
 
   def logLik(imgs: Rep[DenseVector[DenseMatrix[Double]]],
              noiseSigma: Rep[Double],
@@ -194,11 +203,11 @@ trait NeuronId extends OptiMLApplication {
 //** clear numfvals fInc
     // loop over cells and do EM on each separately, during only its solo or
     // nearly solo active times
-    for(cInd <- (0::nCells) {
+    for(cInd <- (0::nCells)) {
         //check to see whether this cell has enough times when it is active by
         //itself (no neighbors active)
         //then pick the best active times to use, depending on condition
-        val (theseActiveTimes, neighborsActiveOk] = findBestActiveTimes(cInd,singleCellActiveTimes, activeTimes, minNumActiveTimes, maxNumActiveTimes, neighbors, thisf, noiseSigma)
+        val (theseActiveTimes, neighborsActiveOk) = findBestActiveTimes(cInd,singleCellActiveTimes, activeTimes, minNumActiveTimes, maxNumActiveTimes, neighbors, thisf, noiseSigma)
         // val (meanNeighborRatios, ratioToMeanNeighbor, meanNeighborDifference) = calculateMeanNeighborRatio(cInd, theseActiveTimes, neighbors, thisf)
         //if there are no active times, set the likelihood of the current
         //parameters to > the max value
@@ -217,7 +226,7 @@ trait NeuronId extends OptiMLApplication {
         }
       //now go through the active times and add to the likelihood of each
       //shape parameter
-      val tInd = 0;
+      val tInd = 0
       for(t <- theseActiveTimes) {
       val F = imgs(t)
       //**  F=reshape(F, [imgSize(1)*imgSize(2), 1]); 
@@ -234,7 +243,7 @@ trait NeuronId extends OptiMLApplication {
 //        end
         val activeCells=cInd;
 	 // actual EM
-        val (allfvals, fValsCell) =getAllfVals_singleCluster(thisft,activeCells,fOffsetVec,nCells);
+        val allfvals = getAllfVals_singleCluster(thisft,activeCells,fOffsetVec,nCells);
 
         //E
         val thisLoopCellImgs=cellImgs;
@@ -285,6 +294,7 @@ trait NeuronId extends OptiMLApplication {
        }
     }
     pack(muX, muY, sigX, sigY, theta)
+             
   }
 
   def main() {
