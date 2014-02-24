@@ -8,7 +8,7 @@ object NeuronIdCompiler extends OptiMLApplicationCompiler with NeuronId
 object NeuronIdInterpreter extends OptiMLApplicationInterpreter with NeuronId
 
 trait NeuronId extends OptiMLApplication {
-
+//gauss image
   def gaussImage(mux: Rep[Double], muy: Rep[Double], sigx: Rep[Double], sigy: Rep[Double], theta: Rep[Double], imgHeight: Rep[Int], imgWidth: Rep[Int]): Rep[DenseMatrix[Double]] = {
     val a = (cos(theta)~^2)/(2*sigx~^2)+(sin(theta)~^2)/(2*sigy~^2)
     val b = -sin(2*theta)/(4*sigx~^2)+sin(2*theta)/(4*sigy~^2)
