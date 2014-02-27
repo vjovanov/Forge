@@ -2,13 +2,14 @@ package ppl.dsl.forge
 package dsls
 package optiml
 
-import optila.OptiLADSL
 import core.ForgeApplicationRunner
+import optila.OptiLADSL
+import factor._
 
 object OptiMLDSLRunner extends ForgeApplicationRunner with OptiMLDSL
 
 trait OptiMLDSL extends OptiLADSL
-  with SetOps with BufferableOps {
+  with MLIOOps with SetOps with BufferableOps with FactorOps with FactorGraphOps {
 
   override def dslName = "OptiML"
 
@@ -28,6 +29,8 @@ trait OptiMLDSL extends OptiLADSL
     importBufferableOps()
     importSetOps()
     importUntilConverged()
+    importAllFactorGraphOps()
+    importMLIOOps()
   }
 
   def importUntilConverged() {
