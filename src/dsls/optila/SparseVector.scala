@@ -264,12 +264,16 @@ trait SparseVectorOps {
         val indices = sparsevector_raw_indices($self)
         val data = sparsevector_raw_data($self)
         var s = ""
-        if ($self.nnz == 0) {
+
+        if ($self == null) {
+          s = "null"
+        }
+        else if ($self.nnz == 0) {
           s = "[ ]"
         }
         else if ($self.isRow) {
           for (i <- 0 until $self.nnz-1) {
-            s = s + "(" + array_apply(indices,i) + ", " +array_apply(data,i).makeStr + "), "
+            s = s + "(" + array_apply(indices,i) + ", " + array_apply(data,i).makeStr + "), "
           }
           s = s + "(" + array_apply(indices,$self.nnz-1) + ", " + array_apply(data,$self.nnz-1).makeStr + ") "
         }
@@ -285,21 +289,24 @@ trait SparseVectorOps {
         val indices = sparsevector_raw_indices($self)
         val data = sparsevector_raw_data($self)
         var s = ""
-        if ($self.nnz == 0) {
+
+        if ($self == null) {
+          s = "null"
+        }
+        else if ($self.nnz == 0) {
           s = "[ ]"
         }
         else if ($self.isRow) {
           for (i <- 0 until $self.nnz-1) {
-            // make sure to force strConcatWithNumerics to kick in
-            s = s + "(" + array_apply(indices,i) + ", " + array_apply(data,i) + "), "
+            s = s + "(" + array_apply(indices,i) + ", " + optila_fmt_str(array_apply(data,i)) + "), "
           }
-          s = s + "(" + array_apply(indices,$self.nnz-1) + ", " + array_apply(data,$self.nnz-1) + ") "
+          s = s + "(" + array_apply(indices,$self.nnz-1) + ", " + optila_fmt_str(array_apply(data,$self.nnz-1)) + ") "
         }
         else {
           for (i <- 0 until $self.nnz-1) {
-            s = s + "(" + array_apply(indices,i) + ", " + array_apply(data,i) + ")\\n"
+            s = s + "(" + array_apply(indices,i) + ", " + optila_fmt_str(array_apply(data,i)) + ")\\n"
           }
-          s = s + "(" + array_apply(indices,$self.nnz-1) + ", " + array_apply(data,$self.nnz-1) + ")"
+          s = s + "(" + array_apply(indices,$self.nnz-1) + ", " + optila_fmt_str(array_apply(data,$self.nnz-1)) + ")"
         }
         s
       }

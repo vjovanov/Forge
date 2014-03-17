@@ -75,7 +75,10 @@ trait SparseMatrixOps {
         val data = sparsematrix_coo_data($self)
         var s = ""
 
-        if ($self.nnz == 0) {
+        if ($self == null) {
+          s = "null"
+        }
+        else if ($self.nnz == 0) {
           s = "[ ]"
         }
         else {
@@ -95,16 +98,19 @@ trait SparseMatrixOps {
         val data = sparsematrix_coo_data($self)
         var s = ""
 
-        if ($self.nnz == 0) {
+        if ($self == null) {
+          s = "null"
+        }
+        else if ($self.nnz == 0) {
           s = "[ ]"
         }
         else {
           // COO is not stored in order, so just output coordinates as a list
           for (i <- 0 until $self.nnz-1) {
             if (rowIndices(i) > -1)
-              s = s + "((" + rowIndices(i) + ", " + colIndices(i) + "), " + data(i) + ")\\n"
+              s = s + "((" + rowIndices(i) + ", " + colIndices(i) + "), " + optila_fmt_str(data(i)) + ")\\n"
           }
-          s = s + "((" + rowIndices($self.nnz-1) + ", " + colIndices($self.nnz-1) + "), " + data($self.nnz-1) + ")\\n"
+          s = s + "((" + rowIndices($self.nnz-1) + ", " + colIndices($self.nnz-1) + "), " + optila_fmt_str(data($self.nnz-1)) + ")\\n"
         }
         s
       }
@@ -668,19 +674,27 @@ trait SparseMatrixOps {
         val data = sparsematrix_csr_data($self)
         var s = ""
 
-        for (i <- 0 until $self.numRows) {
-          val nnz = rowPtr(i+1) - rowPtr(i)
-          if (nnz > 0) {
-            s = s + "(" + i + "): "
-            for (j <- rowPtr(i) until rowPtr(i+1)-1) {
-              s = s + "(" + colIndices(j) + ", " + data(j).makeStr + "), "
-            }
-            val lineEnd = if (i == $self.numRows-1) "" else "\\n"
-            s = s + "(" + colIndices(rowPtr(i+1)-1) + ", " + data(rowPtr(i+1)-1).makeStr + ")" + lineEnd
-          }
+        if ($self == null) {
+          s = "null"
         }
-        if ($self.nnz > 0) s
-        else "[ ]"
+        else if ($self.nnz < 1) {
+          s = "[ ]"
+        }
+        else {
+          for (i <- 0 until $self.numRows) {
+            val nnz = rowPtr(i+1) - rowPtr(i)
+            if (nnz > 0) {
+              s = s + "(" + i + "): "
+              for (j <- rowPtr(i) until rowPtr(i+1)-1) {
+                s = s + "(" + colIndices(j) + ", " + data(j).makeStr + "), "
+              }
+              val lineEnd = if (i == $self.numRows-1) "" else "\\n"
+              s = s + "(" + colIndices(rowPtr(i+1)-1) + ", " + data(rowPtr(i+1)-1).makeStr + ")" + lineEnd
+            }
+          }
+          s
+        }
+        s
       }
 
       infix ("toString") (Nil :: MString) implements single ${
@@ -689,19 +703,26 @@ trait SparseMatrixOps {
         val data = sparsematrix_csr_data($self)
         var s = ""
 
-        for (i <- 0 until $self.numRows) {
-          val nnz = rowPtr(i+1) - rowPtr(i)
-          if (nnz > 0) {
-            s = s + "(" + i + "): "
-            for (j <- rowPtr(i) until rowPtr(i+1)-1) {
-              s = s + "(" + colIndices(j) + ", " + data(j) + "), "
+        if ($self == null) {
+          s = "null"
+        }
+        else if ($self.nnz < 1) {
+          s = "[ ]"
+        }
+        else {
+          for (i <- 0 until $self.numRows) {
+            val nnz = rowPtr(i+1) - rowPtr(i)
+            if (nnz > 0) {
+              s = s + "(" + i + "): "
+              for (j <- rowPtr(i) until rowPtr(i+1)-1) {
+                s = s + "(" + colIndices(j) + ", " + optila_fmt_str(data(j)) + "), "
+              }
+              val lineEnd = if (i == $self.numRows-1) "" else "\\n"
+              s = s + "(" + colIndices(rowPtr(i+1)-1) + ", " + optila_fmt_str(data(rowPtr(i+1)-1)) + ")" + lineEnd
             }
-            val lineEnd = if (i == $self.numRows-1) "" else "\\n"
-            s = s + "(" + colIndices(rowPtr(i+1)-1) + ", " + data(rowPtr(i+1)-1) + ")" + lineEnd
           }
         }
-        if ($self.nnz > 0) s
-        else "[ ]"
+        s
       }
 
 
