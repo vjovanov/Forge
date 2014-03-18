@@ -18,6 +18,12 @@ trait ConnectomeBuildModel extends OptiMLApplication {
     println("reading vox...")
     val fetemp = readVector[DenseVector[String]](args(1), { line => line }, "\\|")
     val fe = (0::fetemp.length) { n =>
+      if(array_length(line) != 4) {
+        println(line(0))
+        println(line(1))
+        println(line(2))
+        println(line(3))
+      }
       val line = fetemp(n)
       val s0 = line(0).toDouble
       val ltx = ftsplit(line(1), ",") //line(1).fsplit(",")
