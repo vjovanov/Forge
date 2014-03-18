@@ -20,14 +20,14 @@ trait ConnectomeBuildModel extends OptiMLApplication {
     val fe = (0::fetemp.length) { n =>
       val line = fetemp(n)
       val s0 = line(0).toDouble
-      val ltx = line(1).fsplit(",")
-      val tot_fiber_idx = (0::array_length(ltx)) {i => ltx(i).toInt}
-      val lux = line(2).fsplit(",")
-      val unique_fiber_idx = (0::array_length(lux)) {i => lux(i).toInt}
-      val lvx = line(3).fsplit(";")
-      val voxTensors = (0::array_length(lvx)) {i => 
-        val u = lvx(i).fsplit(",")
-        if(array_length(u) != 9) {
+      val ltx = ftsplit(line(1), ",") //line(1).fsplit(",")
+      val tot_fiber_idx = (0::ltx.length) {i => ltx(i).toInt}
+      val lux = ftsplit(line(2), ",") //line(2).fsplit(",")
+      val unique_fiber_idx = (0::lux.length) {i => lux(i).toInt}
+      val lvx = ftsplit(line(3), ",") //line(3).fsplit(";")
+      val voxTensors = (0::lvx.length) {i => 
+        val u = ftsplit(lvx(i), ",") //.fsplit(",")
+        if(u.length != 9) {
           println("Error: Invalid tensor length.")
           exit(-1)
         }
@@ -186,4 +186,9 @@ trait ConnectomeBuildModel extends OptiMLApplication {
 
   }
 
+  def ftsplit(x: Rep[String], s: Rep[String]): Rep[DenseVector[String]] = {
+    val xs = x.fsplit(s)
+    val vs = (0::array_length(xs)) { i => xs(i) }
+    vs filter { k => (k != "") }
+  }
 }
