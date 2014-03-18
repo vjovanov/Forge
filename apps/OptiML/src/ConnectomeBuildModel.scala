@@ -24,7 +24,7 @@ trait ConnectomeBuildModel extends OptiMLApplication {
       val tot_fiber_idx = (0::ltx.length) {i => ltx(i).toInt}
       val lux = ftsplit(line(2), ",") //line(2).fsplit(",")
       val unique_fiber_idx = (0::lux.length) {i => lux(i).toInt}
-      val lvx = ftsplit(line(3), ",") //line(3).fsplit(";")
+      val lvx = ftsplit(line(3), ";") //line(3).fsplit(";")
       val voxTensors = (0::lvx.length) {i => 
         val u = ftsplit(lvx(i), ",") //.fsplit(",")
         if(u.length != 9) {
