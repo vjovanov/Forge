@@ -29,6 +29,9 @@ trait ConnectomeBuildModel extends OptiMLApplication {
         val u = ftsplit(lvx(i), ",") //.fsplit(",")
         if(u.length != 9) {
           println("Error: Invalid tensor length.")
+          println(u.length)
+          println(lvx(i))
+          println(u)
           exit(-1)
         }
         val jlu = (0::9) { j => u(j).toDouble }
