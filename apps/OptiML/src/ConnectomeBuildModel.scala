@@ -45,7 +45,7 @@ trait ConnectomeBuildModel extends OptiMLApplication {
         (0::3, 0::3) { (u,v) => jlu(u + 3*v) }
         //DenseMatrix.reshape_vector(jlu, 3, 3)
       }
-      if(tot_fiber_idx.length != voxTensors.length) {
+      if((tot_fiber_idx.length != unique_fiber_idx.length)&&(tot_fiber_idx.length != voxTensors.length)) {
         println("Error: Fiber count mismatch")
         println(tot_fiber_idx.length)
         println(unique_fiber_idx.length)
