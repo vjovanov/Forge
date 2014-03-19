@@ -48,6 +48,7 @@ trait ConnectomeBuildModel extends OptiMLApplication {
       if(tot_fiber_idx.length != voxTensors.length) {
         println("Error: Fiber count mismatch")
         println(tot_fiber_idx.length)
+        println(unique_fiber_idx.length)
         println(voxTensors.length)
         println(line(0))
         println(line(1))
