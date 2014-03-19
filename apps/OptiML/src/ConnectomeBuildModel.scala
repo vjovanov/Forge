@@ -24,6 +24,7 @@ trait ConnectomeBuildModel extends OptiMLApplication {
         println(line(1))
         println(line(2))
         println(line(3))
+        exit(-1)
       }
       val s0 = line(0).toDouble
       val ltx = ftsplit(line(1), ",") //line(1).fsplit(",")
@@ -43,6 +44,16 @@ trait ConnectomeBuildModel extends OptiMLApplication {
         val jlu = (0::9) { j => u(j).toDouble }
         (0::3, 0::3) { (u,v) => jlu(u + 3*v) }
         //DenseMatrix.reshape_vector(jlu, 3, 3)
+      }
+      if(tot_fiber_idx.length != voxTensors.length) {
+        println("Error: Fiber count mismatch")
+        println(tot_fiber_idx.length)
+        println(voxTensors.length)
+        println(line(0))
+        println(line(1))
+        println(line(2))
+        println(line(3))
+        exit(-1)
       }
       pack(s0, tot_fiber_idx, unique_fiber_idx, voxTensors)
     }
