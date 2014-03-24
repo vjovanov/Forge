@@ -19,21 +19,42 @@ trait ConnectomeBuildModel extends OptiMLApplication {
     val fetemp = readVector[DenseVector[String]](args(1), { line => line }, "\\|")
     val fe = (0::fetemp.length) { n =>
       val line = fetemp(n)
+      if(line.length != 4) {
+        println(line(0))
+        println(line(1))
+        println(line(2))
+        println(line(3))
+        exit(-1)
+      }
       val s0 = line(0).toDouble
-      val ltx = line(1).fsplit(",")
-      val tot_fiber_idx = (0::array_length(ltx)) {i => ltx(i).toInt}
-      val lux = line(2).fsplit(",")
-      val unique_fiber_idx = (0::array_length(lux)) {i => lux(i).toInt}
-      val lvx = line(3).fsplit(";")
-      val voxTensors = (0::array_length(lvx)) {i => 
-        val u = lvx(i).fsplit(",")
-        if(array_length(u) != 9) {
+      val ltx = ftsplit(line(1), ",") //line(1).fsplit(",")
+      val tot_fiber_idx = (0::ltx.length) {i => ltx(i).toInt}
+      val lux = ftsplit(line(2), ",") //line(2).fsplit(",")
+      val unique_fiber_idx = (0::lux.length) {i => lux(i).toInt}
+      val lvx = ftsplit(line(3), ";") //line(3).fsplit(";")
+      val voxTensors = (0::lvx.length) {i => 
+        val u = ftsplit(lvx(i), ",") //.fsplit(",")
+        if(u.length != 9) {
           println("Error: Invalid tensor length.")
+          println(u.length)
+          println(lvx(i))
+          println(u)
           exit(-1)
         }
         val jlu = (0::9) { j => u(j).toDouble }
         (0::3, 0::3) { (u,v) => jlu(u + 3*v) }
         //DenseMatrix.reshape_vector(jlu, 3, 3)
+      }
+      if((tot_fiber_idx.length != unique_fiber_idx.length)&&(tot_fiber_idx.length != voxTensors.length)) {
+        println("Error: Fiber count mismatch")
+        println(tot_fiber_idx.length)
+        println(unique_fiber_idx.length)
+        println(voxTensors.length)
+        println(line(0))
+        println(line(1))
+        println(line(2))
+        println(line(3))
+        exit(-1)
       }
       pack(s0, tot_fiber_idx, unique_fiber_idx, voxTensors)
     }
@@ -45,9 +66,9 @@ trait ConnectomeBuildModel extends OptiMLApplication {
     // }, ",")
     // println("done!")
 
-    val expected_mrows = readVector[Int](args(2), { line => line(0).toInt })
-    val expected_mcols = readVector[Int](args(3), { line => line(0).toInt })
-    val expected_msignal = readVector[Double](args(4), { line => line(0).toDouble })
+    // val expected_mrows = readVector[Int](args(2), { line => line(0).toInt })
+    // val expected_mcols = readVector[Int](args(3), { line => line(0).toInt })
+    // val expected_msignal = readVector[Double](args(4), { line => line(0).toDouble })
 
     // println("reading vox.dat")
     // val fe = readVector[Tup4[Double,DenseVector[Int],DenseVector[Int],DenseVector[DenseMatrix[Double]]]](args(1), {line =>
@@ -124,6 +145,12 @@ trait ConnectomeBuildModel extends OptiMLApplication {
     val m_cols = DenseVector.flatten[Int](M_rcs map { _._2 })
     val m_signal = DenseVector.flatten[Double](M_rcs map { _._3 })
 
+    val m_output = (0::(m_rows.length)) { i =>
+      m_rows(i).makeStr + " " + m_cols(i).makeStr + " " + m_signal(i).makeStr 
+    }
+
+    writeVector(m_output, args(2))
+
     // (0::fe.length) { vv =>
     //   val r = vox_sparse_pSig(vv)
     //   val x = expected_out(vv)
@@ -140,44 +167,49 @@ trait ConnectomeBuildModel extends OptiMLApplication {
     //   }
     //}
 
-    if((m_rows.length != m_cols.length)
-      ||(m_rows.length != m_signal.length)
-      ||(m_rows.length != expected_mrows.length)
-      ||(m_rows.length != expected_mcols.length)
-      ||(m_rows.length != expected_msignal.length)) {
+    // if((m_rows.length != m_cols.length)
+    //   ||(m_rows.length != m_signal.length)
+    //   ||(m_rows.length != expected_mrows.length)
+    //   ||(m_rows.length != expected_mcols.length)
+    //   ||(m_rows.length != expected_msignal.length)) {
 
-      println("error. output length mismatch.")
-      println(m_rows.length)
-      println(m_cols.length)
-      println(m_signal.length)
-      println(expected_mrows.length)
-      println(expected_mcols.length)
-      println(expected_msignal.length)
-      exit(-1)
-    }
+    //   println("error. output length mismatch.")
+    //   println(m_rows.length)
+    //   println(m_cols.length)
+    //   println(m_signal.length)
+    //   println(expected_mrows.length)
+    //   println(expected_mcols.length)
+    //   println(expected_msignal.length)
+    //   exit(-1)
+    // }
 
-    val edfx = (0::m_signal.length) { k =>
-      if(m_rows(k) != expected_mrows(k)) {
-        print("error. row indices do not match: ")
-        print(m_rows(k))
-        print(" vs ")
-        println(expected_mrows(k))
-      }
-      if(m_cols(k) != expected_mcols(k)) {
-        print("error. col indices do not match: ")
-        print(m_cols(k))
-        print(" vs ")
-        println(expected_mcols(k))
-      }
-      val e = m_signal(k) - expected_msignal(k)
-      val erx = sqrt(e * e)
-      erx
-    }
+    // val edfx = (0::m_signal.length) { k =>
+    //   if(m_rows(k) != expected_mrows(k)) {
+    //     print("error. row indices do not match: ")
+    //     print(m_rows(k))
+    //     print(" vs ")
+    //     println(expected_mrows(k))
+    //   }
+    //   if(m_cols(k) != expected_mcols(k)) {
+    //     print("error. col indices do not match: ")
+    //     print(m_cols(k))
+    //     print(" vs ")
+    //     println(expected_mcols(k))
+    //   }
+    //   val e = m_signal(k) - expected_msignal(k)
+    //   val erx = sqrt(e * e)
+    //   erx
+    // }
 
-    println("")
-    print("max error: ")
-    println(edfx.max)
+    // println("")
+    // print("max error: ")
+    // println(edfx.max)
 
   }
 
+  def ftsplit(x: Rep[String], s: Rep[String]): Rep[DenseVector[String]] = {
+    val xs = x.fsplit(s)
+    val vs = (0::array_length(xs)) { i => xs(i) }
+    vs filter { k => (k != "") }
+  }
 }
