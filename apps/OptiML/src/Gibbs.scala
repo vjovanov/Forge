@@ -14,7 +14,7 @@ trait Gibbs extends OptiMLApplication {
   /* Samples a variable and updates its value in the graph */
   def sampleVariable(graph: Rep[FactorGraph[FunctionFactor]], variableId: Rep[Int]) = {
     // all factors that connect to the variable
-    val variableFactors = graph.variableFactorsMap.apply(variableId).map(fid => graph.factorsMap.apply(fid))
+    val variableFactors = graph.variablesToFactors.apply(variableId).map(fid => graph.factors.apply(fid))
 
     // TODO: be domain-independent
 
@@ -119,7 +119,7 @@ trait Gibbs extends OptiMLApplication {
   }
 
   def evaluateFactor(graph: Rep[FactorGraph[FunctionFactor]], factorId: Rep[Int]): Rep[Double] = {
-    val factor = graph.factorsMap.apply(factorId)
+    val factor = graph.factors.apply(factorId)
     val factorVariableValues = factor.vars.map(fv => graph.getVariableValue(fv.id))
     factor.evaluate(factorVariableValues)
   }
@@ -149,12 +149,12 @@ trait Gibbs extends OptiMLApplication {
     val evidenceValues = evidenceVariables.map(id => graph.getVariableValue(id))
 
     // we only learn weights for factors that are connected to evidence
-    val queryFactorIds = evidenceVariables.flatMap(vid => graph.variableFactorsMap.apply(vid)).distinct
-    val factorWeightIds = queryFactorIds.map(fid => graph.factorsMap.apply(fid).weightId).distinct
-    val queryWeightIds = factorWeightIds.filter(wid => !graph.weightsMap.apply(wid).isFixed)
+    val queryFactorIds = evidenceVariables.flatMap(vid => graph.variablesToFactors.apply(vid)).distinct
+    val factorWeightIds = queryFactorIds.map(fid => graph.factors.apply(fid).weightId).distinct
+    val queryWeightIds = factorWeightIds.filter(wid => !graph.weights.apply(wid).isFixed)
 
     // map from weight -> factors
-    val weightFactorIdsMap = queryFactorIds.map(fid => graph.factorsMap.apply(fid)).groupBy(f => f.weightId, f => f.id)
+    val weightFactorIdsMap = queryFactorIds.map(fid => graph.factors.apply(fid)).groupBy(f => f.weightId, f => f.id)
     toc("initLearnWeights", allVariables, queryVariables, evidenceValues, queryWeightIds, weightFactorIdsMap)
 
     println("num_iterations="+numIterations)

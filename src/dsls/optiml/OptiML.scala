@@ -61,6 +61,11 @@ trait OptiMLDSL extends OptiLADSL
       cur
     }
 
+    // this is a convenience method that allows a user to override the 'diff' function without explicitly passing other implicits
+    direct (Control) ("untilconverged_withdiff", T, CurriedMethodSignature(List(List(("x", T), ("tol", MDouble, ".001"), ("minIter", MInt, "1"), ("maxIter", MInt, "1000")), ("block", T ==> T), ("diff", (T,T) ==> MDouble)), T)) implements redirect ${
+      untilconverged(x, tol, minIter, maxIter)(block)(manifest[T], implicitly[SourceContext], diff)
+    }
+
     // double-buffered untilconverged. 'block' must not change the structure of the input across iterations.
     direct (Control) ("untilconverged_buffered", T withBound TBufferable, CurriedMethodSignature(List(List(("x", T), ("tol", MDouble, ".001"), ("minIter", MInt, "1"), ("maxIter", MInt, "1000")), ("block", T ==> T)), T), ("diff", (T,T) ==> MDouble)) implements composite ${
       val bufA = x.mutable
