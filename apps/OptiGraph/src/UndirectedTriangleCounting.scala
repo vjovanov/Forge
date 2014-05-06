@@ -24,8 +24,8 @@ trait UndirectedTriangleCounting extends OptiGraphApplication {
     val edgeList = loadUndirectedEdgeList(args(0))
     toc("input loading",edgeList)
     tic("creating graph",edgeList)
-    //val g = habPrunedUndirectedGraphFromEdgeList(loadUndirectedEdgeList(args(0)),underForHash,bitSetMultiplier)
-    val g = csrPrunedUndirectedGraphFromEdgeList(edgeList)
+    val g = habPrunedUndirectedGraphFromEdgeList(loadUndirectedEdgeList(args(0)),underForHash,bitSetMultiplier)
+    //val g = csrPrunedUndirectedGraphFromEdgeList(edgeList)
     //val g = csrPrunedUndirectedGraphFromEdgeList(createMeshEdgeList(5000))
     toc("creating graph",g)
     
@@ -41,12 +41,13 @@ trait UndirectedTriangleCounting extends OptiGraphApplication {
     val t = g.sumOverNodes{ n =>
       val nbrs = g.neighbors(n)    
       sumOverCollection(nbrs){ nbr =>
-          nbrs.intersect(g.neighbors(nbr))
+          if(nbr > n.id) nbrs.intersect(g.neighbors(nbr))
+          else 0l
       }{e => true}
     }
 
     toc("Triangle Counting",t)
-    println("Number of triangles " + t)
+    println("Number of triangles " + t/3l)
   }
   def printUsage = {
     println("Usage: UndirectedTriangleCounting <path to input edge list file>")

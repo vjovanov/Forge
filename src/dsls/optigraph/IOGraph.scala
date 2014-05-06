@@ -122,10 +122,16 @@ trait IOGraphOps {
       val input_edges =
         ForgeFileReader.readLinesFlattened($0)({line =>
           val fields = line.fsplit(" ")
-          array_fromfunction(((array_length(fields)-1)*2),{n =>
-            if(n==0) pack(fields(0).toInt,fields(1).toInt)
-            else pack(fields(1).toInt,fields(0).toInt)
-          })
+          //no self edges allowed
+          if(fields(0).toInt != fields(1).toInt){
+            array_fromfunction(((array_length(fields)-1)*2),{n =>
+              if(n==0) pack(fields(0).toInt,fields(1).toInt)
+              else pack(fields(1).toInt,fields(0).toInt)
+            })
+          }
+          else{
+            array_empty[Tup2[Int,Int]](0)
+          }
         })
        NodeData[Tup2[Int,Int]](input_edges).distinct
     }
@@ -146,18 +152,18 @@ trait IOGraphOps {
       //sort by degree, helps with skew for buckets of nodes
       val ids = NodeData(fhashmap_keys(src_groups))
       
-      val distinct_ids = ids.sortBy({ (a,b) => 
+      val distinct_ids = ids/*.sortBy({ (a,b) => 
         val aV = array_buffer_length(fhashmap_get(src_groups,ids(a)))
         val bV = array_buffer_length(fhashmap_get(src_groups,ids(b))) 
         if(aV < bV) -1
         else if(aV == bV) 0
         else 1
-      })
+      })*/
     
       val numNodes = distinct_ids.length
       val idView = NodeData(array_fromfunction(numNodes,{n => n}))
       val idHashMap = idView.groupByReduce[Int,Int](n => distinct_ids(n), n => n, (a,b) => a)
-      val serial_out = assignUndirectedIndicies(numNodes,edge_data.length/2,distinct_ids,idHashMap,src_groups)
+      val serial_out = assignUndirectedIndicies(numNodes,edge_data.length,distinct_ids,idHashMap,src_groups)
 
       CSRUndirectedGraph(numNodes,distinct_ids.getRawArray,serial_out._1,serial_out._2)
     }
@@ -167,15 +173,17 @@ trait IOGraphOps {
       var i = 0
       var j = 0
       //I can do -1 here because I am pruning so the last node will never have any neighbors
-      while(i < numNodes-1){
-        val neighborhood = NodeData(fhashmap_get(src_groups,distinct_ids(i))).filter(n => fhashmap_get(idHashMap,n) > i, n =>fhashmap_get(idHashMap,n)).sort
+      while(i < numNodes){
+        val neighborhood = NodeData(fhashmap_get(src_groups,distinct_ids(i))).map(n =>fhashmap_get(idHashMap,n)).sort//filter(n => fhashmap_get(idHashMap,n) > i, n =>fhashmap_get(idHashMap,n)).sort
         var k = 0
         while(k < neighborhood.length){
           src_edge_array(j) = neighborhood(k)
           j += 1
           k += 1
         }
-        src_node_array(i+1) = neighborhood.length + src_node_array(i)
+        if(i < numNodes-1){
+          src_node_array(i+1) = neighborhood.length + src_node_array(i)
+        }
         i += 1
       }
       pack(src_node_array.getRawArray,src_edge_array.getRawArray)
@@ -191,13 +199,13 @@ trait IOGraphOps {
 
       //sort by degree, helps with skew for buckets of nodes
       val ids = NodeData(fhashmap_keys(src_groups))
-      val distinct_ids = ids.sortBy({ (a,b) => 
+      val distinct_ids = ids/*.sortBy({ (a,b) => 
         val aV = array_buffer_length(fhashmap_get(src_groups,ids(a)))
         val bV = array_buffer_length(fhashmap_get(src_groups,ids(b))) 
         if(aV > bV) -1
         else if(aV == bV) 0
         else 1
-      })
+      })*/
 
       val numNodes = distinct_ids.length
       val idView = NodeData(array_fromfunction(numNodes,{n => n}))
@@ -209,7 +217,7 @@ trait IOGraphOps {
       var numCSRNodes = 0
       var numCSREdges = 0
       idView.foreach{ i =>
-        filtered_nbrs(i) = NodeData(src_groups(distinct_ids(i))).filter(a => fhashmap_get(idHashMap,a) < i,n =>n)
+        filtered_nbrs(i) = NodeData(src_groups(distinct_ids(i)))//.filter(a => fhashmap_get(idHashMap,a) < i,n =>n)
         if(filtered_nbrs(i).length*bitSetMultiplier >= numNodes) numBitSet += 1
         else if((filtered_nbrs(i).length*bitSetMultiplier < numNodes) && (filtered_nbrs(i).length <= underForHash)) numHash += 1
         else {
