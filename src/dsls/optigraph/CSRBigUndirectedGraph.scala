@@ -61,19 +61,15 @@ trait CSRBigUndirectedGraphOps{
       infix ("neighbors") (Node :: NodeDataView(MInt)) implements single ${big_get_nbrs($self,$1)}
       compiler ("big_get_nbrs") (Node :: NodeDataView(MInt)) implements single ${
         if($1.id < ($self.numNodes/2) ){
-          println("node0: " + $1.id)
           val start = big_node_apply($self,$1.id)
           val end = if( ($1.id+1) != ($self.numNodes/2) ) big_node_apply($self,($1.id+1))
             else array_length(edge_raw_data1($self))
-          println("exiting: " + end)
           NodeDataView[Int](edge_raw_data1($self),start,end-start)
         }
         else{
-          println("node1: " + $1.id)
           val start = big_node_apply($self,$1.id)
           val end = if( ($1.id+1) < array_length(big_node_raw_data($self)) ) big_node_apply($self,($1.id+1))
             else array_length(edge_raw_data2($self))
-          println("exiting: " + end)
           NodeDataView[Int](edge_raw_data2($self),start,end-start)
         }
       }
