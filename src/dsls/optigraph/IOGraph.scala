@@ -19,6 +19,7 @@ trait IOGraphOps {
     val K = tpePar("K")
     val V = tpePar("V")
     val Tuple2 = lookupTpe("Tup2")
+    val Tuple3 = lookupTpe("Tup3")
     val Tuple4 = lookupTpe("Tup4")
 
 
@@ -29,6 +30,7 @@ trait IOGraphOps {
     val HashSet = lookupTpe("HashSet")
     val CSRDirectedGraph = lookupTpe("CSRDirectedGraph")
     val CSRUndirectedGraph = lookupTpe("CSRUndirectedGraph")
+    val CSRBigUndirectedGraph = lookupTpe("CSRBigUndirectedGraph")
     val HABUndirectedGraph = lookupTpe("HABUndirectedGraph")
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -278,7 +280,7 @@ trait IOGraphOps {
 /////////////////////////////////////////////////////////////////////////////////////////////
 ////////Undirected Adjacency Loader
 /////////////////////////////////////////////////////////////////////////////////////////////
-    direct (IO) ("loadUndirectedAdjEdgeList", Nil, MString :: CSRUndirectedGraph) implements composite ${
+    direct (IO) ("loadUndirectedAdjEdgeList", Nil, MString :: CSRBigUndirectedGraph) implements composite ${
       val input = NodeData(ForgeFileReader.readLines($0)({line =>
           val fields = line.fsplit("\t")
           NodeData[Int](array_map[String,Int](fields,e => e.toInt))
@@ -293,14 +295,24 @@ trait IOGraphOps {
       }
 
       val numEdges = nbrs.mapreduce[Long](a => a.length.toLong, (a,b) => a+b, e=>true)
-      println("numEdges: " + numEdges)
+      val numEdges1 = idView.mapreduce[Int]({a => 
+        if(a < (numNodes/2) ) nbrs(a).length
+        else 0
+      }, (a,b) => a+b, e=>true)
+      val numEdges2 = idView.mapreduce[Int]({a => 
+        if(a >= (numNodes/2) ) nbrs(a).length
+        else 0
+      }, (a,b) => a+b, e=>true)
 
-      val serial_out = assignAdjUndirectedIndicies(numNodes,numEdges.toInt,nbrs,distinct_ids,idHashMap)
-      
-      CSRUndirectedGraph(numNodes,distinct_ids.getRawArray,serial_out._1,serial_out._2)
+      println("numEdges: " + numEdges + " numEdges1: " + numEdges1 + " numEdges2: " + numEdges2)
+
+      val serial_out = assignAdjUndirectedIndicies(numNodes,numEdges1,numEdges2,nbrs,distinct_ids,idHashMap)
+      println("len1: " + array_length(serial_out._2) + " len2: " + array_length(serial_out._3))
+      CSRBigUndirectedGraph(numNodes,numEdges,distinct_ids.getRawArray,serial_out._1,serial_out._2,serial_out._3)
     }
-    direct (IO) ("assignAdjUndirectedIndicies", Nil, MethodSignature(List(("numNodes",MInt),("numEdges",MInt),("nbrs",NodeData(NodeData(MInt))),("distinct_ids",NodeData(MInt)),("idHashMap",MHashMap(MInt,MInt))),Tuple2(MArray(MInt),MArray(MInt)))) implements single ${
-      val src_edge_array = NodeData[Int](numEdges)
+    direct (IO) ("assignAdjUndirectedIndicies", Nil, MethodSignature(List(("numNodes",MInt),("numEdges1",MInt),("numEdges2",MInt),("nbrs",NodeData(NodeData(MInt))),("distinct_ids",NodeData(MInt)),("idHashMap",MHashMap(MInt,MInt))),Tuple3(MArray(MInt),MArray(MInt),MArray(MInt)))) implements single ${
+      val src_edge_array1 = NodeData[Int](numEdges1)
+      val src_edge_array2 = NodeData[Int](numEdges2)
       val src_node_array = NodeData[Int](numNodes)
       var i = 0
       var j = 0
@@ -309,16 +321,22 @@ trait IOGraphOps {
         val neighborhood = nbrs(i)
         var k = 0
         while(k < neighborhood.length){
-          src_edge_array(j) = neighborhood(k)
+          if(i < (numNodes/2)){ 
+            src_edge_array1(j) = neighborhood(k)
+          }
+          else{ 
+            src_edge_array2(j) = neighborhood(k) 
+          }
           j += 1
           k += 1
         }
-        if(i < numNodes-1){
+        if( (i+1) == (numNodes/2)) j = 0
+        if(i < numNodes-1 && (i+1) != (numNodes/2) ){
           src_node_array(i+1) = neighborhood.length + src_node_array(i)
         }
         i += 1
       }
-      pack(src_node_array.getRawArray,src_edge_array.getRawArray)
+      pack(src_node_array.getRawArray,src_edge_array1.getRawArray,src_edge_array2.getRawArray)
     }
 /////////////////////////////////////////////////////////////////////////////////////////////
   }

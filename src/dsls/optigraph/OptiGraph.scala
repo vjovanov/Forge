@@ -9,7 +9,7 @@ object OptiGraphDSLRunner extends ForgeApplicationRunner with OptiGraphDSL
 
 trait OptiGraphDSL extends ForgeApplication with GraphOps
     with HABUndirectedGraphOps  with CSRDirectedGraphOps  with CSRUndirectedGraphOps
-    with NodeOps with EdgeOps  with NodeDataOps with NodeDataViewOps
+    with NodeOps with EdgeOps  with NodeDataOps with NodeDataViewOps with CSRBigUndirectedGraphOps
     with NodeIdViewOps  with AtomicIntArrayOps with AtomicBooleanOps
     with GraphBitSetOps with NodeCollectionOps with IOGraphOps {
   /**
@@ -43,6 +43,7 @@ trait OptiGraphDSL extends ForgeApplication with GraphOps
     importGraphAggregateOps()
     importCSRUndirectedGraphOps()
     importCSRDirectedGraphOps()
+    importCSRBigUndirectedGraphOps()
     importHABUndirectedGraphOps()
     importIOGraphOps()
   }
