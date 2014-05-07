@@ -293,6 +293,7 @@ trait IOGraphOps {
       }
 
       val numEdges = nbrs.mapreduce[Long](a => a.length.toLong, (a,b) => a+b, e=>true)
+      println("numEdges: " + numEdges)
 
       val serial_out = assignAdjUndirectedIndicies(numNodes,numEdges.toInt,nbrs,distinct_ids,idHashMap)
       
