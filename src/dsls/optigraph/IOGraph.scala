@@ -285,42 +285,36 @@ trait IOGraphOps {
       }))
       val numNodes = input.length
       val idView = NodeData(array_fromfunction(numNodes,{n => n}))
+      val distinct_ids = input.map[Int]{nd => nd(0)}
+      val idHashMap = idView.groupByReduce[Int,Int](n => distinct_ids(n), n => n, (a,b) => a)
 
-      val sorted_input = input.sortBy({ (a,b) => 
-        val aV = input(a).length
-        val bV = input(b).length
-        if(aV < bV) -1
-        else if(aV == bV) 0
-        else 1
-      })
-
-      val distinct_ids = sorted_input.map[Int]{nd => nd(0)}
-
-      val nbrs = sorted_input.map{ nd =>
-        NodeData.fromFunction(nd.length-1,a => a+1).map(a => nd(a)).sort
+      val nbrs = input.map{ nd =>
+        NodeData.fromFunction(nd.length-1,a => a+1).map(a => fhashmap_get(idHashMap,nd(a))).sort
       }
 
-      val numEdges = nbrs.mapreduce[Int](a => a.length, (a,b) => a+b, e=>true)
-      val idHashMap = idView.groupByReduce[Int,Int](n => distinct_ids(n), n => n, (a,b) => a)
-      val serial_out = assignAdjUndirectedIndicies(numNodes,numEdges,nbrs,distinct_ids,idHashMap)
+      val numEdges = nbrs.mapreduce[Long](a => a.length.toLong, (a,b) => a+b, e=>true)
+
+      val serial_out = assignAdjUndirectedIndicies(numNodes,numEdges.toInt,nbrs,distinct_ids,idHashMap)
       
       CSRUndirectedGraph(numNodes,distinct_ids.getRawArray,serial_out._1,serial_out._2)
     }
     direct (IO) ("assignAdjUndirectedIndicies", Nil, MethodSignature(List(("numNodes",MInt),("numEdges",MInt),("nbrs",NodeData(NodeData(MInt))),("distinct_ids",NodeData(MInt)),("idHashMap",MHashMap(MInt,MInt))),Tuple2(MArray(MInt),MArray(MInt)))) implements single ${
-      val src_edge_array = NodeData[Int](numEdges/2)
+      val src_edge_array = NodeData[Int](numEdges)
       val src_node_array = NodeData[Int](numNodes)
       var i = 0
       var j = 0
       //I can do -1 here because I am pruning so the last node will never have any neighbors
-      while(i < numNodes-1){
-        val neighborhood = nbrs(i).filter(e => i < fhashmap_get(idHashMap,e), e => fhashmap_get(idHashMap,e)).sort
+      while(i < numNodes){
+        val neighborhood = nbrs(i)
         var k = 0
         while(k < neighborhood.length){
           src_edge_array(j) = neighborhood(k)
           j += 1
           k += 1
         }
-        src_node_array(i+1) = neighborhood.length + src_node_array(i)
+        if(i < numNodes-1){
+          src_node_array(i+1) = neighborhood.length + src_node_array(i)
+        }
         i += 1
       }
       pack(src_node_array.getRawArray,src_edge_array.getRawArray)

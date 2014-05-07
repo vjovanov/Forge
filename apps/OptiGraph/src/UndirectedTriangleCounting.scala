@@ -19,7 +19,6 @@ trait UndirectedTriangleCounting extends OptiGraphApplication {
     //println("Under for hash: " + underForHash)
     val bitSetMultiplier = 32
 
-    
     tic("input loading")
     val edgeList = loadUndirectedEdgeList(args(0))
     toc("input loading",edgeList)
