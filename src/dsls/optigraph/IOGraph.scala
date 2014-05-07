@@ -145,27 +145,19 @@ trait IOGraphOps {
 /////////////////////////////////////////////////////////////////////////////////////////////
 ////////Undirected CSR Loader
 /////////////////////////////////////////////////////////////////////////////////////////////
-    direct (IO) ("csrPrunedUndirectedGraphFromEdgeList", Nil, ("edge_data",NodeData(Tuple2(MInt,MInt))) :: CSRUndirectedGraph) implements composite ${
+    direct (IO) ("csrUndirectedGraphFromEdgeList", Nil, ("edge_data",NodeData(Tuple2(MInt,MInt))) :: CSRUndirectedGraph) implements composite ${
       println("Edges: " + edge_data.length)
       val src_groups = edge_data.groupBy(e => e._1, e => e._2)
 
       //sort by degree, helps with skew for buckets of nodes
       val ids = NodeData(fhashmap_keys(src_groups))
       
-      val distinct_ids = ids/*.sortBy({ (a,b) => 
-        val aV = array_buffer_length(fhashmap_get(src_groups,ids(a)))
-        val bV = array_buffer_length(fhashmap_get(src_groups,ids(b))) 
-        if(aV < bV) -1
-        else if(aV == bV) 0
-        else 1
-      })*/
-    
-      val numNodes = distinct_ids.length
+      val numNodes = ids.length
       val idView = NodeData(array_fromfunction(numNodes,{n => n}))
-      val idHashMap = idView.groupByReduce[Int,Int](n => distinct_ids(n), n => n, (a,b) => a)
-      val serial_out = assignUndirectedIndicies(numNodes,edge_data.length,distinct_ids,idHashMap,src_groups)
+      val idHashMap = idView.groupByReduce[Int,Int](n => ids(n), n => n, (a,b) => a)
+      val serial_out = assignUndirectedIndicies(numNodes,edge_data.length,ids,idHashMap,src_groups)
 
-      CSRUndirectedGraph(numNodes,distinct_ids.getRawArray,serial_out._1,serial_out._2)
+      CSRUndirectedGraph(numNodes,ids.getRawArray,serial_out._1,serial_out._2)
     }
     direct (IO) ("assignUndirectedIndicies", Nil, MethodSignature(List(("numNodes",MInt),("numEdges",MInt),("distinct_ids",NodeData(MInt)),("idHashMap",MHashMap(MInt,MInt)),("src_groups",MHashMap(MInt,MArrayBuffer(MInt)))),Tuple2(MArray(MInt),MArray(MInt)))) implements single ${
       val src_edge_array = NodeData[Int](numEdges)
@@ -174,7 +166,7 @@ trait IOGraphOps {
       var j = 0
       //I can do -1 here because I am pruning so the last node will never have any neighbors
       while(i < numNodes){
-        val neighborhood = NodeData(fhashmap_get(src_groups,distinct_ids(i))).map(n =>fhashmap_get(idHashMap,n)).sort//filter(n => fhashmap_get(idHashMap,n) > i, n =>fhashmap_get(idHashMap,n)).sort
+        val neighborhood = NodeData(fhashmap_get(src_groups,distinct_ids(i))).map(n =>fhashmap_get(idHashMap,n)).sort
         var k = 0
         while(k < neighborhood.length){
           src_edge_array(j) = neighborhood(k)

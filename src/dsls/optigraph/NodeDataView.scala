@@ -30,98 +30,89 @@ trait NodeDataViewOps {
       infix ("foreach") ((T ==> MUnit) :: MUnit, effect = simple) implements foreach(T, 0, ${a => $1(a)})
       infix ("start") (Nil :: MInt) implements single ${NodeDataView_start($self)}
 
-      infix ("intersectGallop") (NodeDataView(T) :: MLong, TNumeric(T)) implements single ${
+      infix ("intersectGallop") ((("y",NodeDataView(T)),("xMax",T),("yMax",T)) :: MLong, TNumeric(T)) implements single ${
         val x = $0
-        val y = $1
         var i = 0
         var j = 0
         var t = 0l
-        while (i < x.length && j < y.length) {
-          //println("i: " + i + " j: " + j + " iLen: " + x.length + " jLen: " + y.length) 
+        var notFinished = y(j) < yMax && x(i) < xMax
+        while (notFinished) {
           if (x(i) == y(j)) {
-            //println("Match") 
             t += 1
             i += 1
             j += 1
+            notFinished = (i < x.length && j < y.length) && (x(i) < xMax) && (y(j) < yMax)
           }
-          else if (x(i) < y(j)) { 
-            //println("Entering 1")
-            i = gallop(x,i,y(j))
-            //println("Exiting 1: " + i)
- 
+          val arg2 = x(i) < y(j)
+          if (notFinished && arg2) { 
+            i = gallop(x,i,y(j),xMax)
+            notFinished = (i < x.length) && (x(i) < xMax)
           }
-          else if (y(j) < x(i)) {
-            //println("Entering 2")
-            j = gallop(y,j,x(i))
-            //println("Exiting 2: " + j)  
+          val arg3 = x(i) > y(j)
+          if(notFinished && arg3){
+            j = gallop(y,j,x(i),yMax)
+            notFinished = (j < y.length) && (y(j) < yMax)
           }
         }
         t
       }
-      compiler ("gallop") ( (("startIn",MInt),("tt",T)) :: MInt, TNumeric(T)) implements single ${
+      compiler ("gallop") ( (("startIn",MInt),("tt",T),("max",T)) :: MInt, TNumeric(T)) implements single ${
         var start = startIn
         var stepSize = 1
         val v = $0
-        var notFinished = if (start < v.length) v(start) < tt else false
+        var notFinished = (v(start) < tt && v(start) < max)
         var inRange = false
-        while (notFinished) {
-          //println("1start: " + start + " stepSize: " + stepSize + " vLen: " + v.length)
-          inRange = if ((start + stepSize) < v.length) v(start+stepSize) < tt else false
-          if (inRange) {
+        while ((start < v.length) && (v(start) < tt) && (v(start) < max)) {
+          if (((start + stepSize) < v.length) && (v(start+stepSize) < tt)) {
             start += stepSize
             stepSize = stepSize << 1
           } else {
             start += 1
             stepSize = 1
           }
-          //println("2start: " + start + " stepSize: " + stepSize + " vLen: " + v.length)
-          notFinished = if (start < v.length) v(start) < tt else false
         }
         start
       }
-      infix ("intersect") (NodeDataView(T) :: MLong, TNumeric(T)) implements single ${
+      infix ("intersect") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T),("nbrsOfNbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
         val nbrs = $self
-        val nbrsOfNbrs = $1
         if(nbrs.length == 0 || nbrsOfNbrs.length == 0) 0l
+        else if(nbrsMax <= nbrsOfNbrs(0) ||
+          nbrsOfNbrsMax <= nbrs(0)){
+          0l
+        }
         else if(nbrs(0) > nbrsOfNbrs(nbrsOfNbrs.length-1) || 
           nbrsOfNbrs(0) > nbrs(nbrs.length-1)){
           0l
         }
-        else if(nbrs.length > 128 || nbrsOfNbrs.length > 128){
-          $self.intersectGallop($1)
+        else if(nbrs.length > 256 || nbrsOfNbrs.length > 256){
+            $self.intersectGallop(nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
         }
         else{
-          ndv_intersect_sets(nbrs,nbrsOfNbrs)
+          ndv_intersect_sets(nbrs,nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
         }
       }
-      compiler ("ndv_intersect_sets") (NodeDataView(T) :: MLong, TNumeric(T)) implements single ${
+      compiler ("ndv_intersect_sets") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T),("nbrsOfNbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
         val nbrs = $self
-        val nbrsOfNbrs = $1
-        var i = 0
         var t = 0l
+        var i = 0
         var j = 0
         val small = if(nbrs.length < nbrsOfNbrs.length) nbrs else nbrsOfNbrs
         val large = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrs else nbrs
+        val smallMax = if(nbrs.length < nbrsOfNbrs.length) nbrsMax else nbrsOfNbrsMax
+        val largeMax = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrsMax else nbrsMax
         //I understand there are simplier ways to write this, I tried a lot of versions
         //this is the fastest (that I tried).
-        while(i < (small.length-1)  && j < (large.length-1)){
-          while(j < (large.length-1) && large(j) < small(i)){
+
+        var notFinished = 
+        while( (i < small.length  && j < large.length) && (large(j) < largeMax) && (small(i) < smallMax) ){
+          while( (j < large.length) && (large(j) < small(i)) && (large(j) < largeMax) ){
             j += 1
           }
-          if(small(i)==large(j)){
-           t += 1
+          if((j < large.length) && (small(i)==large(j))){
+            t += 1
           }
           i += 1
         }
-        //if i reaches the end before j
-        while(j < (large.length-1) && large(j) < small(i)){
-          j += 1
-        }
-        //if j reaches the end before i
-        while(large(j) > small(i) && i < (small.length-1)){
-          i += 1
-        }
-        if(small(i) == large(j)) t += 1 
         t
       }
 

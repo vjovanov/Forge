@@ -77,7 +77,7 @@ trait NodeCollectionOps {
           //simple set intersection
           val nbrs = nc_getNodeDataView($self)
           val nbrsOfNbrs = nc_getNodeDataView($1)
-          nbrs.intersect(nbrsOfNbrs)
+          0l//nbrs.intersect(nbrsOfNbrs)
         }
         // 4. NDV and Hash
         else if ( ($self.colType == 2 && $1.colType == 1) || ($self.colType == 1 && $1.colType == 2) ){
