@@ -103,29 +103,16 @@ trait NodeDataViewOps {
         //I understand there are simplier ways to write this, I tried a lot of versions
         //this is the fastest (that I tried).
 
-        var notFinished = small(i) < smallMax && large(j) < largeMax
-        while(i < (small.length-1)  && j < (large.length-1) && notFinished){
-          while(j < (large.length-1) && large(j) < small(i) && notFinished){
+        var notFinished = 
+        while( (i < small.length  && j < large.length) && (large(j) < largeMax) && (small(i) < smallMax) ){
+          while( (j < large.length) && (large(j) < small(i)) && (large(j) < largeMax) ){
             j += 1
-            notFinished = large(j) < largeMax
           }
-          if(small(i)==large(j) && notFinished){
-           t += 1
+          if((j < large.length) && (small(i)==large(j))){
+            t += 1
           }
           i += 1
-          notFinished = notFinished && small(i) < smallMax
         }
-        //if i reaches the end before j
-        while(j < (large.length-1) && large(j) < small(i) && notFinished){
-          j += 1
-          notFinished = large(j) < largeMax
-        }
-        //if j reaches the end before i
-        while(large(j) > small(i) && i < (small.length-1) && notFinished){
-          i += 1
-          notFinished = small(i) < smallMax
-        }
-        if(small(i) == large(j) && notFinished) t += 1 
         t
       }
 
