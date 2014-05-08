@@ -304,11 +304,11 @@ trait IOGraphOps {
 
       val numEdges = nbrs.mapreduce[Long](a => a.length.toLong, (a,b) => a+b, e=>true)
       val numEdges1 = idView.mapreduce[Int]({a => 
-        if(a < (numNodes/2) ) nbrs(a).length
+        if(a < (numNodes/8) ) nbrs(a).length
         else 0
       }, (a,b) => a+b, e=>true)
       val numEdges2 = idView.mapreduce[Int]({a => 
-        if(a >= (numNodes/2) ) nbrs(a).length
+        if(a >= (numNodes/8) ) nbrs(a).length
         else 0
       }, (a,b) => a+b, e=>true)
 
@@ -329,7 +329,7 @@ trait IOGraphOps {
         val neighborhood = nbrs(i)
         var k = 0
         while(k < neighborhood.length){
-          if(i < (numNodes/2)){ 
+          if(i < (numNodes/8)){ 
             src_edge_array1(j) = neighborhood(k)
           }
           else{ 
@@ -338,8 +338,8 @@ trait IOGraphOps {
           j += 1
           k += 1
         }
-        if( (i+1) == (numNodes/2)) j = 0
-        if(i < numNodes-1 && (i+1) != (numNodes/2) ){
+        if( (i+1) == (numNodes/8)) j = 0
+        if(i < numNodes-1 && (i+1) != (numNodes/8) ){
           src_node_array(i+1) = neighborhood.length + src_node_array(i)
         }
         i += 1
