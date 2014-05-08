@@ -287,10 +287,18 @@ trait IOGraphOps {
       }))
       val numNodes = input.length
       val idView = NodeData(array_fromfunction(numNodes,{n => n}))
-      val distinct_ids = input.map[Int]{nd => nd(0)}
-      val idHashMap = idView.groupByReduce[Int,Int](n => distinct_ids(n), n => n, (a,b) => a)
 
-      val nbrs = input.map{ nd =>
+      val sorted_input = input.sortBy({ (a,b) => 
+          val aV = input(a).length
+          val bV = input(b).length
+          if(aV > bV) -1
+          else if(aV == bV) 0
+          else 1
+      })
+      
+      val distinct_ids = sorted_input.map[Int]{nd => nd(0)}
+      val idHashMap = idView.groupByReduce[Int,Int](n => distinct_ids(n), n => n, (a,b) => a)
+      val nbrs = sorted_input.map{ nd =>
         NodeData.fromFunction(nd.length-1,a => a+1).map(a => fhashmap_get(idHashMap,nd(a))).sort
       }
 
