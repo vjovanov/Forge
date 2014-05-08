@@ -84,9 +84,9 @@ trait NodeDataViewOps {
           nbrsOfNbrs(0) > nbrs(nbrs.length-1)){
           0l
         }
-        //else if(nbrs.length > 256 || nbrsOfNbrs.length > 256){
-        //    $self.intersectGallop(nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
-        //}
+        else if(nbrs.length > 512 || nbrsOfNbrs.length > 512){
+            $self.intersectGallop(nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
+        }
         else{
           ndv_intersect_sets(nbrs,nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
         }
