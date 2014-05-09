@@ -8,7 +8,7 @@ import factor._
 
 object OptiMLDSLRunner extends ForgeApplicationRunner with OptiMLDSL
 
-trait OptiMLDSL extends OptiLADSL with MLIOOps with SetOps with BufferableOps with StreamOps with ImageOps with FactorGraphOps {
+trait OptiMLDSL extends OptiLADSL with MLIOOps with SetOps with BufferableOps with StreamOps with ImageOps with FactorOps with FactorGraphOps {
 
 
   override def dslName = "OptiML"
