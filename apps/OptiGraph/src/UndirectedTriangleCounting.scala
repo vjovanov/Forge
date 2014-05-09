@@ -35,15 +35,8 @@ trait UndirectedTriangleCounting extends OptiGraphApplication {
     println("Number of Nodes: " + g.numNodes)
     println("Number of Edges: " + g.numEdges)
 
-    println("performing Traingle Counting1: " + g.numNodes)
-    val bs = g.returnBitmaps()
-    tic("Triangle Counting BitSet",bs)
-    val t1 = g.countBitmapTriangles(bs)
-    toc("Triangle Counting BitSet",t1)
-    println("Number of triangles " + t1)
-    /*
-    println("performing Traingle Counting2: " + t1)
-    tic("Triangle Counting",t1)
+    println("performing Traingle Counting: " + g)
+    tic("Triangle Counting",g)
     
     val t = g.sumOverNodes{ n =>
       val nbrs = g.neighbors(n)
@@ -55,7 +48,6 @@ trait UndirectedTriangleCounting extends OptiGraphApplication {
 
     toc("Triangle Counting",t)
     println("Number of triangles " + t)
-    */
   }
   def printUsage = {
     println("Usage: UndirectedTriangleCounting <path to input edge list file>")

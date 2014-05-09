@@ -18,6 +18,7 @@ trait BC extends OptiGraphApplication {
     println("Directed: " + g.isDirected)
     println("Number of Nodes: " + g.numNodes)
     
+    /*
     println("performing Betweeness Centrality")
     tic(g)
   
@@ -37,6 +38,7 @@ trait BC extends OptiGraphApplication {
     toc(bc)
     writeResults(args(1),g.getExternalIDs,bc)
     println("done")
+    */
   }
   def printUsage = {
     println("Usage: BC <path to input edge list file> <path to output file (to be created)>")
