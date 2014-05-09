@@ -24,6 +24,7 @@ trait CSRUndirectedGraphOps{
     val NodeData = lookupTpe("NodeData")
     val NodeDataView = lookupTpe("NodeDataView")
     val NodeIdView = lookupTpe("NodeIdView")
+    val RoaringBitmap = ephemeralTpe("org.roaringbitmap.RoaringBitmap")
 
     //Actual CSRUndirectedGraph declaration
     val CSRUndirectedGraph = tpe("CSRUndirectedGraph") 
@@ -59,6 +60,20 @@ trait CSRUndirectedGraphOps{
         val end  = if( ($1.id+1) < array_length(node_raw_data($self)) ) node_apply($self,($1.id+1)) 
           else array_length(edge_raw_data($self))
         end - node_apply($self,$1.id) 
+      }
+      infix("returnBitmaps")(Nil :: NodeData(RoaringBitmap)) implements composite ${
+        $self.mapNodes{ n =>
+          FRoaringBitmap($self.neighbors(n).getRawArray)
+        }
+      }
+      infix("countBitmapTriangles")(NodeData(RoaringBitmap) :: MLong) implements composite ${
+        NodeIdView($self.numNodes).mapreduce[Long]({n => 
+          val nbrs = $1(n)
+          NodeData(roaringToArray(nbrs)).mapreduce[Long]({nbr => 
+            if(nbr > n) getCardinality(and($1(nbr),nbrs)).toLong
+            else 0l
+          },{(a,b) => a+b},{n => true})
+        },{(a,b) => a+b},{e=>true})
       }
       infix ("inDegree") (Node :: MInt) implements single ${$self.outDegree($1)}
       //get out neighbors

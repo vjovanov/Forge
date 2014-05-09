@@ -32,6 +32,8 @@ trait IOGraphOps {
     val CSRUndirectedGraph = lookupTpe("CSRUndirectedGraph")
     val CSRBigUndirectedGraph = lookupTpe("CSRBigUndirectedGraph")
     val HABUndirectedGraph = lookupTpe("HABUndirectedGraph")
+    val RoaringBitMap = ephemeralTpe("RoaringBitMap")
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -285,6 +287,7 @@ trait IOGraphOps {
           val fields = line.fsplit("\t")
           NodeData[Int](array_map[String,Int](fields,e => e.toInt))
       }))
+
       val numNodes = input.length
       val idView = NodeData(array_fromfunction(numNodes,{n => n}))
 
