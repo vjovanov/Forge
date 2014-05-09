@@ -159,7 +159,7 @@ trait IOGraphOps {
       val ids = ids1.sortBy({ (a,b) => 
         val aV = array_buffer_length(fhashmap_get(src_groups,ids1(a)))
         val bV = array_buffer_length(fhashmap_get(src_groups,ids1(b))) 
-        if(aV > bV) -1
+        if(aV < bV) -1
         else if(aV == bV) 0
         else 1
       })
