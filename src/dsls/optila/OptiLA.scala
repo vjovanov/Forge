@@ -11,7 +11,7 @@ trait OptiLADSL extends ForgeApplication
   with BasicMathOps with RandomOps with IOOps
   with VectorOps with DenseVectorOps with IndexVectorOps with DenseVectorViewOps with SparseVectorOps with SparseVectorViewOps
   with DenseMatrixOps with SparseMatrixOps
-  with LinAlgOps {
+  with ComplexOps with LinAlgOps {
 
   def dslName = "OptiLA"
 
@@ -59,18 +59,26 @@ trait OptiLADSL extends ForgeApplication
     // infix_foreach must be compiler only both so that it is not used improperly and to not interfere with other codegen nodes in the library
     // this is a little convoluted unfortunately (because of the restriction on passing structs to codegen nodes)
     compiler (Range) ("infix_foreach", Nil, (Range, MInt ==> MUnit) :: MUnit) implements composite ${ range_foreach(range_start($0), range_end($0), $1) }
-    compiler (Range) ("range_foreach", Nil, (("start",MInt),("end",MInt),("func",MInt ==> MUnit)) :: MUnit) implements codegen($cala, ${
+    val range_foreach = compiler (Range) ("range_foreach", Nil, (("start",MInt),("end",MInt),("func",MInt ==> MUnit)) :: MUnit) 
+    impl (range_foreach) (codegen($cala, ${
       var i = $start
       while (i < $end) {
         $b[func](i)
         i += 1
       }
-    })
+    }))
+
+    impl (range_foreach) (codegen(cpp, ${
+      for(int i=$start ; i<$end ; i++) {
+        $b[func](i)
+      }
+    }))
 
     importBasicMathOps()
     importRandomOps()
     importArithOps()
     importStringableOps()
+    importComplexOps()    
 
     // override default string formatting (numericPrecision is a global defined in extern)
     // we use "" + $a instead of $a.toString to avoid an NPE when explicitly calling toString inside the REPL
@@ -88,7 +96,9 @@ if ($a.isInstanceOf[Double] || $a.isInstanceOf[Float]) numericStr($a) else ("" +
 """
     }
 
-    direct (lookupGrp("FString")) ("optila_fmt_str", T, T :: MString) implements codegen($cala, formatStr)
+    val fmt_str = direct (lookupGrp("FString")) ("optila_fmt_str", T, T :: MString) 
+    impl (fmt_str) (codegen($cala, formatStr))
+    impl (fmt_str) (codegen(cpp, "convert_to_string<" +  unquotes("remapWithRef("+opArgPrefix+"0.tp)") + " >(" + quotedArg(0) + ")"))
 
     compiler (lookupGrp("FString")) ("optila_padspace", Nil, MString :: MString) implements composite ${
       "  " + $0
@@ -110,6 +120,9 @@ if ($a.isInstanceOf[Double] || $a.isInstanceOf[Float]) numericStr($a) else ("" +
     // native libs
     extern(grp("BLAS"))
     extern(grp("LAPACK"))
+
+    // rewrites
+    extern(grp("Rewrite"), targets = Nil)
   }
 
   def importVecMatConstructor() {
@@ -140,7 +153,7 @@ if ($a.isInstanceOf[Double] || $a.isInstanceOf[Float]) numericStr($a) else ("" +
 
       // could fuse with nested matrix loops (loops over rowIndices), but not with loops directly over individual matrix elements -- like map!
       // it seems best for us to be consistent: matrix loops should either all be flat or all be nested. which one? should we use lowerings?
-      // however, mutable version also supresses fusion due to unsafeImmutable...
+      // however, mutable version also supresses fusion due to unsafeImmutable and code motion due to effects...
 
       // val out = DenseMatrix[T](rowIndices.length,colIndices.length)
       // rowIndices foreach { i =>
@@ -157,6 +170,9 @@ if ($a.isInstanceOf[Double] || $a.isInstanceOf[Float]) numericStr($a) else ("" +
     // one alternative is to use an IsVector type class for the function return type, instead of overloading.
     // currently, we just let DenseVectorViews implicitly convert to DenseVector, which will cause overhead
     // in the lib implementation, but should fuse away in the Delite implementation.
+    //
+    // furthermore, due to the effectful implementation, these cannot be fused or hoisted...
+    
     for (rhs <- List(DenseVector(T)/*, DenseVectorView(T))*/)) {
       infix (IndexVector) ("apply", T, (CTuple2(IndexVector,IndexWildcard), MInt ==> rhs) :: DenseMatrix(T)) implements composite ${
         val rowIndices = $0._1

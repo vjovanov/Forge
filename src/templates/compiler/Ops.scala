@@ -17,6 +17,8 @@ trait DeliteGenOps extends BaseGenOps {
   val IR: ForgeApplicationRunner with ForgeExp with ForgeOpsExp
   import IR._
 
+  var activeGenerator: CodeGenerator = _
+
   def baseOpsCls(opsGrp: DSLOps) = {
     if (opsGrp.ops.exists(_.style == compilerMethod)) opsGrp.grp.name + "CompilerOps"
     else opsGrp.name
@@ -37,17 +39,24 @@ trait DeliteGenOps extends BaseGenOps {
       if (!isThunk(func.tpe)) {
         for (a <- args) {
           // have to be careful about automatic string lifting here
-          val add: String = (nl + "\"" + "val " + replaceWildcards(quotedArg(boundArgName(func,a))) + " = " + replaceWildcards(captured(i)) + "\\n\"")
+          var add: String = (nl + "emitValDef(" + replaceWildcards(boundArgName(func,a)) + ".asInstanceOf[Sym[Any]],\"{\")")
+          add += (nl + "\"" + replaceWildcards(captured(i)) + "\"")
+          add += (nl + "\"}\\n\"")
           boundStr += add
           i += 1
         }
       }
+
+      if (activeGenerator == cpp && ret != MUnit)
+        warn("Block " + func.name + " returns non-unit type result. C++ target may not work properly.")
+
       // the new-line formatting is admittedly weird; we are using a mixed combination of actual new-lines (for string splitting at Forge)
       // and escaped new-lines (for string splitting at Delite), based on how we received strings from string interpolation.
       // FIX: using inconsistent newline character, not platform independent
       "{ \"" + boundStr +
        nl + "emitBlock(" + func.name + ")" +
-       nl + "quote(getBlockResult(" + func.name + "))+\"\\n\"" + nl + " \" } "
+       (if (ret != MUnit) (nl + "quote(getBlockResult(" + func.name + "))+\"\\n\"") else "") + 
+       nl + " \" } "
 
     case Def(QuoteSeq(argName)) => "Seq("+unquotes(argName+".map(quote).mkString("+quotes(",")+")")+")"
 
@@ -599,7 +608,7 @@ trait DeliteGenOps extends BaseGenOps {
       val xformArgs = "(" + o.args.zipWithIndex.flatMap(t => t._1 match {
         case Def(Arg(name, f@Def(FTpe(args,ret,freq)), d2)) if Impls(o).isInstanceOf[CodeGen] && !isThunk(f) => "f("+opArgPrefix+t._2+")" :: args.map(a => boundArgAnonName(t._1,a,t._2) /*+ ".asInstanceOf[Sym[Any]]"*/)
         // -- workaround for apparent scalac bug (GADT skolem type error), with separate cases for regular tpes and function tpes. this may be too restrictive and miss cases we haven't seen yet that also trigger the bug.
-        case Def(Arg(name, f@Def(FTpe(args,ret,freq)), d2)) if isTpePar(o.retTpe) && args.forall(_.tpe == o.retTpe) && ret == o.retTpe => List("f("+opArgPrefix+t._2+".asInstanceOf[" + repify(f).replaceAllLiterally(repify(o.retTpe), "Rep[A]") + "])")
+        case Def(Arg(name, f@Def(FTpe(args,ret,freq)), d2)) if isTpePar(o.retTpe) && !isThunk(f) && args.forall(a => a.tpe == o.retTpe || !isTpePar(a.tpe)) && ret == o.retTpe => List("f("+opArgPrefix+t._2+".asInstanceOf[" + repify(f).replaceAllLiterally(repify(o.retTpe), "Rep[A]") + "])")
         case Def(Arg(name, tpe, d2)) if !isFuncArg(t._1) && isTpePar(o.retTpe) && tpe.tpePars.length == 1 && tpe.tpePars.apply(0) == o.retTpe => List("f("+opArgPrefix+t._2+".asInstanceOf[Rep[" + tpe.name + "[A]]])")
         // -- end workaround
         case Def(Arg(name, _, _)) => List("f("+opArgPrefix+t._2+")")
@@ -621,7 +630,7 @@ trait DeliteGenOps extends BaseGenOps {
       def emitDeliteEffectfulMirror(suffix: String = "") {
         stream.print("    case Reflect(" + opIdentifierPrefix + "@" + makeOpSimpleNodeNameWithAnonArgs(o, suffix) + ", u, es) => reflectMirrored(Reflect(new { override val original = Some(f," + opIdentifierPrefix + ") } with " + makeOpNodeName(o, suffix) + xformArgs + implicitsWithParens)
         stream.print(", mapOver(f,u), f(es)))")
-        stream.println("(mtype(manifest[A]))")
+        stream.println("(mtype(manifest[A]), pos)")
       }
 
       Impls(o) match {
@@ -651,7 +660,7 @@ trait DeliteGenOps extends BaseGenOps {
           // effectful version
           stream.print("    case Reflect(" + opIdentifierPrefix + "@" + makeOpSimpleNodeNameWithAnonArgs(o) + ", u, es) => reflectMirrored(Reflect(" + makeOpNodeName(o) + xformArgs + implicitsWithParens)
           stream.print(", mapOver(f,u), f(es)))")
-          stream.println("(mtype(manifest[A]))")
+          stream.println("(mtype(manifest[A]), pos)")
         case _:GroupBy | _:GroupByReduce =>
           emitDelitePureMirror("Keys")
           emitDeliteEffectfulMirror("Keys")
@@ -843,7 +852,9 @@ trait DeliteGenOps extends BaseGenOps {
     if (rules.length > 0){
       emitBlockComment("Code generators", stream)
       stream.println()
-      for (g <- generators) {
+      val save = activeGenerator
+      for (g <- generators) {        
+        activeGenerator = g
         val generatorRules = rules.flatMap{case (o,i) => i.asInstanceOf[CodeGen].decls.collect{case (k,r) if (k == g) => (o,r)}}
         if (generatorRules.length > 0) {
           stream.println("trait " + g.name + "Gen" + opsGrp.name + " extends " + g.name + "GenFat {")
@@ -883,8 +894,9 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    case _ => super.emitNode(sym, rhs)")
           stream.println("  }")
           stream.println("}")
-        }
+        }        
       }
+      activeGenerator = save
     }
   }
 }
