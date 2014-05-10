@@ -20,6 +20,9 @@ def main():
     DELITE_HOME = delitecommon.DELITE_HOME
 
     cp = ""
+    unmanagedJars = [os.path.join(d,f) for (d, n, fs) in os.walk(script_home + "/lib/") if not (d.count("org.scala-lang") > 0 and d.count("virtualized") == 0) for f in fs]
+    for j in unmanagedJars:
+      cp = cp + j + os.pathsep
     # add all managed libs 
     # caveat: scalatest pulls in some non-virtualized scala dependencies which conflict with the scala-virtualized versions
     jars = [os.path.join(d,f) for (d, n, fs) in os.walk(script_home + "/lib_managed/") if not (d.count("org.scala-lang") > 0 and d.count("virtualized") == 0) for f in fs]

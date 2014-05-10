@@ -26,7 +26,6 @@ trait RoaringUndirectedGraphOps{
     val NodeIdView = lookupTpe("NodeIdView")
     val RoaringBitmap = ephemeralTpe("org.roaringbitmap.RoaringBitmap")
 
-
     //Actual RoaringUndirectedGraph declaration
     val RoaringUndirectedGraph = tpe("RoaringUndirectedGraph") 
     val T = tpePar("T")
@@ -45,11 +44,11 @@ trait RoaringUndirectedGraphOps{
         NodeIdView($self.numNodes).mapreduce[Long]({n => 
           val nbrs = neighborhoods(n)
           var count = 0l
-          val bs = clone(nbrs)
-          foreach(nbrs,{nbr => 
+          val bs = cloneRBM(nbrs)
+          foreachRBM(nbrs,{nbr => 
             //if(nbr > n){
               //andInPlace(bs,$1(nbr))
-              count += getCardinality(and(neighborhoods(nbr),nbrs)).toLong
+              count += getCardinalityRBM(andRBM(neighborhoods(nbr),nbrs)).toLong
             //}
           })
           count

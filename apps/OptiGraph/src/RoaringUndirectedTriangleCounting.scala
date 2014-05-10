@@ -23,7 +23,7 @@ trait RoaringUndirectedTriangleCounting extends OptiGraphApplication {
     val edgeList = loadUndirectedEdgeList(args(0))
     toc("input loading",edgeList)
     tic("creating graph",edgeList)
-    val g = roaringUndirectedGraphFromEdgeList(edgeList)
+    val g = sparseUndirectedGraphFromEdgeList(edgeList)
     toc("creating graph",g)
     
     println("Directed: " + g.isDirected)

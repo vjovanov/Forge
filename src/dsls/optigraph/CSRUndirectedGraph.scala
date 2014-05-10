@@ -61,26 +61,6 @@ trait CSRUndirectedGraphOps{
           else array_length(edge_raw_data($self))
         end - node_apply($self,$1.id) 
       }
-      infix("returnBitmaps")(Nil :: NodeData(RoaringBitmap)) implements composite ${
-        $self.mapNodes{ n =>
-          FRoaringBitmap( NodeData($self.neighbors(n).getRawArray).filter( e => e < n.id, e => e).getRawArray )
-        }
-      }
-      infix("countBitmapTriangles")(NodeData(RoaringBitmap) :: MLong) implements composite ${
-        NodeIdView($self.numNodes).mapreduce[Long]({n => 
-          val nbrs = $1(n)
-          var count = 0l
-          val bs = clone(nbrs)
-          foreach(nbrs,{nbr => 
-            //if(nbr > n){
-              //andInPlace(bs,$1(nbr))
-              count += getCardinality(and($1(nbr),nbrs)).toLong
-            //}
-          })
-          count
-          //getCardinality(bs).toLong
-        },{(a,b) => a+b},{e=>true})
-      }
       infix ("inDegree") (Node :: MInt) implements single ${$self.outDegree($1)}
       //get out neighbors
       infix ("outNbrs") (Node :: NodeDataView(MInt)) implements single ${get_nbrs($self,$1)} 
