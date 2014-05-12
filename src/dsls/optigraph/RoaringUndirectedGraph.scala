@@ -48,7 +48,7 @@ trait RoaringUndirectedGraphOps{
           foreachRBM(nbrs,{nbr => 
             //if(nbr > n){
               //andInPlace(bs,$1(nbr))
-              count += getCardinalityRBM(andRBM(neighborhoods(nbr),nbrs)).toLong
+              count += andCardinalityRBM(neighborhoods(nbr),nbrs)
             //}
           })
           count

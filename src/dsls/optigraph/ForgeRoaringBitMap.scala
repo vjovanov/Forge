@@ -18,6 +18,7 @@ trait ForgeRoaringBitmapOps {
   	static (FRoaringBitmap) ("apply", Nil, MArray(MInt) :: RoaringBitmap) implements codegen($cala, ${org.roaringbitmap.RoaringBitmap.bitmapOf($0:_*)})
   	direct (FRoaringBitmap) ("containsRBM", Nil, (RoaringBitmap,MInt) :: MBoolean) implements codegen($cala, ${$0.contains($1)})
     direct (FRoaringBitmap) ("andRBM", Nil, (RoaringBitmap,RoaringBitmap) :: RoaringBitmap) implements codegen($cala, ${org.roaringbitmap.RoaringBitmap.and($0,$1)})
+    direct (FRoaringBitmap) ("andCardinalityRBM", Nil, (RoaringBitmap,RoaringBitmap) :: MLong) implements codegen($cala, ${$0.andCardinality($1)})
     direct (FRoaringBitmap) ("orRBM", Nil, (RoaringBitmap,RoaringBitmap) :: RoaringBitmap) implements codegen($cala, ${org.roaringbitmap.RoaringBitmap.or($0,$1)})
     direct (FRoaringBitmap) ("orInPlaceRBM", Nil, (RoaringBitmap,RoaringBitmap) :: MUnit, effect=write(0)) implements codegen($cala, ${$0.or($1)})
     direct (FRoaringBitmap) ("andInPlaceRBM", Nil, (RoaringBitmap,RoaringBitmap) :: MUnit, effect=write(0)) implements codegen($cala, ${$0.and($1)})
