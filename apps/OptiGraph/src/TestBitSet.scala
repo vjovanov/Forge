@@ -27,7 +27,7 @@ trait TestBitSet extends OptiGraphApplication {
 
   	println("AND result length(128) cardinality(33)")
   	(bs1 & bs2).print
-  	println("And cardinality: " + bs1.andCardinality(124,bs2))
+  	println("And cardinality: " + bs1.andCardinalityInRange(124,bs2))
 /*
   	val bs3 = BitSet(65)
   	var i = 0

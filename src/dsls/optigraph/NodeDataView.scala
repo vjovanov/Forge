@@ -30,33 +30,34 @@ trait NodeDataViewOps {
       infix ("foreach") ((T ==> MUnit) :: MUnit, effect = simple) implements foreach(T, 0, ${a => $1(a)})
       infix ("start") (Nil :: MInt) implements single ${NodeDataView_start($self)}
 
-      infix ("intersect") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T),("nbrsOfNbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
+      infix ("intersectInRange") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
         val nbrs = $self
+
         if(nbrs.length == 0 || nbrsOfNbrs.length == 0) 0l
         else if(nbrsMax <= nbrsOfNbrs(0) ||
-          nbrsOfNbrsMax <= nbrs(0)){
+          nbrsMax <= nbrs(0)){
           0l
         }
         else if(nbrs(0) > nbrsOfNbrs(nbrsOfNbrs.length-1) || 
           nbrsOfNbrs(0) > nbrs(nbrs.length-1)){
           0l
         }
-        //else if(nbrs.length > 512 || nbrsOfNbrs.length > 512){
-        //    ndv_intersect_gallop($self,nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
-        //}
+        else if( nbrsOfNbrs.length*64 < nbrs.length || nbrs.length*64 < nbrsOfNbrs.length ){
+          ndv_intersect_gallop_in_range($self,nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
+        }
         else{
-          ndv_intersect_sets(nbrs,nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
+          ndv_intersect_sets_in_range(nbrs,nbrsOfNbrs,nbrsMax)
         }
       }
-      compiler ("ndv_intersect_sets") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T),("nbrsOfNbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
+      compiler ("ndv_intersect_sets_in_range") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
         val nbrs = $self
         var t = 0l
         var i = 0
         var j = 0
         val small = if(nbrs.length < nbrsOfNbrs.length) nbrs else nbrsOfNbrs
         val large = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrs else nbrs
-        val smallMax = if(nbrs.length < nbrsOfNbrs.length) nbrsMax else nbrsOfNbrsMax
-        val largeMax = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrsMax else nbrsMax
+        val smallMax = nbrsMax 
+        val largeMax = nbrsMax
         //I understand there are simplier ways to write this, I tried a lot of versions
         //this is the fastest (that I tried).
         var notFinished = small(i) < smallMax && large(j) < largeMax
@@ -84,48 +85,98 @@ trait NodeDataViewOps {
         if(small(i) == large(j) && notFinished) t += 1 
         t
       }
-      compiler ("ndv_intersect_gallop") ((("y",NodeDataView(T)),("xMax",T),("yMax",T)) :: MLong, TNumeric(T)) implements single ${
+      compiler ("ndv_intersect_gallop_in_range") ((("y",NodeDataView(T)),("max",T)) :: MLong, TNumeric(T)) implements single ${
         val x = $0
         var i = 0
         var j = 0
         var t = 0l
-        var notFinished = y(j) < yMax && x(i) < xMax
+        var notFinished = y(j) < max && x(i) < max
         while (notFinished) {
           if (x(i) == y(j)) {
             t += 1
             i += 1
             j += 1
-            notFinished = (i < x.length && j < y.length) && (x(i) < xMax) && (y(j) < yMax)
+            notFinished = (i < x.length && j < y.length) && (x(i) < max) && (y(j) < max)
           }
-          val arg2 = x(i) < y(j)
-          if (notFinished && arg2) { 
-            i = gallop(x,i,y(j),xMax)
-            notFinished = (i < x.length) && (x(i) < xMax)
+          val arg2 = if(notFinished) x(i) < y(j) else false
+          if (arg2) { 
+            i = gallop_in_range(x,i,y(j),max)
+            notFinished = (i < x.length) && (x(i) < max)
           }
-          val arg3 = x(i) > y(j)
-          if(notFinished && arg3){
-            j = gallop(y,j,x(i),yMax)
-            notFinished = (j < y.length) && (y(j) < yMax)
+          val arg3 = if(notFinished) x(i) > y(j) else false
+          if(arg3){
+            j = gallop_in_range(y,j,x(i),max)
+            notFinished = (j < y.length) && (y(j) < max)
           }
         }
         t
       }
-      compiler ("gallop") ( (("startIn",MInt),("tt",T),("max",T)) :: MInt, TNumeric(T)) implements single ${
+      compiler ("gallop_in_range") ( (("startIn",MInt),("tt",T),("max",T)) :: MInt, TNumeric(T)) implements single ${
         var start = startIn
         var stepSize = 1
         val v = $0
         var notFinished = (v(start) < tt && v(start) < max)
         var inRange = false
-        while ((start < v.length) && (v(start) < tt) && (v(start) < max)) {
-          if (((start + stepSize) < v.length) && (v(start+stepSize) < tt)) {
-            start += stepSize
-            stepSize = stepSize << 1
-          } else {
-            start += 1
-            stepSize = 1
+        while ((start < v.length) && notFinished) {
+          notFinished = (v(start) < tt && v(start) < max)
+          if(notFinished){
+            if(((start + stepSize) < v.length)) {
+              if(v(start+stepSize) < tt){
+                start += stepSize
+                stepSize = stepSize << 1
+              } else {
+              start += 1
+              stepSize = 1
+              } 
+            }
           }
         }
         start
+      }
+      infix ("intersect") (NodeDataView(T) :: MLong, TNumeric(T)) implements single ${
+        val nbrs = $self
+        val nbrsOfNbrs = $1
+        if(nbrs.length == 0 || nbrsOfNbrs.length == 0) 0l
+        else if(nbrs(0) > nbrsOfNbrs(nbrsOfNbrs.length-1) || 
+          nbrsOfNbrs(0) > nbrs(nbrs.length-1)){
+          0l
+        }
+        //else if(nbrs.length > 128 || nbrsOfNbrs.length > 128){
+        //  $self.intersectGallop($1)
+        //}
+        else{
+          ndv_intersect_sets(nbrs,nbrsOfNbrs)
+        }
+      }
+      compiler ("ndv_intersect_sets") (NodeDataView(T) :: MLong, TNumeric(T)) implements single ${
+        val nbrs = $self
+        val nbrsOfNbrs = $1
+        var i = 0
+        var t = 0l
+        var j = 0
+        val small = if(nbrs.length < nbrsOfNbrs.length) nbrs else nbrsOfNbrs
+        val large = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrs else nbrs
+        //I understand there are simplier ways to write this, I tried a lot of versions
+        //this is the fastest (that I tried).
+        while(i < (small.length-1)  && j < (large.length-1)){
+          while(j < (large.length-1) && large(j) < small(i)){
+            j += 1
+          }
+          if(small(i)==large(j)){
+           t += 1
+          }
+          i += 1
+        }
+        //if i reaches the end before j
+        while(j < (large.length-1) && large(j) < small(i)){
+          j += 1
+        }
+        //if j reaches the end before i
+        while(large(j) > small(i) && i < (small.length-1)){
+          i += 1
+        }
+        if(small(i) == large(j)) t += 1 
+        t
       }
       infix ("serialForeach") ((T ==> MUnit) :: MUnit, effect = simple) implements single ${
         var i = 0

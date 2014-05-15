@@ -52,18 +52,18 @@ trait NodeCollectionOps {
   direct (NodeCollection) ("sumOverCollection", R,CurriedMethodSignature(List(("nc",GraphBitSet), ("data",MInt==>R) ,("cond",MInt==>MBoolean)),R), TNumeric(R)) implements composite ${
     nc.mapreduce[R](data,{(a,b) => a+b},cond)
   }
-  direct (NodeCollection) ("intersect", Nil, (MInt,GraphBitSet,MInt,GraphBitSet) :: MLong) implements single ${ 
-    val small = if($0 < $2) $0 else $2
-    $1.andCardinality(small,$3).toLong 
+  direct (NodeCollection) ("intersect", Nil, (MInt,GraphBitSet,GraphBitSet) :: MLong) implements single ${ 
+    val small = $0
+    $1.andCardinalityInRange(small,$2).toLong 
   }
-  direct (NodeCollection) ("intersect", Nil, (MInt,NodeDataView(MInt),MInt,GraphBitSet) :: MLong) implements single ${ 
-    intersect($2,$3,$0,$1)
+  direct (NodeCollection) ("intersect", Nil, (MInt,NodeDataView(MInt),GraphBitSet) :: MLong) implements single ${ 
+    intersect($0,$2,$1)
   }
-  direct (NodeCollection) ("intersect", Nil, (MInt,GraphBitSet,MInt,NodeDataView(MInt)) :: MLong) implements single ${ 
+  direct (NodeCollection) ("intersect", Nil, (MInt,GraphBitSet,NodeDataView(MInt)) :: MLong) implements single ${ 
     //go through NDV probe BS
-    val small = if($0 < $2) $0 else $2
+    val small = $0
     val bs = $1
-    val ndv = $3
+    val ndv = $2
 
     var i = 0
     var count = 0l
@@ -77,16 +77,16 @@ trait NodeCollectionOps {
     }
     count
   }
-  direct (NodeCollection) ("intersect", Nil, (MInt,NodeDataView(MInt),MInt,NodeDataView(MInt)) :: MLong) implements single ${ 
-    $1.intersect($3,$0,$2)
+  direct (NodeCollection) ("intersect", Nil, (MInt,NodeDataView(MInt),NodeDataView(MInt)) :: MLong) implements single ${ 
+    $1.intersectInRange($2,$0)
   }
-  direct (NodeCollection) ("intersect", Nil, (MInt,NodeDataView(MInt),MInt,HashSet(MInt)) :: MLong) implements single ${ 
-    intersect($2,$3,$0,$1)
+  direct (NodeCollection) ("intersect", Nil, (MInt,NodeDataView(MInt),HashSet(MInt)) :: MLong) implements single ${ 
+    intersect($0,$2,$1)
   }
-  direct (NodeCollection) ("intersect", Nil, (MInt,HashSet(MInt),MInt,NodeDataView(MInt)) :: MLong) implements single ${ 
-    val small = if($0 < $2) $0 else $2
+  direct (NodeCollection) ("intersect", Nil, (MInt,HashSet(MInt),NodeDataView(MInt)) :: MLong) implements single ${ 
+    val small = $0
     val hs = $1
-    val ndv = $3
+    val ndv = $2
 
     var i = 0
     var count = 0l
@@ -100,10 +100,10 @@ trait NodeCollectionOps {
     }
     count
   }
-  direct (NodeCollection) ("intersect", Nil, (MInt,HashSet(MInt),MInt,HashSet(MInt)) :: MLong) implements single ${ 
-    val small = if($0 < $2) $0 else $2
-    val hsSmall = if($1.length > $3.length) $3 else $1
-    val hsLarge = if($1.length > $3.length) $1.toArray else $3.toArray
+  direct (NodeCollection) ("intersect", Nil, (MInt,HashSet(MInt),HashSet(MInt)) :: MLong) implements single ${ 
+    val small = $0
+    val hsSmall = if(($1.length-$0) > ($2.length-$0)) $2 else $1
+    val hsLarge = if(($1.length-$0) > ($2.length-$0)) $1.toArray else $2.toArray
 
     var i = 0
     var count = 0l
@@ -117,12 +117,12 @@ trait NodeCollectionOps {
     }
     count
   }
-  direct (NodeCollection) ("intersect", Nil, (MInt,HashSet(MInt),MInt,GraphBitSet) :: MLong) implements single ${ 
-    intersect($2,$3,$0,$1)
+  direct (NodeCollection) ("intersect", Nil, (MInt,HashSet(MInt),GraphBitSet) :: MLong) implements single ${ 
+    intersect($0,$2,$1)
   }
-  direct (NodeCollection) ("intersect", Nil, (MInt,GraphBitSet,MInt,HashSet(MInt)) :: MLong) implements single ${ 
-    val small = if($0 < $2) $0 else $2
-    val hs = $3.toArray
+  direct (NodeCollection) ("intersect", Nil, (MInt,GraphBitSet,HashSet(MInt)) :: MLong) implements single ${ 
+    val small = $0
+    val hs = $2.toArray
     val bs = $1
 
     var i = 0

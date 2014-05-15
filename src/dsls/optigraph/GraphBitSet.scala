@@ -28,7 +28,7 @@ trait GraphBitSetOps {
     val GraphBitSetOps = withTpe(GraphBitSet)
     GraphBitSetOps{
       infix("&")(GraphBitSet :: GraphBitSet) implements single ${ GraphBitSet(gbs_get_bitset($self) & gbs_get_bitset($1)) }
-      infix("andCardinality")((MInt,GraphBitSet) :: MInt) implements single ${ gbs_get_bitset($self).andCardinality($1,gbs_get_bitset($2)) }
+      infix("andCardinalityInRange")((MInt,GraphBitSet) :: MInt) implements single ${ gbs_get_bitset($self).andCardinalityInRange($1,gbs_get_bitset($2)) }
       infix("cardinality")(Nil :: MInt) implements single ${ gbs_get_bitset($self).cardinality }
       infix("length")(Nil :: MInt) implements single ${ gbs_get_bitset($self).length }
       infix("apply")(MInt :: MBoolean) implements single ${ gbs_get_bitset($self).apply($1) }
