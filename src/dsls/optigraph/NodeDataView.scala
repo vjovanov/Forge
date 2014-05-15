@@ -43,7 +43,7 @@ trait NodeDataViewOps {
           0l
         }
         else if( nbrsOfNbrs.length*64 < nbrs.length || nbrs.length*64 < nbrsOfNbrs.length ){
-          ndv_intersect_gallop_in_range($self,nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
+          ndv_intersect_gallop_in_range($self,nbrsOfNbrs,nbrsMax)
         }
         else{
           ndv_intersect_sets_in_range(nbrs,nbrsOfNbrs,nbrsMax)
