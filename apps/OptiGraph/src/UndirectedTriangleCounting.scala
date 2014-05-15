@@ -15,7 +15,7 @@ trait UndirectedTriangleCounting extends OptiGraphApplication {
     if (args.length < 1) printUsage
 
     //Works for both directed and undirected, performance 
-    val underForHash = 4//args(1).toInt
+    val underForHash = 2//args(1).toInt
     //println("Under for hash: " + underForHash)
     val bitSetMultiplier = 32
 

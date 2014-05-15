@@ -28,18 +28,18 @@ trait NodeCollectionOps {
     1 - CSR
     2 - Bit Set
   */
-  data(NodeCollection,("_type",MInt),("_dataHS",HashSet(MInt)),("_dataNV",NodeDataView(MInt)),("_dataBS",GraphBitSet))
+  data(NodeCollection,("_type",MInt),("_dataHS",HashSet(MInt)),("_dataND",NodeData(MInt)),("_dataBS",GraphBitSet))
 
-  static (NodeCollection) ("apply", Nil, HashSet(MInt) :: NodeCollection) implements allocates(NodeCollection,${nc_0},${$0},${ndv_fake_alloc},${gbs_fake_alloc})
-  static (NodeCollection) ("apply", Nil, NodeDataView(MInt) :: NodeCollection) implements allocates(NodeCollection,${nc_1},${hs_fake_alloc},${$0},${gbs_fake_alloc})
-  static (NodeCollection) ("apply", Nil, GraphBitSet :: NodeCollection) implements allocates(NodeCollection,${nc_2},${hs_fake_alloc},${ndv_fake_alloc},${$0})
+  static (NodeCollection) ("apply", Nil, HashSet(MInt) :: NodeCollection) implements allocates(NodeCollection,${nc_0},${$0},${nd_fake_alloc},${gbs_fake_alloc})
+  static (NodeCollection) ("apply", Nil, NodeData(MInt) :: NodeCollection) implements allocates(NodeCollection,${nc_1},${hs_fake_alloc},${$0},${gbs_fake_alloc})
+  static (NodeCollection) ("apply", Nil, GraphBitSet :: NodeCollection) implements allocates(NodeCollection,${nc_2},${hs_fake_alloc},${nd_fake_alloc},${$0})
 
   val NodeCollectionOps = withTpe(NodeCollection)
   NodeCollectionOps{
   
     infix ("colType") (Nil :: MInt) implements getter(0, "_type")
     compiler ("nc_getgraphbitset") (Nil :: GraphBitSet) implements getter(0, "_dataBS")
-    compiler ("nc_getNodeDataView") (Nil :: NodeDataView(MInt)) implements getter(0, "_dataNV")
+    compiler ("nc_getNodeData") (Nil :: NodeData(MInt)) implements getter(0, "_dataND")
     compiler ("nc_gethashset") (Nil :: HashSet(MInt)) implements getter(0, "_dataHS")
     compiler ("nc_gethashset_keydata") (Nil :: NodeDataView(MInt)) implements single ${  NodeDataView(nc_gethashset($self).toArray,0,nc_gethashset($self).length)    }
   }

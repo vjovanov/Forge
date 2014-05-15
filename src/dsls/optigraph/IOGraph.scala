@@ -250,100 +250,6 @@ trait IOGraphOps {
     }
 /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
-////////Undirected HAB Loader
-/////////////////////////////////////////////////////////////////////////////////////////////
-    direct (IO) ("habPrunedUndirectedGraphFromEdgeList", Nil, (("edge_data",NodeData(Tuple2(MInt,MInt))),("underForHash",MInt),("bitSetMultiplier",MInt)) :: ICBUndirectedGraph) implements composite ${
-      //I can write this in about ten lines of code but the performance is horrible.
-      val numEdges = edge_data.length
-      val src_groups = edge_data.groupBy(e => e._1, e => e._2)
-
-      //sort by degree, helps with skew for buckets of nodes
-      val ids = NodeData(fhashmap_keys(src_groups))
-      val distinct_ids = ids.sortBy({ (a,b) => 
-        val aV = array_buffer_length(fhashmap_get(src_groups,ids(a)))
-        val bV = array_buffer_length(fhashmap_get(src_groups,ids(b))) 
-        if(aV > bV) -1
-        else if(aV == bV) 0
-        else 1
-      })
-
-      val numNodes = distinct_ids.length
-      val idView = NodeData(array_fromfunction(numNodes,{n => n}))
-      val idHashMap = idView.groupByReduce[Int,Int](n => distinct_ids(n), n => n, (a,b) => a)
-
-      val filtered_nbrs = NodeData[NodeData[Int]](numNodes)
-      var numBitSet = 0
-      var numHash = 0
-      var numCSRNodes = 0
-      var numCSREdges = 0
-      idView.foreach{ i =>
-        filtered_nbrs(i) = NodeData(src_groups(distinct_ids(i)))//.filter(a => fhashmap_get(idHashMap,a) < i,n =>n)
-        if(filtered_nbrs(i).length*bitSetMultiplier >= numNodes) numBitSet += 1
-        else if((filtered_nbrs(i).length*bitSetMultiplier < numNodes) && (filtered_nbrs(i).length <= underForHash)) numHash += 1
-        else {
-          numCSRNodes += 1
-          numCSREdges += filtered_nbrs(i).length
-        }
-      }
-      
-      /////////////////////////
-      //These two ops are the overhead incurred for this special graph
-      val distinct_ids2 = distinct_ids.sortBy({ (a,b) => 
-        val aV = filtered_nbrs(fhashmap_get(idHashMap,distinct_ids(a))).length
-        val bV = filtered_nbrs(fhashmap_get(idHashMap,distinct_ids(b))).length
-        if(aV < bV) -1
-        else if(aV == bV) 0
-        else 1
-      })
-      val idHashMap2 = idView.groupByReduce[Int,Int](n => distinct_ids2(n), n => n, (a,b) => a)
-      //////////////////////////
-
-      println("NumHash: " + numHash  + " NumCSR: " + numCSRNodes +  " numBitSet: " + numBitSet)
- 
-      val serial_out = assignHABUndirectedIndicies(numNodes,distinct_ids,distinct_ids2,idHashMap,idHashMap2,numHash,numBitSet,numCSRNodes,numCSREdges,filtered_nbrs)
-      val bitSetNeighborhoods = serial_out._2
-      val hashNeighborhoods = serial_out._1
-      val csrEdges = serial_out._4
-      val csrNodes = serial_out._3
-
-      ICBUndirectedGraph(numNodes,numEdges,distinct_ids2.getRawArray,numHash,numCSRNodes,numBitSet,hashNeighborhoods.getRawArray,csrNodes.getRawArray,csrEdges.getRawArray,bitSetNeighborhoods.getRawArray)
-    }
-    direct (IO) ("assignHABUndirectedIndicies", Nil, MethodSignature(List(("numNodes",MInt),("distinct_ids",NodeData(MInt)),("distinct_ids2",NodeData(MInt)),("idHashMap",MHashMap(MInt,MInt)),("idHashMap2",MHashMap(MInt,MInt)),("numHash",MInt),("numBitSet",MInt),("numCSRNodes",MInt),("numCSREdges",MInt),("filtered_nbrs",NodeData(NodeData(MInt)))),Tuple4(NodeData(HashSet(MInt)),NodeData(GraphBitSet),NodeData(MInt),NodeData(MInt)))) implements single ${
-      var ii = 0
-      val bitSetNeighborhoods = NodeData[GraphBitSet](numBitSet)
-      val hashNeighborhoods = NodeData[HashSet[Int]](numHash)
-
-      var i = 0
-      var j = 0
-      val csrNodes = NodeData[Int](numCSRNodes)
-      val csrEdges = NodeData[Int](numCSREdges)
-      while(ii < numNodes){
-        val data = filtered_nbrs(fhashmap_get(idHashMap,distinct_ids2(ii))).map(n => fhashmap_get(idHashMap2,n)).sort
-        if(ii < numHash){
-          hashNeighborhoods(ii) = HashSet(data.getRawArray)
-        }
-        else if(ii < (numCSRNodes + numHash)){
-          val neighborhood = data
-          var k = 0
-          while(k < neighborhood.length){
-            csrEdges(j) = neighborhood(k)
-            j += 1
-            k += 1
-          }
-          if(ii < (numCSRNodes+numHash-1)){
-            csrNodes(i+1) = neighborhood.length + csrNodes(i)
-            i += 1
-          }
-        }
-        else{
-          bitSetNeighborhoods( (ii - numCSRNodes - numHash) ) = GraphBitSet(data.getRawArray)
-        }
-        ii += 1
-      }
-      pack(hashNeighborhoods,bitSetNeighborhoods,csrNodes,csrEdges)
-    }
-/////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////
 ////////Undirected Adjacency Loader
 /////////////////////////////////////////////////////////////////////////////////////////////
     direct (IO) ("loadUndirectedAdjList", Nil, MString :: NodeData(NodeData(MInt))) implements composite ${
@@ -362,7 +268,7 @@ trait IOGraphOps {
       val hashBuffer = array_buffer_empty[NodeData[Int]](numNodes/3)
       val csrBuffer = array_buffer_empty[NodeData[Int]](numNodes/3)
       val bsBuffer = array_buffer_empty[NodeData[Int]](numNodes/3)
-      var numEdges = 0
+      var numEdges = 0l
       var numCSREdges = 0
       var numHash = 0
       var numCSR = 0
@@ -371,7 +277,7 @@ trait IOGraphOps {
       var i = 0
       while(i < numNodes){
         val degree = input(i).length-1
-        numEdges += degree
+        numEdges += degree.toLong
         if(degree < $1){
           numHash += 1
           array_buffer_append(hashBuffer,input(i))

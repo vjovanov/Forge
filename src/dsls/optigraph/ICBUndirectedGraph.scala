@@ -33,13 +33,13 @@ trait ICBUndirectedGraphOps{
     val V = tpePar("V")
     val Tuple2 = lookupTpe("Tup2")
 
-    data(ICBUndirectedGraph,("_numNodes",MInt),("_numEdges",MInt),("_externalIDs",MArray(MInt)),("_numHash",MInt),("_numCSR",MInt),("_numBitSet",MInt),("_hashNeighbors",MArray(HashSet(MInt))),("_csrNodes",MArray(MInt)),("_csrEdges",MArray(MInt)),("_bsNeighbors",MArray(GraphBitSet))) 
-    static(ICBUndirectedGraph)("apply", Nil, (MethodSignature(List(("numNodes",MInt),("numEdges",MInt),("externalIDs",MArray(MInt)),("numHash",MInt),("numCSR",MInt),("numBitSet",MInt),("hashNeighbors",MArray(HashSet(MInt))),("csrNodes",MArray(MInt)),("csrEdges",MArray(MInt)),("bsNeighbors",MArray(GraphBitSet))), ICBUndirectedGraph))) implements allocates(ICBUndirectedGraph,${numNodes},${numEdges},${externalIDs},${numHash},${numCSR},${numBitSet},${hashNeighbors},${csrNodes},${csrEdges},${bsNeighbors})
+    data(ICBUndirectedGraph,("_numNodes",MInt),("_numEdges",MLong),("_externalIDs",MArray(MInt)),("_numHash",MInt),("_numCSR",MInt),("_numBitSet",MInt),("_hashNeighbors",MArray(HashSet(MInt))),("_csrNodes",MArray(MInt)),("_csrEdges",MArray(MInt)),("_bsNeighbors",MArray(GraphBitSet))) 
+    static(ICBUndirectedGraph)("apply", Nil, (MethodSignature(List(("numNodes",MInt),("numEdges",MLong),("externalIDs",MArray(MInt)),("numHash",MInt),("numCSR",MInt),("numBitSet",MInt),("hashNeighbors",MArray(HashSet(MInt))),("csrNodes",MArray(MInt)),("csrEdges",MArray(MInt)),("bsNeighbors",MArray(GraphBitSet))), ICBUndirectedGraph))) implements allocates(ICBUndirectedGraph,${numNodes},${numEdges},${externalIDs},${numHash},${numCSR},${numBitSet},${hashNeighbors},${csrNodes},${csrEdges},${bsNeighbors})
 
     val ICBUndirectedGraphOps = withTpe(ICBUndirectedGraph)     
     ICBUndirectedGraphOps{
       infix ("isDirected") (Nil :: MBoolean) implements single ${false}
-      infix ("numEdges")(Nil :: MInt) implements getter(0,"_numEdges")
+      infix ("numEdges")(Nil :: MLong) implements getter(0,"_numEdges")
       infix ("numCSR")(Nil :: MInt) implements getter(0,"_numCSR")
       infix ("numHash")(Nil :: MInt) implements getter(0,"_numHash")
       infix ("numBitSet")(Nil :: MInt) implements getter(0,"_numBitSet")
@@ -102,16 +102,6 @@ trait ICBUndirectedGraphOps{
           }
         }
       }
-
-      infix ("neighbors") (Node :: NodeCollection) implements single ${icb_get_neighbors($self,$1.id)} 
-      infix ("neighbors") (MInt :: NodeCollection) implements single ${icb_get_neighbors($self,$1)}
-
-      compiler("icb_get_neighbors")(MInt :: NodeCollection) implements single ${
-        if($1 < $self.numBitSet) NodeCollection(icb_bs_apply($self,$1))
-        else if($1 < ($self.numBitSet+$self.numCSR)) NodeCollection(icb_get_csr_nbrs($self,$1-$self.numBitSet))
-        else NodeCollection(icb_hash_apply($self,$1-($self.numBitSet+$self.numCSR)))
-      }
-
     }
     addHyperUndirectedGraphCommonOps(ICBUndirectedGraph)
   } 
