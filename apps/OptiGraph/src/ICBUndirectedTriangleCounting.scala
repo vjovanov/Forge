@@ -15,8 +15,8 @@ trait ICBUndirectedTriangleCounting extends OptiGraphApplication {
     if (args.length < 1) printUsage
 
     
-    val underForHash = 0//64
-    val bitSetMultiplier = 0//32
+    val underForHash = 64
+    val bitSetMultiplier = 32
 
     tic("input loading")
     val adjList = loadUndirectedAdjList(args(0))

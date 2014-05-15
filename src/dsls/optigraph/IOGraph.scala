@@ -396,8 +396,20 @@ trait IOGraphOps {
         else if(aV == bV) 0
         else 1
       })
-      val hash = NodeData(hashBuffer)
-      val bs = NodeData(bsBuffer)
+      val hash = NodeData(hashBuffer).sortBy({ (a,b) => 
+        val aV = array_buffer_apply(hashBuffer,a).length
+        val bV = array_buffer_apply(hashBuffer,b).length
+        if(aV > bV) -1
+        else if(aV == bV) 0
+        else 1
+      })
+      val bs = NodeData(bsBuffer).sortBy({ (a,b) => 
+        val aV = array_buffer_apply(bsBuffer,a).length
+        val bV = array_buffer_apply(bsBuffer,b).length
+        if(aV > bV) -1
+        else if(aV == bV) 0
+        else 1
+      })
 
       val hashIds = hash.map[Int]{nd => nd(0)}
       val csrIds = csr.map[Int]{nd => nd(0)}

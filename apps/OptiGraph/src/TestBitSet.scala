@@ -10,10 +10,9 @@ object TestBitSetInterpreter extends OptiGraphApplicationInterpreter with TestBi
 
 trait TestBitSet extends OptiGraphApplication {
   def main() = {
-    /*
   	println("Testing BitSet world")
 
-  	val inArray = NodeData.fromFunction(65, e=>e)
+  	val inArray = NodeData.fromFunction(128, e=>e)
   	val inArray2 = NodeData.fromFunction(129, e=>e*2)
 
   	println("Creating Bit Set")
@@ -28,8 +27,8 @@ trait TestBitSet extends OptiGraphApplication {
 
   	println("AND result length(128) cardinality(33)")
   	(bs1 & bs2).print
-  	println("And cardinality: " + bs1.andCardinality(bs2))
-
+  	println("And cardinality: " + bs1.andCardinality(124,bs2))
+/*
   	val bs3 = BitSet(65)
   	var i = 0
   	while(i < bs3.length){

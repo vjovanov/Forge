@@ -88,7 +88,7 @@ trait BitSetOps {
         var i = 0
         var mask = 0l
         while(i < max){
-          mask = mask << 1
+          mask = (1l << i) | mask
           i += 1
         }
         val count = math_object_bitcount(a1(smallLength) & a2(smallLength) & mask)
