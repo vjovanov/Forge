@@ -35,6 +35,7 @@ trait HashSetOps {
       compiler("hs_get")(Nil :: MHashMap(T,MInt)) implements getter(0, "_data")
     }
     //Perform the group by reduce to create the hash map for allocation.
+    compiler (HashSet) ("hs_fake_alloc", Nil, Nil :: HashSet(MInt)) implements single ${ HashSet(array_empty_imm[Int](0)) }
     compiler (HashSet) ("hs_alloc_from_array", T, MArray(T) :: MHashMap(T,MInt)) implements single ${array_groupByReduce[T,T,Int]($0,e=>e,e=>0,(a,b)=>0)}
   }
 }

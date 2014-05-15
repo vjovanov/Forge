@@ -76,14 +76,23 @@ trait BitSetOps {
         BitSet(result,cardinality)
       }
 
-      infix("andCardinality")(BitSet :: MInt) implements composite ${
-        val smallLength = if ($0.numWords > $1.numWords) $1.numWords else $0.numWords
+      infix("andCardinality")((MInt,BitSet) :: MInt) implements composite ${
+        val smallLength = bs_word_index($1)
         val a1 = bs_get_words($0)
-        val a2 = bs_get_words($1)
+        val a2 = bs_get_words($2)
 
         val mapper = array_fromfunction[Int](smallLength, e=>e)
         val cardinality = array_reduce[Int](array_map[Int,Int](mapper,{e => math_object_bitcount(a1(e) & a2(e)) }), {(a,b) => a+b},numeric_zero[Int])
-        cardinality
+
+        val max = $1 & 63 //0x003f mask off to get index
+        var i = 0
+        var mask = 0l
+        while(i < max){
+          mask = mask << 1
+          i += 1
+        }
+        val count = math_object_bitcount(a1(smallLength) & a2(smallLength) & mask)
+        cardinality + count
       }
 
       infix("|")(BitSet :: BitSet) implements composite ${

@@ -30,7 +30,61 @@ trait NodeDataViewOps {
       infix ("foreach") ((T ==> MUnit) :: MUnit, effect = simple) implements foreach(T, 0, ${a => $1(a)})
       infix ("start") (Nil :: MInt) implements single ${NodeDataView_start($self)}
 
-      infix ("intersectGallop") ((("y",NodeDataView(T)),("xMax",T),("yMax",T)) :: MLong, TNumeric(T)) implements single ${
+      infix ("intersect") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T),("nbrsOfNbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
+        val nbrs = $self
+        if(nbrs.length == 0 || nbrsOfNbrs.length == 0) 0l
+        else if(nbrsMax <= nbrsOfNbrs(0) ||
+          nbrsOfNbrsMax <= nbrs(0)){
+          0l
+        }
+        else if(nbrs(0) > nbrsOfNbrs(nbrsOfNbrs.length-1) || 
+          nbrsOfNbrs(0) > nbrs(nbrs.length-1)){
+          0l
+        }
+        //else if(nbrs.length > 512 || nbrsOfNbrs.length > 512){
+        //    ndv_intersect_gallop($self,nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
+        //}
+        else{
+          ndv_intersect_sets(nbrs,nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
+        }
+      }
+      compiler ("ndv_intersect_sets") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T),("nbrsOfNbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
+        val nbrs = $self
+        var t = 0l
+        var i = 0
+        var j = 0
+        val small = if(nbrs.length < nbrsOfNbrs.length) nbrs else nbrsOfNbrs
+        val large = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrs else nbrs
+        val smallMax = if(nbrs.length < nbrsOfNbrs.length) nbrsMax else nbrsOfNbrsMax
+        val largeMax = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrsMax else nbrsMax
+        //I understand there are simplier ways to write this, I tried a lot of versions
+        //this is the fastest (that I tried).
+        var notFinished = small(i) < smallMax && large(j) < largeMax
+        while(i < (small.length-1)  && j < (large.length-1) && notFinished){
+          while(j < (large.length-1) && large(j) < small(i) && notFinished){
+            j += 1
+            notFinished = large(j) < largeMax
+          }
+          if(small(i)==large(j) && notFinished){
+           t += 1
+          }
+          i += 1
+          notFinished = notFinished && small(i) < smallMax
+        }
+        //if i reaches the end before j
+        while(j < (large.length-1) && large(j) < small(i) && notFinished){
+          j += 1
+          notFinished = large(j) < largeMax
+        }
+        //if j reaches the end before i
+        while(large(j) > small(i) && i < (small.length-1) && notFinished){
+          i += 1
+          notFinished = small(i) < smallMax
+        }
+        if(small(i) == large(j) && notFinished) t += 1 
+        t
+      }
+      compiler ("ndv_intersect_gallop") ((("y",NodeDataView(T)),("xMax",T),("yMax",T)) :: MLong, TNumeric(T)) implements single ${
         val x = $0
         var i = 0
         var j = 0
@@ -73,62 +127,6 @@ trait NodeDataViewOps {
         }
         start
       }
-      infix ("intersect") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T),("nbrsOfNbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
-        val nbrs = $self
-        if(nbrs.length == 0 || nbrsOfNbrs.length == 0) 0l
-        else if(nbrsMax <= nbrsOfNbrs(0) ||
-          nbrsOfNbrsMax <= nbrs(0)){
-          0l
-        }
-        else if(nbrs(0) > nbrsOfNbrs(nbrsOfNbrs.length-1) || 
-          nbrsOfNbrs(0) > nbrs(nbrs.length-1)){
-          0l
-        }
-        else if(nbrs.length > 512 || nbrsOfNbrs.length > 512){
-            $self.intersectGallop(nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
-        }
-        else{
-          ndv_intersect_sets(nbrs,nbrsOfNbrs,nbrsMax,nbrsOfNbrsMax)
-        }
-      }
-      compiler ("ndv_intersect_sets") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T),("nbrsOfNbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
-        val nbrs = $self
-        var t = 0l
-        var i = 0
-        var j = 0
-        val small = if(nbrs.length < nbrsOfNbrs.length) nbrs else nbrsOfNbrs
-        val large = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrs else nbrs
-        val smallMax = if(nbrs.length < nbrsOfNbrs.length) nbrsMax else nbrsOfNbrsMax
-        val largeMax = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrsMax else nbrsMax
-        //I understand there are simplier ways to write this, I tried a lot of versions
-        //this is the fastest (that I tried).
-
-        var notFinished = small(i) < smallMax && large(j) < largeMax
-        while(i < (small.length-1)  && j < (large.length-1) && notFinished){
-          while(j < (large.length-1) && large(j) < small(i) && notFinished){
-            j += 1
-            notFinished = large(j) < largeMax
-          }
-          if(small(i)==large(j) && notFinished){
-           t += 1
-          }
-          i += 1
-          notFinished = notFinished && small(i) < smallMax
-        }
-        //if i reaches the end before j
-        while(j < (large.length-1) && large(j) < small(i) && notFinished){
-          j += 1
-          notFinished = large(j) < largeMax
-        }
-        //if j reaches the end before i
-        while(large(j) > small(i) && i < (small.length-1) && notFinished){
-          i += 1
-          notFinished = small(i) < smallMax
-        }
-        if(small(i) == large(j) && notFinished) t += 1 
-        t
-      }
-
       infix ("serialForeach") ((T ==> MUnit) :: MUnit, effect = simple) implements single ${
         var i = 0
         while(i < $self.length){

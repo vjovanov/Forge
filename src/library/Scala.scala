@@ -57,6 +57,9 @@ trait ScalaOps {
     lift (Prim) (MFloat)
     lift (Prim) (MDouble)
     lift (Prim) (MLong)
+    lift (Prim) (MShort)
+    lift (Prim) (MByte)
+
 
     val toInt = infix (Prim) ("toInt", T withBound TNumeric, T :: MInt)
     val toFloat = infix (Prim) ("toFloat", T withBound TNumeric, T :: MFloat)
@@ -67,6 +70,7 @@ trait ScalaOps {
     impl (toFloat) (codegen($cala, ${ $0.toFloat }))
     impl (toDouble) (codegen($cala, ${ $0.toDouble }))
     impl (toLong) (codegen($cala, ${ $0.toLong }))
+
 
     for (g <- List(cuda, cpp)) {
       impl (toInt) (codegen(g, ${ (int) $0 }))
