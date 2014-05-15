@@ -119,19 +119,22 @@ trait NodeDataViewOps {
         var inRange = false
         while ((start < v.length) && notFinished) {
           notFinished = (v(start) < tt && v(start) < max)
-          if(notFinished){
-            if(((start + stepSize) < v.length)) {
-              if(v(start+stepSize) < tt){
-                start += stepSize
-                stepSize = stepSize << 1
-              } else {
-              start += 1
-              stepSize = 1
-              } 
-            }
+          if(notFinished && ((start + stepSize) < v.length)) {
+            if(v(start+stepSize) < tt){
+              start += stepSize
+              stepSize = stepSize << 1
+            } else {
+            start += 1
+            stepSize = 1
+            } 
           }
+          else {
+            start += 1
+            stepSize = 1
+          } 
         }
-        start
+        if(!notFinished) start-1
+        else start
       }
       infix ("intersect") (NodeDataView(T) :: MLong, TNumeric(T)) implements single ${
         val nbrs = $self
