@@ -6,7 +6,6 @@ object GibbsCompiler extends OptiMLApplicationCompiler with Gibbs
 object GibbsInterpreter extends OptiMLApplicationInterpreter with Gibbs
 
 trait Gibbs extends OptiMLApplication {
-  private var seed : Int = 13
 
   def print_usage = {
     println("Usage: Gibbs <factors file> <variables file> <weights file> <edges file>")
@@ -30,11 +29,8 @@ trait Gibbs extends OptiMLApplication {
           pack(value,value)
         }
       }
-      // cases.map(_._1).pprint
-      // cases.map(_._2).pprint
 
       val factorWeightValue = graph.getWeightValue(factor.weightId)
-      // println(factor.evaluate(cases.map(_._1)) + ", " + factor.evaluate(cases.map(_._2)))
       pack(factor.evaluate(cases.map(_._1)) * factorWeightValue,
            factor.evaluate(cases.map(_._2)) * factorWeightValue)
 
@@ -106,17 +102,14 @@ trait Gibbs extends OptiMLApplication {
     //   val factorWeightValue = graph.getWeightValue(factor.weightId)
     //   negValue * factorWeightValue
     // }
-    // println(positiveValues.sum + ", " + negativeValues.sum)
-    seed = (seed * 383 + 2087) % 10007
-    // println(seed)
-    val newValue = if ((/*random[Double]*/ seed.toDouble / 10007 * (1.0 + exp(negativeValues.sum - positiveValues.sum))) <= 1.0) 1.0 else 0.0
+
+    val newValue = if ((random[Double] * (1.0 + exp(negativeValues.sum - positiveValues.sum))) <= 1.0) 1.0 else 0.0
     graph.updateVariableValue(variableId, newValue)
-    // println(variableId + "->" + newValue)
   }
 
   /* Samples multiple variables and updates the variable values in the graph */
   def sampleVariables(graph: Rep[FactorGraph[FunctionFactor]], variableIds: Rep[DenseVector[Int]], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
-    val shuffledIds = variableIds.sort//shuffle(variableIds)
+    val shuffledIds = shuffle(variableIds)
 
     val start = time()
     val z = for (v <- shuffledIds) {
@@ -130,10 +123,6 @@ trait Gibbs extends OptiMLApplication {
   def evaluateFactor(graph: Rep[FactorGraph[FunctionFactor]], factorId: Rep[Int]): Rep[Double] = {
     val factor = graph.factors.apply(factorId)
     val factorVariableValues = factor.vars.map(fv => graph.getVariableValue(fv.id, fv.isPositive))
-    // if (factorId == 17) {
-    //   factor.vars.map(_.id).pprint
-    //   factorVariableValues.pprint
-    // }
     factor.evaluate(factorVariableValues)
   }
 
@@ -157,7 +146,7 @@ trait Gibbs extends OptiMLApplication {
   def learnWeights(graph: Rep[FactorGraph[FunctionFactor]], numIterations: Rep[Int], numSamples: Rep[Int], learningRate: Rep[Double], regularizationConstant: Rep[Double], diminishRate: Rep[Double], times: Rep[DenseVector[Tup2[Int,Long]]]): Rep[Unit] = {
     tic("initLearnWeights")
     val allVariables = graph.variables.map(_.id)
-    val queryVariables = graph.variables.filter(_.isQuery).map(_.id)//.sortBy(id => id)
+    val queryVariables = graph.variables.filter(_.isQuery).map(_.id)
     val evidenceVariables = graph.variables.filter(_.isEvidence).map(_.id)
     val evidenceValues = evidenceVariables.map(id => graph.getVariableValue(id))
 
@@ -165,14 +154,6 @@ trait Gibbs extends OptiMLApplication {
     val queryFactorIds = evidenceVariables.flatMap(vid => graph.variablesToFactors.apply(vid)).distinct
     val factorWeightIds = queryFactorIds.map(fid => graph.factors.apply(fid).weightId).distinct
     val queryWeightIds = factorWeightIds.filter(wid => !graph.weights.apply(wid).isFixed)
-    // queryVariables.pprint
-    // evidenceVariables.pprint
-    // evidenceValues.pprint
-    // queryFactorIds.pprint
-    // queryWeightIds.pprint
-    // weightFactorMap.apply(0).pprint
-    // weightFactorMap.apply(1).pprint
-    // map from weight -> factors
     val weightFactorIdsMap = queryFactorIds.map(fid => graph.factors.apply(fid)).groupBy(f => f.weightId, f => f.id)
     toc("initLearnWeights", allVariables, queryVariables, evidenceValues, queryWeightIds, weightFactorIdsMap)
 
@@ -197,21 +178,8 @@ trait Gibbs extends OptiMLApplication {
         tic("sampleFactors")
         // compute the expectation for all factors sampling only query variables
         val conditionedEx = sampleFactors(graph, queryVariables, queryFactorIds, numSamples, times)
-        // (0::20).map{k=>
-        //   if (conditionedEx.contains(k)) println(k + "->" + conditionedEx(k))
-        // }
-        // conditionedEx.keys.filter(k => k < 20).sortBy(k => k).map{k => 
-        //   println(k + "->" + conditionedEx(k))
-        // }
-
         // compute the expectation for all factors sampling all variables
         val unconditionedEx = sampleFactors(graph, allVariables, queryFactorIds, numSamples, times)
-        // (0::20).map{k=>
-        //   if (unconditionedEx.contains(k)) println(k + "->" + unconditionedEx(k))
-        // }
-        // unconditionedEx.keys.filter(k => k < 20).sortBy(k => k).map{k => 
-        //   println(k + "->" + unconditionedEx(k))
-        // }
         toc("sampleFactors", conditionedEx, unconditionedEx)
 
         // compute new weights
@@ -246,12 +214,10 @@ trait Gibbs extends OptiMLApplication {
     println("calculating marginals for num_vars="+variables.length)
 
     val nonEvidenceVariables = variables.filter(!_.isEvidence).map(_.id)
-    // nonEvidenceVariables.pprint
-
     // Sums of all samples values to calculate the expectation
-    val sampleSums = DenseVector[Double](variables.length, true)
+    val sampleSums = DenseVector[Double](nonEvidenceVariables.length, true)
     // Squared sample sums to calculate running standard deviation
-    val sampleSums2 = DenseVector[Double](variables.length, true)
+    val sampleSums2 = DenseVector[Double](nonEvidenceVariables.length, true)
     // We keep track of the variable values for the first 20% and last 50% of iterations.
     // We use the data for a Z-Test
     val iteration20 = (numSamples * 0.2).toInt
@@ -262,10 +228,6 @@ trait Gibbs extends OptiMLApplication {
     val sampleSums2Last50 = DenseVector[Double](nonEvidenceVariables.length, true)
 
     // TODO: Z-test for convergence
-    // for (k <- nonEvidenceVariables.indices) {
-    //     val sampleResult = graph.getVariableValue(nonEvidenceVariables(k))
-    //     println(nonEvidenceVariables(k) + "->" + sampleResult)
-    //   }
     var i = 1
     while (i <= numSamples) {
       println("iteration=" + i + "/" + numSamples)
@@ -275,7 +237,6 @@ trait Gibbs extends OptiMLApplication {
       // updated the significance statistics
       for (k <- nonEvidenceVariables.indices) {
         val sampleResult = graph.getVariableValue(nonEvidenceVariables(k))
-        // println(nonEvidenceVariables(k) + "->" + sampleResult)
         val sampleResultSq = sampleResult*sampleResult
         sampleSums(k) = sampleSums(k) + sampleResult
         sampleSums2(k) = sampleSums2(k) + sampleResultSq
