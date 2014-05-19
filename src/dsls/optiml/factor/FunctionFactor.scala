@@ -14,8 +14,8 @@ trait FunctionFactorOps {
 
     data(FunctionFactor, ("_id", MInt), ("_vars", DenseVector(FVariable)), ("_weightId", MInt), ("_funcId", MInt))
 
-    static (FunctionFactor) ("apply", Nil, (("id", MInt), ("vars", DenseVector(FVariable)), ("weightId", MInt), ("func", MString)) :: FunctionFactor) implements
-      composite ${ function_factor_alloc_helper($0, $1, $2, factor_func_to_int($3)) }
+    static (FunctionFactor) ("apply", Nil, (("id", MInt), ("vars", DenseVector(FVariable)), ("weightId", MInt), ("func", MInt)) :: FunctionFactor) implements
+      composite ${ function_factor_alloc_helper($0, $1, $2, $3) }
 
     compiler (FunctionFactor) ("function_factor_alloc_helper", Nil, (("id", MInt), ("vars", DenseVector(FVariable)), ("weightId", MInt), ("funcId", MInt)) :: FunctionFactor) implements
       allocates(FunctionFactor, ${$0}, ${$1}, ${$2}, ${$3})
@@ -35,10 +35,10 @@ trait FunctionFactorOps {
       if ($0.length == 1) {
         $0(0)
       }
-      else if ($0.drop(1).contains(0.0)) {
+      else if ($0.take($0.length - 1).contains(0.0)) {
         1.0
       }
-      else if ($0.first == 0.0) {
+      else if ($0.last == 0.0) {
         0.0
       }
       else {

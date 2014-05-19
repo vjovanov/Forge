@@ -16,6 +16,7 @@ trait MLIOOps {
   }
 
   def importFactorIOOps() {  
+    val T = tpePar("T")
     val DenseVector = lookupTpe("DenseVector")
     val FactorGraph = lookupTpe("FactorGraph")
     val Weight = lookupTpe("Weight")
@@ -23,8 +24,153 @@ trait MLIOOps {
     val Variable = lookupTpe("RandomVariable")
     val FunctionFactor = lookupTpe("FunctionFactor")
     val SHashMap = lookupTpe("scala.collection.mutable.HashMap")
+    val SArray = tpe("scala.Array", T)
+    val Any = lookupTpe("Any")
+
+
+    compiler (IO) ("readWeights", Nil, ("path",MString) :: SArray(SArray(Any))) implements codegen ($cala, ${
+      val dis = new java.io.DataInputStream(new java.io.FileInputStream($path))
+      val weights = new scala.collection.mutable.ArrayBuffer[Int]()
+      val fixes = new scala.collection.mutable.ArrayBuffer[Boolean]()
+      val inivalues = new scala.collection.mutable.ArrayBuffer[Double]()
+      while (dis.available()>0) {
+        val weightId : Int = dis.readLong().toInt
+        val isFixed : Boolean = dis.readBoolean()
+        val initialValue : Double= dis.readDouble()
+        weights += weightId
+        fixes += isFixed
+        inivalues += initialValue
+      }
+      // println("readWeights")
+      // println("weights: " + weights)
+      // println("fixes: " + fixes)
+      // println("inivalues: " + inivalues)
+      dis.close()
+      val out : Array[Array[Any]] = Array(weights.toArray, inivalues.toArray, fixes.toArray)
+      out
+    })
+
+    compiler (IO) ("readVariables", Nil, ("path",MString) :: SArray(SArray(Any))) implements codegen ($cala, ${
+      val dis = new java.io.DataInputStream(new java.io.FileInputStream($path))
+      val variables = new scala.collection.mutable.ArrayBuffer[Int]()
+      val evidences = new scala.collection.mutable.ArrayBuffer[Boolean]()
+      val inivalues = new scala.collection.mutable.ArrayBuffer[Double]()
+      val queries = new scala.collection.mutable.ArrayBuffer[Boolean]()
+      while (dis.available()>0) {
+        val variableId : Int = dis.readLong().toInt
+        val isEvidence : Boolean = dis.readBoolean()
+        val initialValue : Double = dis.readDouble()
+        val dataType : Short = dis.readShort()
+        val edgeCount : Int = dis.readLong().toInt
+        val cardinality : Int = dis.readLong().toInt
+        val isQuery : Boolean = !isEvidence
+        variables += variableId
+        evidences += isEvidence
+        inivalues += initialValue
+        queries += isQuery
+      }
+      // println("readVariables")
+      // println("variables: " + variables)
+      // println("evidences: " + evidences)
+      // println("inivalues: " + inivalues)
+      // println("queries: " + queries)
+      dis.close()
+      val out : Array[Array[Any]] = Array(variables.toArray, inivalues.toArray, evidences.toArray, queries.toArray)
+      out
+    })
+
+    compiler (IO) ("readEdges", Nil, ("path",MString) :: SArray(SArray(Any))) implements codegen ($cala, ${
+      val dis = new java.io.DataInputStream(new java.io.FileInputStream($path))
+      val variables = new scala.collection.mutable.ArrayBuffer[Int]()
+      val factors = new scala.collection.mutable.ArrayBuffer[Int]()
+      val positives = new scala.collection.mutable.ArrayBuffer[Boolean]()
+      val positions = new scala.collection.mutable.ArrayBuffer[Int]()
+
+      while (dis.available()>0) {
+        val variableId : Int = dis.readLong().toInt
+        val factorId : Int = dis.readLong().toInt
+        val position : Int = dis.readLong().toInt
+        val isPositive : Boolean = dis.readBoolean()
+        val equalPredicate : Int = dis.readLong().toInt
+        variables += variableId
+        factors += factorId
+        positives += isPositive
+        positions += position
+      }
+      // println("readEdges")
+      // println("variables: " + variables)
+      // println("factors: " + factors)
+      // println("positives: " + positives)
+      dis.close()
+      val out : Array[Array[Any]] = Array(variables.toArray, factors.toArray, positives.toArray, positions.toArray)
+      out
+    })
 
     // -- input
+    compiler (IO) ("readFactors", Nil, ("path",MString) :: SArray(SArray(Any))) implements codegen ($cala, ${
+      val dis = new java.io.DataInputStream(new java.io.FileInputStream($path))
+      val factors = new scala.collection.mutable.ArrayBuffer[Int]()
+      val weights = new scala.collection.mutable.ArrayBuffer[Int]()
+      val funcs = new scala.collection.mutable.ArrayBuffer[Int]()
+      while (dis.available()>0) {
+        val factorId : Int = dis.readLong().toInt
+        val weightId : Int = dis.readLong().toInt
+        val factorFunction : Int = dis.readShort()
+        val edgeCount : Int = dis.readLong().toInt
+        factors += factorId
+        weights += weightId
+        funcs += factorFunction
+      }
+      // println("readFactors")
+      // println("factors: " + factors)
+      // println("weights: " + weights)
+      // println("funcs: " + funcs)
+      dis.close()
+      val out : Array[Array[Any]] = Array(factors.toArray, weights.toArray, funcs.toArray)
+      out
+    })
+
+    direct (IO) ("readFactorGraphNew", Nil, MethodSignature(List(("factorsPath", MString), ("variablesPath", MString), ("weightsPath", MString), ("edgesPath", MString), ("delim",MString,"\"\\t\"")), FactorGraph(FunctionFactor))) implements composite ${
+      val weight = readWeights($weightsPath)
+      val a = farray_from_sarray(weight(0))
+      val b = farray_from_sarray(weight(1))
+      val c = farray_from_sarray(weight(2))
+      val weight_tuple = (0::array_length(a)) { i => Weight(a(i).AsInstanceOf[Int], b(i).AsInstanceOf[Double], c(i).AsInstanceOf[Boolean]) }
+      val weights = weight_tuple.sortBy(w => w.id)
+      // val weights = densevector_raw_data(weight_tuple)
+      // val weightsMap = fhashmap_from_arrays(weights.map(w => w.id), weights)
+      val variable = readVariables($variablesPath)
+      val d = farray_from_sarray(variable(0))
+      val e = farray_from_sarray(variable(1))
+      val f = farray_from_sarray(variable(2))
+      val g = farray_from_sarray(variable(3))
+      val variable_tuple = (0::array_length(d)) { i => pack((d(i).AsInstanceOf[Int], e(i).AsInstanceOf[Double], f(i).AsInstanceOf[Boolean], g(i).AsInstanceOf[Boolean])) }
+      val variables = variable_tuple.map(r => RandomVariable(r._1, DenseVector(0.0, 1.0), r._2, r._3, r._4)).distinct.sortBy(r => r.id)
+      // val variablesMap = array_groupByReduce[RandomVariable,Int,RandomVariable](variables, v => v.id, v => v, (a,b) => a)
+      val edge = readEdges($edgesPath)
+      val l = farray_from_sarray(edge(0))
+      val m = farray_from_sarray(edge(1))
+      val n = farray_from_sarray(edge(2))
+      val s = farray_from_sarray(edge(3))
+      val edges = (0::array_length(l)) { i => pack((l(i).AsInstanceOf[Int], m(i).AsInstanceOf[Int], n(i).AsInstanceOf[Boolean], s(i).AsInstanceOf[Int]))}
+      val factorVariablesMap = edges.groupBy(r => r._2, r => FactorVariable(r._1, r._3, DenseVector(0.0, 1.0), r._4))
+      val factor = readFactors($factorsPath)
+      val o = farray_from_sarray(factor(0))
+      val p = farray_from_sarray(factor(1))
+      val q = farray_from_sarray(factor(2))
+      val factorRows = (0::array_length(o)) { i => pack((o(i).AsInstanceOf[Int], p(i).AsInstanceOf[Int], q(i).AsInstanceOf[Int])) }
+      val allFactors = factorRows.map { t =>
+        val vars = if (factorVariablesMap.contains(t._1)) factorVariablesMap(t._1).sortBy(r => r.position) else DenseVector[FactorVariable]()
+        FunctionFactor(t._1, vars, t._2, t._3)
+      }
+      val factors = allFactors.filter(f => f.vars.length > 0).sortBy(f => f.id)
+
+      val variablesToFactors = build_variable_factors(variables, factors)
+      val variableValues = variables.map(v => v.value).mutable
+      val weightValues = weights.map(w => w.value).mutable
+
+      FactorGraph(factors, variables, weights, variablesToFactors, variableValues, weightValues)      
+    }
 
     // currently we only support DeepDive-style factor graphs
     direct (IO) ("readFactorGraph", Nil, MethodSignature(List(("factorsPath", MString), ("variablesPath", MString), ("weightsPath", MString), ("delim",MString,"\"\\t\"")), FactorGraph(FunctionFactor))) implements composite ${
@@ -43,18 +189,18 @@ trait MLIOOps {
       // currently only supporting boolean vars
       val variables = densevector_fromarray(variableRows, true).map(r => RandomVariable(r._1, DenseVector(0.0, 1.0), r._6, r._7, r._8)).distinct.sortBy(r => r.id)
       
-      val factorVariablesMap = densevector_fromarray(variableRows, true).groupBy(r => r._2, r => FactorVariable(r._1, r._4, DenseVector(0.0, 1.0)))
+      val factorVariablesMap = densevector_fromarray(variableRows, true).groupBy(r => r._2, r => FactorVariable(r._1, r._4, DenseVector(0.0, 1.0), r._3))
 
       // reading factors breaks in parallel if we try to look up the hashmap inside the file reading loop, for some reason
       val factorRows = ForgeFileReader.readLines($factorsPath) { line =>
         val tokens = line.trim.fsplit(delim)
-        val (factorId, weightId, func) = (tokens(0).toInt, tokens(1).toInt, tokens(2))
+        val (factorId, weightId, func) = (tokens(0).toInt, tokens(1).toInt, tokens(2).toInt)
         // val vars = if (factorVariablesMap.contains(factorId)) factorVariablesMap(factorId) else DenseVector[FactorVariable]()
         // FunctionFactor(factorId, vars, weightId, func)
         pack((factorId, weightId, func))
       }
       val allFactors = factorRows.map { t =>
-        val vars = if (factorVariablesMap.contains(t._1)) factorVariablesMap(t._1) else DenseVector[FactorVariable]()
+        val vars = if (factorVariablesMap.contains(t._1)) factorVariablesMap(t._1).sortBy(r => r.position) else DenseVector[FactorVariable]()
         FunctionFactor(t._1, vars, t._2, t._3)
       }
       val factors = densevector_fromarray(allFactors, true).filter(f => f.vars.length > 0).sortBy(f => f.id)

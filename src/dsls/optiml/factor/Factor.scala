@@ -18,15 +18,16 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
     val DenseVector = lookupTpe("DenseVector")
 
     val FVariable = tpe("FactorVariable")
-    data(FVariable, ("_id", MInt), ("_isPositive", MBoolean), ("_domain", DenseVector(MDouble)))
+    data(FVariable, ("_id", MInt), ("_isPositive", MBoolean), ("_domain", DenseVector(MDouble)), ("_position", MInt))
 
-    static (FVariable) ("apply", Nil, (("id", MInt), ("isPositive", MBoolean), ("domain", DenseVector(MDouble))) :: FVariable) implements allocates(FVariable, ${$0}, ${$1}, ${$2})
+    static (FVariable) ("apply", Nil, (("id", MInt), ("isPositive", MBoolean), ("domain", DenseVector(MDouble)), ("position", MInt)) :: FVariable) implements allocates(FVariable, ${$0}, ${$1}, ${$2}, ${$3})
 
     val FVariableOps = withTpe(FVariable)
     FVariableOps {
       infix ("id") (Nil :: MInt) implements getter(0, "_id")
       infix ("isPositive") (Nil :: MBoolean) implements getter(0, "_isPositive")
       infix ("domain") (Nil :: DenseVector(MDouble)) implements getter(0, "_domain")
+      infix ("position") (Nil :: MInt) implements getter(0, "_position")
     }
   }
 
