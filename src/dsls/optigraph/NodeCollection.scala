@@ -30,9 +30,10 @@ trait NodeCollectionOps {
   */
   data(NodeCollection,("_type",MInt),("_dataHS",HashSet(MInt)),("_dataND",NodeData(MInt)),("_dataBS",GraphBitSet))
 
-  static (NodeCollection) ("apply", Nil, HashSet(MInt) :: NodeCollection) implements allocates(NodeCollection,${nc_0},${$0},${nd_fake_alloc},${gbs_fake_alloc})
+  static (NodeCollection) ("apply", Nil, MInt :: NodeCollection) implements allocates(NodeCollection,${nc_0},${hs_fake_alloc},${nd_fake_alloc[Int]},${gbs_fake_alloc})
+  static (NodeCollection) ("apply", Nil, HashSet(MInt) :: NodeCollection) implements allocates(NodeCollection,${nc_0},${$0},${nd_fake_alloc[Int]},${gbs_fake_alloc})
   static (NodeCollection) ("apply", Nil, NodeData(MInt) :: NodeCollection) implements allocates(NodeCollection,${nc_1},${hs_fake_alloc},${$0},${gbs_fake_alloc})
-  static (NodeCollection) ("apply", Nil, GraphBitSet :: NodeCollection) implements allocates(NodeCollection,${nc_2},${hs_fake_alloc},${nd_fake_alloc},${$0})
+  static (NodeCollection) ("apply", Nil, GraphBitSet :: NodeCollection) implements allocates(NodeCollection,${nc_2},${hs_fake_alloc},${nd_fake_alloc[Int]},${$0})
 
   val NodeCollectionOps = withTpe(NodeCollection)
   NodeCollectionOps{
@@ -67,7 +68,7 @@ trait NodeCollectionOps {
 
     var i = 0
     var count = 0l
-    var notDone = i < ndv.length
+    var notDone = ((i+1) < ndv.length) || ((i+1) < bs.length)
     var inRange = true
     while(notDone && inRange){
       inRange = ndv(i) < small
@@ -90,7 +91,7 @@ trait NodeCollectionOps {
 
     var i = 0
     var count = 0l
-    var notDone = i < ndv.length
+    var notDone = ((i+1) < ndv.length) || ((i+1) < hs.length)
     var inRange = true
     while(notDone && inRange){
       inRange = ndv(i) < small
@@ -107,7 +108,7 @@ trait NodeCollectionOps {
 
     var i = 0
     var count = 0l
-    var notDone = i < array_length(hsLarge)
+    var notDone = ((i+1) < array_length(hsLarge)) || ((i+1) < hsSmall.length)
     var inRange = true
     while(notDone && inRange){
       inRange = hsLarge(i) < small
@@ -127,7 +128,7 @@ trait NodeCollectionOps {
 
     var i = 0
     var count = 0l
-    var notDone = i < array_length(hs)
+    var notDone = ((i+1) < array_length(hs)) || ((i+1) < bs.length)
     var inRange = true
     while(notDone && inRange){
       inRange = hs(i) < small

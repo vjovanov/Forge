@@ -317,6 +317,17 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    def func = " + makeOpImplMethodNameWithArgs(o, "_map"))
           stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,map.tpePars._2)) + "(in, len)")
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodName(inDc.size) + "(in))")
+          if(map.numDynamicChunks == "dynamic"){
+            stream.println("    override val numDynamicChunks = -1")
+          }
+          else{
+            val num:Int = try{
+              map.numDynamicChunks.toInt
+            } catch{
+              case e:Exception => 0
+            }
+            stream.println("    override val numDynamicChunks = " + num)
+          }        
         case zip:Zip =>
           val colTpe = getHkTpe(o.retTpe)
           val outDc = ForgeCollections(colTpe)
@@ -329,6 +340,17 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    def func = " + makeOpImplMethodNameWithArgs(o, "_zip"))
           stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,inA.tpe,zip.tpePars._3)) + "(inA, len)")
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodName(inDc.size) + "(inA))")
+          if(zip.numDynamicChunks == "dynamic"){
+            stream.println("    override val numDynamicChunks = -1")
+          }
+          else{
+            val num:Int = try{
+              zip.numDynamicChunks.toInt
+            } catch{
+              case e:Exception => 0
+            }
+            stream.println("    override val numDynamicChunks = " + num)
+          }
         case reduce:Reduce =>
           val col = o.args.apply(reduce.argIndex)
           val dc = ForgeCollections(getHkTpe(col.tpe))
@@ -338,6 +360,17 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    def func = " + makeOpImplMethodNameWithArgs(o, "_reduce"))
           stream.println("    def zero = " + makeOpImplMethodNameWithArgs(o, "_zero"))
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodNameWithArgs(dc.size) + ")")
+          if(reduce.numDynamicChunks == "dynamic"){
+            stream.println("    override val numDynamicChunks = -1")
+          }
+          else{
+            val num:Int = try{
+              reduce.numDynamicChunks.toInt
+            } catch{
+              case e:Exception => 0
+            }
+            stream.println("    override val numDynamicChunks = " + num)
+          }
         case mapreduce:MapReduce =>
           val col = o.args.apply(mapreduce.argIndex)
           val dc = ForgeCollections(getHkTpe(col.tpe))
@@ -360,6 +393,17 @@ trait DeliteGenOps extends BaseGenOps {
             stream.println("    def map = " + makeOpImplMethodNameWithArgs(o, "_map"))
           }
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodNameWithArgs(dc.size) + ")")
+          if(mapreduce.numDynamicChunks == "dynamic"){
+            stream.println("    override val numDynamicChunks = -1")
+          }
+          else{
+            val num:Int = try{
+              mapreduce.numDynamicChunks.toInt
+            } catch{
+              case e:Exception => 0
+            }
+            stream.println("    override val numDynamicChunks = " + num)
+          }
         case filter:Filter =>
           val colTpe = getHkTpe(o.retTpe)
           val outDc = ForgeCollections(colTpe)
@@ -372,6 +416,17 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    def func = " + makeOpImplMethodNameWithArgs(o, "_map"))
           stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,filter.tpePars._2)) + "(in, len)")
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodName(inDc.size) + "(in))")
+          if(filter.numDynamicChunks == "dynamic"){
+            stream.println("    override val numDynamicChunks = -1")
+          }
+          else{
+            val num:Int = try{
+              filter.numDynamicChunks.toInt
+            } catch{
+              case e:Exception => 0
+            }
+            stream.println("    override val numDynamicChunks = " + num)
+          }
         case flatmap:FlatMap =>
           val colTpe = getHkTpe(o.retTpe)
           val outDc = ForgeCollections(colTpe)
@@ -383,6 +438,17 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    def func = " + makeOpImplMethodNameWithArgs(o, "_func"))
           stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,flatmap.tpePars._2)) + "(in, len)")
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodName(inDc.size) + "(in))")
+          if(flatmap.numDynamicChunks == "dynamic"){
+            stream.println("    override val numDynamicChunks = -1")
+          }
+          else{
+            val num:Int = try{
+              flatmap.numDynamicChunks.toInt
+            } catch{
+              case e:Exception => 0
+            }
+            stream.println("    override val numDynamicChunks = " + num)
+          }        
         case foreach:Foreach =>
           val col = o.args.apply(foreach.argIndex)
           val dc = ForgeCollections(getHkTpe(col.tpe))
@@ -392,6 +458,17 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    def func = " + makeOpImplMethodNameWithArgs(o, "_func"))
           stream.println("    def sync = n => unit(List())")
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodNameWithArgs(dc.size) + ")")
+          if(foreach.numDynamicChunks == "dynamic"){
+            stream.println("    override val numDynamicChunks = -1")
+          }
+          else{
+            val num:Int = try{
+              foreach.numDynamicChunks.toInt
+            } catch{
+              case e:Exception => 0
+            }
+            stream.println("    override val numDynamicChunks = " + num)
+          }
       }
       emitOpNodeFooter(o, stream)
       stream.println()

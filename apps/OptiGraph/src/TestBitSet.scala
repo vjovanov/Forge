@@ -12,9 +12,22 @@ trait TestBitSet extends OptiGraphApplication {
   def main() = {
   	println("Testing BitSet world")
 
-  	val inArray = NodeData.fromFunction(128, e=>e)
-  	val inArray2 = NodeData.fromFunction(129, e=>e*2)
-
+  	val inArray = NodeData.fromFunction(100000, e=>e)
+    var a = inArray.mapreduce[Int]({ e => e}, {(a,b) => a+b}, {e => true})
+    println(a)
+    val b = inArray.map(e => e*2)
+    println(b.length)
+    inArray.foreach{ d =>
+      a += d
+    }
+    println(a)
+    //break_shit(inArray.getRawArray)
+/*
+    val cbs = CompressedBitSet(inArray.getRawArray)
+    println("cbs.length: " + cbs.length)
+    //cbs.print
+*/
+/*
   	println("Creating Bit Set")
   	val bs1 = BitSet(inArray.getRawArray)
   	val bs2 = BitSet(inArray2.getRawArray)
@@ -28,6 +41,7 @@ trait TestBitSet extends OptiGraphApplication {
   	println("AND result length(128) cardinality(33)")
   	(bs1 & bs2).print
   	println("And cardinality: " + bs1.andCardinalityInRange(124,bs2))
+*/
 /*
   	val bs3 = BitSet(65)
   	var i = 0

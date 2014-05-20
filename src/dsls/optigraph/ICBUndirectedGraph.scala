@@ -50,7 +50,7 @@ trait ICBUndirectedGraphOps{
             val nbrs = icb_hash_apply($self,n.id-($self.numBitSet+$self.numCSR))
 
             sumOverCollection(nbrs){ nbr => //type lookup
-              if(nbr > n.id){
+              if(nbr > n.id && nbrs.length > 1){
                 if(nbr >= ($self.numBitSet+$self.numCSR)){ 
                   intersect(n.id,nbrs,icb_hash_apply($self,nbr-($self.numBitSet+$self.numCSR)))
                 }
@@ -68,7 +68,7 @@ trait ICBUndirectedGraphOps{
             val nbrs = icb_get_csr_nbrs($self,n.id-$self.numBitSet)
 
             sumOverCollection(nbrs){ nbr => //type lookup
-              if(nbr > n.id){
+              if(nbr > n.id && nbrs.length > 1){
                 if(nbr >= ($self.numBitSet+$self.numCSR)){ 
                   intersect(n.id,nbrs,icb_hash_apply($self,nbr-($self.numBitSet+$self.numCSR)))
                 }
@@ -86,7 +86,7 @@ trait ICBUndirectedGraphOps{
             val nbrs = icb_bs_apply($self,n.id)
             
             sumOverCollection(nbrs){ nbr => //type lookup
-              if(nbr > n.id){
+              if(nbr > n.id && nbrs.length > 1){
                 if(nbr >= ($self.numBitSet+$self.numCSR)){ 
                   intersect(n.id,nbrs,icb_hash_apply($self,nbr-($self.numBitSet+$self.numCSR)))
                 }

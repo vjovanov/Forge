@@ -33,7 +33,7 @@ trait NodeDataViewOps {
       infix ("intersectInRange") ((("nbrsOfNbrs",NodeDataView(T)),("nbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
         val nbrs = $self
 
-        if(nbrs.length == 0 || nbrsOfNbrs.length == 0) 0l
+        if(nbrs.length < 2 || nbrsOfNbrs.length < 2 ) 0l
         else if(nbrsMax <= nbrsOfNbrs(0) ||
           nbrsMax <= nbrs(0)){
           0l

@@ -8,7 +8,7 @@ import core.{ForgeApplication,ForgeApplicationRunner}
 object OptiGraphDSLRunner extends ForgeApplicationRunner with OptiGraphDSL
 
 trait OptiGraphDSL extends ForgeApplication with GraphOps with ForgeTrieBitmapOps
-    with ICBUndirectedGraphOps with NodeCollectionOps
+    with ICBUndirectedGraphOps with NodeCollectionOps with CompressedBitSetOps
     with CSRDirectedGraphOps  with CSRUndirectedGraphOps with HyperUndirectedGraphOps
     with NodeOps with EdgeOps  with NodeDataOps with NodeDataViewOps with CSRBigUndirectedGraphOps with RoaringUndirectedGraphOps
     with NodeIdViewOps  with AtomicIntArrayOps with AtomicBooleanOps with ForgeRoaringBitmapOps
@@ -44,6 +44,7 @@ trait OptiGraphDSL extends ForgeApplication with GraphOps with ForgeTrieBitmapOp
     importGraphBitSetOps()
     importGraphAggregateOps()
     importNodeCollectionOps()
+    importCompressedBitSetOps()
     importCSRUndirectedGraphOps()
     importCSRDirectedGraphOps()
     importCSRBigUndirectedGraphOps()
