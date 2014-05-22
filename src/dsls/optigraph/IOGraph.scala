@@ -233,7 +233,6 @@ trait IOGraphOps {
           numCSREdges += degree
           array_buffer_append(csrBuffer,input(i))
        }
-        i += 1      
       }
 
       println("numHash: " + numHash + " numCSR: " + numCSR + " numBS: " + numBS)
