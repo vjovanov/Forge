@@ -15,6 +15,12 @@ trait BC extends OptiGraphApplication {
 
     val g = csrDirectedGraphFromEdgeList(args(0))
     
+    g.sumOverNodes{ n => //mapreduce
+      g.sumOver(neighbors(n)){ nbr => //mapreduce
+        g.commonNeighbors(n,nbr) //set intersection two neighborhoods
+      }
+    }
+
     println("Directed: " + g.isDirected)
     println("Number of Nodes: " + g.numNodes)
     

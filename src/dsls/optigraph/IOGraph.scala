@@ -217,8 +217,7 @@ trait IOGraphOps {
       var numCSR = 0
       var numBS = 0
 
-      var i = 0
-      while(i < numNodes){
+      NodeIdView(numNodes).serialForeach{ i =>
         val degree = input(i).length-1
         numEdges += degree.toLong
         if(degree < $1){
@@ -234,8 +233,9 @@ trait IOGraphOps {
           numCSREdges += degree
           array_buffer_append(csrBuffer,input(i))
        }
-        i += 1
+        i += 1      
       }
+
       println("numHash: " + numHash + " numCSR: " + numCSR + " numBS: " + numBS)
 
       val csr = NodeData(csrBuffer).sortBy({ (a,b) => 
