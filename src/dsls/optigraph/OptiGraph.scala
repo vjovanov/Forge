@@ -10,9 +10,9 @@ object OptiGraphDSLRunner extends ForgeApplicationRunner with OptiGraphDSL
 trait OptiGraphDSL extends ForgeApplication with GraphOps with ForgeTrieBitmapOps
     with ICBUndirectedGraphOps with NodeCollectionOps with CompressedBitSetOps
     with CSRDirectedGraphOps  with CSRUndirectedGraphOps with HyperUndirectedGraphOps
-    with NodeOps with EdgeOps  with NodeDataOps with NodeDataViewOps with CSRBigUndirectedGraphOps with RoaringUndirectedGraphOps
-    with NodeIdViewOps  with AtomicIntArrayOps with AtomicBooleanOps with ForgeRoaringBitmapOps
-    with GraphBitSetOps with IOGraphOps with SparseUndirectedGraphOps {
+    with NodeOps with EdgeOps  with NodeDataOps with NodeDataViewOps with CSRBigUndirectedGraphOps
+    with NodeIdViewOps  with AtomicIntArrayOps with AtomicBooleanOps
+    with GraphBitSetOps with IOGraphOps {
   /**
    * The name of our DSL. This is the name that will be used in generated files,
    * package declarations, etc.
@@ -48,8 +48,6 @@ trait OptiGraphDSL extends ForgeApplication with GraphOps with ForgeTrieBitmapOp
     importCSRUndirectedGraphOps()
     importCSRDirectedGraphOps()
     importCSRBigUndirectedGraphOps()
-    importRoaringUndirectedGraphOps()
-    importSparseUndirectedGraphOps()
     importICBUndirectedGraphOps()
     importIOGraphOps()
   }

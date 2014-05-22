@@ -46,8 +46,8 @@ trait HyperUndirectedGraphOps{
           $1(Node(i))
         }
       }
-      infix("sumOverNodes")  ( (Node ==> R) :: R, TNumeric(R), addTpePars=R) implements composite ${
-        NodeIdView($self.numNodes).mapreduce[R]({n => $1(Node(n))},{(a,b) => a+b},{n => true})
+      infix("sumOverNodes")  ( ((Node ==> R),MString) :: R, TNumeric(R), addTpePars=R) implements composite ${
+        NodeIdView($self.numNodes).mapreduceChunks[R]({n => $1(Node(n))},{(a,b) => a+b},{n => true},$2)
       }
       infix("mapNodes")( (Node==>R) :: NodeData(R), addTpePars=R) implements composite ${
         NodeData[R](array_fromfunction($self.numNodes,{n => $1(Node(n))}))

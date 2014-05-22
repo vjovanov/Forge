@@ -22,6 +22,8 @@ trait NodeDataViewOps {
 
     data(NodeDataView, ("_data", MArray(T)), ("_start", MInt), ("_length", MInt))
     static (NodeDataView) ("apply", T, (MArray(T), MInt, MInt) :: NodeDataView(T)) implements allocates(NodeDataView, ${$0}, ${$1}, ${$2})
+    //static (NodeDataView) ("apply", T, MArray(T) :: NodeDataView(T)) implements allocates(NodeDataView, ${$0}, ${array_length($0)}, ${array_length($0)})
+
     val NodeDataViewOps = withTpe(NodeDataView)
     NodeDataViewOps {
       infix ("length") (Nil :: MInt) implements getter(0, "_length")
@@ -207,6 +209,7 @@ trait NodeDataViewOps {
       compiler ("NodeDataView_illegalupdate") ((MInt, T) :: MNothing, effect = simple) implements composite ${ fatal("NodeDataViews cannot be updated") }
       parallelize as ParallelCollection(T, lookupOp("NodeDataView_illegalalloc"), lookupOp("length"), lookupOverloaded("apply",1), lookupOp("NodeDataView_illegalupdate"))
     }
+    compiler (NodeData) ("ndv_zero", Nil, Nil :: MInt) implements single ${ 0 }
     compiler (NodeData) ("ndv_fake_alloc", Nil, Nil :: NodeDataView(MInt)) implements single ${ NodeDataView(array_empty_imm[Int](0),0,0) }
     direct(NodeDataView) ("sumOverCollection", (T,R), CurriedMethodSignature(List(("nd_view",NodeDataView(T)), ("data",T==>R) ,("cond",T==>MBoolean)),R), TNumeric(R)) implements composite ${nd_view.mapreduce[R]( e => data(e), (a,b) => a+b, cond)}
   }

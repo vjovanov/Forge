@@ -33,8 +33,8 @@ trait ICBUndirectedGraphOps{
     val V = tpePar("V")
     val Tuple2 = lookupTpe("Tup2")
 
-    data(ICBUndirectedGraph,("_numNodes",MInt),("_numEdges",MLong),("_externalIDs",MArray(MInt)),("_numHash",MInt),("_numCSR",MInt),("_numBitSet",MInt),("_hashNeighbors",MArray(HashSet(MInt))),("_csrNodes",MArray(MInt)),("_csrEdges",MArray(MInt)),("_bsNeighbors",MArray(GraphBitSet))) 
-    static(ICBUndirectedGraph)("apply", Nil, (MethodSignature(List(("numNodes",MInt),("numEdges",MLong),("externalIDs",MArray(MInt)),("numHash",MInt),("numCSR",MInt),("numBitSet",MInt),("hashNeighbors",MArray(HashSet(MInt))),("csrNodes",MArray(MInt)),("csrEdges",MArray(MInt)),("bsNeighbors",MArray(GraphBitSet))), ICBUndirectedGraph))) implements allocates(ICBUndirectedGraph,${numNodes},${numEdges},${externalIDs},${numHash},${numCSR},${numBitSet},${hashNeighbors},${csrNodes},${csrEdges},${bsNeighbors})
+    data(ICBUndirectedGraph,("_numNodes",MInt),("_numEdges",MLong),("_numChunks",MString),("_externalIDs",MArray(MInt)),("_numHash",MInt),("_numCSR",MInt),("_numBitSet",MInt),("_hashNeighbors",MArray(HashSet(MInt))),("_csrNodes",MArray(MInt)),("_csrEdges",MArray(MInt)),("_bsNeighbors",MArray(GraphBitSet))) 
+    static(ICBUndirectedGraph)("apply", Nil, (MethodSignature(List(("numNodes",MInt),("numEdges",MLong),("numChunks",MString),("externalIDs",MArray(MInt)),("numHash",MInt),("numCSR",MInt),("numBitSet",MInt),("hashNeighbors",MArray(HashSet(MInt))),("csrNodes",MArray(MInt)),("csrEdges",MArray(MInt)),("bsNeighbors",MArray(GraphBitSet))), ICBUndirectedGraph))) implements allocates(ICBUndirectedGraph,${numNodes},${numEdges},${numChunks},${externalIDs},${numHash},${numCSR},${numBitSet},${hashNeighbors},${csrNodes},${csrEdges},${bsNeighbors})
 
     val ICBUndirectedGraphOps = withTpe(ICBUndirectedGraph)     
     ICBUndirectedGraphOps{
@@ -43,9 +43,11 @@ trait ICBUndirectedGraphOps{
       infix ("numCSR")(Nil :: MInt) implements getter(0,"_numCSR")
       infix ("numHash")(Nil :: MInt) implements getter(0,"_numHash")
       infix ("numBitSet")(Nil :: MInt) implements getter(0,"_numBitSet")
+      infix ("numChunks")(Nil :: MString) implements getter(0,"_numChunks")
+
 
       infix ("countTriangles") ( Nil :: MLong) implements composite ${
-        $self.sumOverNodes{ n =>
+        $self.sumOverNodes({ n =>
           if(n.id >= ($self.numBitSet+$self.numCSR)){
             val nbrs = icb_hash_apply($self,n.id-($self.numBitSet+$self.numCSR))
 
@@ -100,7 +102,7 @@ trait ICBUndirectedGraphOps{
               else 0l
             }{e => true}
           }
-        }
+        },$self.numChunks)
       }
     }
     addHyperUndirectedGraphCommonOps(ICBUndirectedGraph)

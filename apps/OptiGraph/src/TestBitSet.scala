@@ -15,12 +15,12 @@ trait TestBitSet extends OptiGraphApplication {
   	val inArray1 = array_fromfunction[Int](1024, e=>e)
     val inArray2 = array_fromfunction[Int](2048, e=>e*4)
 
-    val bs1 = BitSet(inArray1)
-    val bs2 = BitSet(inArray2)
-    //val cbs1 = CompressedBitSet(inArray1)
-    //val cbs2 = CompressedBitSet(inArray2)
+    //val bs1 = BitSet(inArray1)
+    //val bs2 = BitSet(inArray2)
+    val cbs1 = CompressedBitSet(inArray1)
+    val cbs2 = CompressedBitSet(inArray2)
     //val out = cbs1.andCardinality(cbs2)
-    println("Output: " + bs1 + bs2)
+    println("Output: " + cbs1 + cbs2)
 /*
   	println("Creating Bit Set")
   	val bs1 = BitSet(inArray.getRawArray)

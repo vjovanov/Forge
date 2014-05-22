@@ -30,13 +30,8 @@ trait IOGraphOps {
     val CSRDirectedGraph = lookupTpe("CSRDirectedGraph")
     val CSRUndirectedGraph = lookupTpe("CSRUndirectedGraph")
     val CSRBigUndirectedGraph = lookupTpe("CSRBigUndirectedGraph")
-    val SparseUndirectedGraph = lookupTpe("SparseUndirectedGraph")
 
     val ICBUndirectedGraph = lookupTpe("ICBUndirectedGraph")
-    val RoaringUndirectedGraph = lookupTpe("RoaringUndirectedGraph")
-    val RoaringBitMap = ephemeralTpe("RoaringBitMap")
-    val SparseBitSet = ephemeralTpe("com.zaxxer.sparsebits.SparseBitSet")
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -175,58 +170,6 @@ trait IOGraphOps {
 
       CSRUndirectedGraph(numNodes,ids.getRawArray,serial_out._1,serial_out._2)
     }
-    direct (IO) ("roaringUndirectedGraphFromEdgeList", Nil, ("edge_data",NodeData(Tuple2(MInt,MInt))) :: RoaringUndirectedGraph) implements composite ${
-      println("Edges: " + edge_data.length)
-      val src_groups = edge_data.groupBy(e => e._1, e => e._2)
-
-      //sort by degree, helps with skew for buckets of nodes
-      val ids = NodeData(fhashmap_keys(src_groups))
-    
-      /*
-      val ids = ids1.sortBy({ (a,b) => 
-        val aV = array_buffer_length(fhashmap_get(src_groups,ids1(a)))
-        val bV = array_buffer_length(fhashmap_get(src_groups,ids1(b))) 
-        if(aV < bV) -1
-        else if(aV == bV) 0
-        else 1
-      })
-  */
-      val numNodes = ids.length
-      val idView = NodeData(array_fromfunction(numNodes,{n => n}))
-      val idHashMap = idView.groupByReduce[Int,Int](n => ids(n), n => n, (a,b) => a)
-      val neighborhoods = ids.map{n => 
-        FRoaringBitmap( NodeData(fhashmap_get(src_groups,n)).filter( e => e < n, e => fhashmap_get(idHashMap,e)).getRawArray )}
-      println("neighborhoods: " + neighborhoods.length)
-      //val serial_out = assignUndirectedIndicies(numNodes,edge_data.length,ids,idHashMap,src_groups)
-
-      RoaringUndirectedGraph(numNodes,edge_data.length.toLong,ids.getRawArray,neighborhoods.getRawArray)
-    }
-    direct (IO) ("sparseUndirectedGraphFromEdgeList", Nil, ("edge_data",NodeData(Tuple2(MInt,MInt))) :: SparseUndirectedGraph) implements composite ${
-      println("Edges: " + edge_data.length)
-      val src_groups = edge_data.groupBy(e => e._1, e => e._2)
-
-      //sort by degree, helps with skew for buckets of nodes
-      val ids = NodeData(fhashmap_keys(src_groups))
-    
-      /*
-      val ids = ids1.sortBy({ (a,b) => 
-        val aV = array_buffer_length(fhashmap_get(src_groups,ids1(a)))
-        val bV = array_buffer_length(fhashmap_get(src_groups,ids1(b))) 
-        if(aV < bV) -1
-        else if(aV == bV) 0
-        else 1
-      })
-  */
-      val numNodes = ids.length
-      val idView = NodeData(array_fromfunction(numNodes,{n => n}))
-      val idHashMap = idView.groupByReduce[Int,Int](n => ids(n), n => n, (a,b) => a)
-      val neighborhoods = ids.map{n => 
-        FSparseBitSet( NodeData(fhashmap_get(src_groups,n)).filter( e => e < n, e => fhashmap_get(idHashMap,e)).getRawArray )}
-      println("neighborhoods: " + neighborhoods.length)
-      //val serial_out = assignUndirectedIndicies(numNodes,edge_data.length,ids,idHashMap,src_groups)
-
-      SparseUndirectedGraph(numNodes,edge_data.length.toLong,ids.getRawArray,neighborhoods.getRawArray)
-    }
     direct (IO) ("assignUndirectedIndicies", Nil, MethodSignature(List(("numNodes",MInt),("numEdges",MInt),("distinct_ids",NodeData(MInt)),("idHashMap",MHashMap(MInt,MInt)),("src_groups",MHashMap(MInt,MArrayBuffer(MInt)))),Tuple2(MArray(MInt),MArray(MInt)))) implements single ${
       val src_edge_array = NodeData[Int](numEdges)
       val src_node_array = NodeData[Int](numNodes)
@@ -260,7 +203,7 @@ trait IOGraphOps {
       input
     }
 
-    direct (IO) ("createICBUndirectedGraphFromAdjList", Nil, (NodeData(NodeData(MInt)),MInt,MInt) :: ICBUndirectedGraph) implements composite ${
+    direct (IO) ("createICBUndirectedGraphFromAdjList", Nil, (NodeData(NodeData(MInt)),MInt,MInt,MString) :: ICBUndirectedGraph) implements composite ${
       val input = $0
       val numNodes = input.length
       val idView = NodeData(array_fromfunction(numNodes,{n => n}))
@@ -333,7 +276,7 @@ trait IOGraphOps {
         GraphBitSet(NodeData.fromFunction(nd.length-1,a => a+1).map(a => fhashmap_get(idHashMap,nd(a))).sort.getRawArray)
       }
       val serial_out = assignICBUndirectedIndicies(numCSR,numCSREdges,csrIds,idHashMap,csrNbrs)
-      ICBUndirectedGraph(numNodes,numEdges,distinct_ids.getRawArray,numHash,numCSR,numBS,hashNbrs.getRawArray,serial_out._1,serial_out._2,bsNbrs.getRawArray)
+      ICBUndirectedGraph(numNodes,numEdges,$3,distinct_ids.getRawArray,numHash,numCSR,numBS,hashNbrs.getRawArray,serial_out._1,serial_out._2,bsNbrs.getRawArray)
     }
     direct (IO) ("assignICBUndirectedIndicies", Nil, MethodSignature(List(("numNodes",MInt),("numEdges",MInt),("distinct_ids",NodeData(MInt)),("idHashMap",MHashMap(MInt,MInt)),("src_groups",NodeData(NodeData(MInt)))),Tuple2(MArray(MInt),MArray(MInt)))) implements single ${
       val src_edge_array = NodeData[Int](numEdges)

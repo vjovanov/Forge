@@ -440,6 +440,7 @@ trait ScalaOps {
     // overloaded variants of string concat
     val T = tpePar("T")
 
+    //val toShort = infix (Str) ("toShort", Nil, MString :: MShort) 
     val toInt = infix (Str) ("toInt", Nil, MString :: MInt) 
     val toFloat = infix (Str) ("toFloat", Nil, MString :: MFloat)
     val toDouble = infix (Str) ("toDouble", Nil, MString :: MDouble)
@@ -448,6 +449,7 @@ trait ScalaOps {
     val fcharAt = infix (Str) ("fcharAt", Nil, (MString,MInt) :: MChar) 
     val startsWith = infix (Str) ("startsWith", Nil, (MString,MString) :: MBoolean)
 
+    //impl (toShort) (codegen($cala, ${ $0.toShort })) 
     impl (toInt) (codegen($cala, ${ $0.toInt })) 
     impl (toFloat) (codegen($cala, ${ $0.toFloat })) 
     impl (toDouble) (codegen($cala, ${ $0.toDouble })) 
@@ -455,7 +457,8 @@ trait ScalaOps {
     impl (trim) (codegen($cala, ${ $0.trim })) 
     impl (fcharAt) (codegen($cala, ${ $0.charAt($1) })) 
     impl (startsWith) (codegen($cala, ${ $0.startsWith($1) })) 
-    
+
+    //impl (toShort) (codegen(cpp, ${ string_toShort($0) })) 
     impl (toInt) (codegen(cpp, ${ string_toInt($0) })) 
     impl (toFloat) (codegen(cpp, ${ string_toFloat($0) })) 
     impl (toDouble) (codegen(cpp, ${ string_toDouble($0) })) 

@@ -12,32 +12,31 @@ trait ICBUndirectedTriangleCounting extends OptiGraphApplication {
   def main() = {
     println("ICBUndirectedTriangleCounting")
 
-    if (args.length < 1) printUsage
-
+    if (args.length < 4) printUsage
     
-    val underForHash = 64
-    val bitSetMultiplier = 32
+    //val underForHash = 
+    //val bitSetMultiplier = 32
 
-    tic("input loading")
+    tic("input")
     val adjList = loadUndirectedAdjList(args(0))
     
-    toc("input loading",adjList)
-    tic("creating graph",adjList)
+    toc("input",adjList)
+    tic("creation",adjList)
     
-    val g = createICBUndirectedGraphFromAdjList(adjList,underForHash,bitSetMultiplier)
+    val g = createICBUndirectedGraphFromAdjList(adjList,args(1).toInt,args(2).toInt,args(3))
 
-    toc("creating graph",g)
+    toc("creation",g)
 
     println("Directed: " + g.isDirected)
     println("Number of Nodes: " + g.numNodes)
     println("Number of Edges: " + g.numEdges)
 
     println("performing Traingle Counting: " + g.numNodes)
-    tic("Triangle Counting",g)
+    tic("counting",g)
     
     val t = g.countTriangles()
 
-    toc("Triangle Counting",t)
+    toc("counting",t)
     println("Number of triangles " + t)
   }
   def printUsage = {
