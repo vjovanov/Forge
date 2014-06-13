@@ -20,10 +20,10 @@ trait MatrixCompletion extends OptiMLApplication {
     var tmpx = readVector[Unit](args(1), { line => 
       mBuilder(line(0).toInt, line(1).toInt) = line(2).toDouble 
     }, " ")
-    val a = mBuilder.finish
+    val a: Rep[SparseMatrix[Double]] = mBuilder.finish
 
     tic()
-    val y0 = DenseVector.ones(n)
+    val y0: Rep[DenseVector[Double]] = DenseVector.ones(n)
 
     val alpha = 1.0
 
