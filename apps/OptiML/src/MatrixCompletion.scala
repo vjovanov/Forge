@@ -28,7 +28,7 @@ trait MatrixCompletion extends OptiMLApplication {
     val alpha = 1.0
 
     val w = untilconverged(y0, maxIter = 30) { y =>
-      y * (1.0 - alpha) + a * y * (y *:* y)^(-2) * alpha
+      y * (1.0 - alpha) + a * y * alpha / (y *:* y)
     }
 
     toc(w)
