@@ -37,10 +37,10 @@ trait SimpleVectorDSL extends ForgeApplication {
     val Vector = tpe("Vector", T)
 
     // data fields
-    data(Vector, ("_length", MInt), ("_data", MArray(T)))
+    data(Vector, ("_length", MLong), ("_data", MArray(T)))
 
     // allocation
-    static (Vector) ("apply", T, MInt :: Vector(T), effect = mutable) implements allocates(Vector, ${$0}, ${ array_empty[T]($0) })
+    static (Vector) ("apply", T, MLong :: Vector(T), effect = mutable) implements allocates(Vector, ${$0}, ${ array_empty[T]($0) })
 
     // doesn't rewrite correctly if we use "withTpe (Vector) {", but works if we use:
     val VectorOps = withTpe (Vector)
@@ -49,19 +49,19 @@ trait SimpleVectorDSL extends ForgeApplication {
       // getters and setters
       compiler ("vector_raw_data") (Nil :: MArray(T)) implements getter(0, "_data")
       compiler ("vector_set_raw_data") (MArray(T) :: MUnit, effect = write(0)) implements setter(0, "_data", quotedArg(1))
-      infix ("length") (Nil :: MInt) implements getter(0, "_length")
-      compiler ("vector_set_length") (MInt :: MUnit, effect = write(0)) implements setter(0, "_length", quotedArg(1))
+      infix ("length") (Nil :: MLong) implements getter(0, "_length")
+      compiler ("vector_set_length") (MLong :: MUnit, effect = write(0)) implements setter(0, "_length", quotedArg(1))
 
 
       // data ops
-      infix ("apply") (MInt :: T) implements composite ${ array_apply(vector_raw_data($self), $1) }
+      infix ("apply") (MLong :: T) implements composite ${ array_apply(vector_raw_data($self), $1) }
       // example named arg
-      infix ("update") ((("i",MInt),("e",T)) :: MUnit, effect = write(0)) implements composite ${
+      infix ("update") ((("i",MLong),("e",T)) :: MUnit, effect = write(0)) implements composite ${
         array_update(vector_raw_data($self), $i, $e)
       }
 
       // example named, default arg. 'MethodSignature' is currently explicitly needed when mixing arg types.
-      infix ("slice") (MethodSignature(List(("start",MInt,"unit(0)"),("end",MInt)), Vector(T))) implements single ${
+      infix ("slice") (MethodSignature(List(("start",MLong,"unit(0l)"),("end",MLong)), Vector(T))) implements single ${
         val out = Vector[T]($end - $start)
         var i = $start
         while (i < $end) {
@@ -71,30 +71,30 @@ trait SimpleVectorDSL extends ForgeApplication {
         out
       }
 
-      infix ("insert") ((MInt,T) :: MUnit, effect = write(0)) implements single ${
+      infix ("insert") ((MLong,T) :: MUnit, effect = write(0)) implements single ${
         vector_insertspace($self,$1,1)
         $self($1) = $2
       }
 
-      infix ("append") ((MInt,T) :: MUnit, effect = write(0)) implements single ${
+      infix ("append") ((MLong,T) :: MUnit, effect = write(0)) implements single ${
         $self.insert($self.length, $2)
       }
 
-      compiler ("vector_insertspace") ((("pos",MInt),("len",MInt)) :: MUnit, effect = write(0)) implements single ${
+      compiler ("vector_insertspace") ((("pos",MLong),("len",MLong)) :: MUnit, effect = write(0)) implements single ${
         vector_ensureextra($self,$len)
         val data = vector_raw_data($self)
         array_copy(data,$pos,data,$pos+$len,$self.length-$pos)
         vector_set_length($self,$self.length+$len)
       }
 
-      compiler ("vector_ensureextra") (("extra",MInt) :: MUnit, effect = write(0)) implements single ${
+      compiler ("vector_ensureextra") (("extra",MLong) :: MUnit, effect = write(0)) implements single ${
         val data = vector_raw_data($self)
         if (array_length(data) - $self.length < $extra) {
           vector_realloc($self, $self.length+$extra)
         }
       }
 
-      compiler ("vector_realloc") (("minLen",MInt) :: MUnit, effect = write(0)) implements single ${
+      compiler ("vector_realloc") (("minLen",MLong) :: MUnit, effect = write(0)) implements single ${
         val data = vector_raw_data($self)
         var n = unit(4) max (array_length(data)*2)
         while (n < $minLen) n = n*2
@@ -158,11 +158,11 @@ trait SimpleVectorDSL extends ForgeApplication {
       // This enables a tpe to be passed in as the collection type of a Delite op
 
       // by convention, the return tpe of alloc must be its last tpe parameter, if it has any
-      compiler ("vector_raw_alloc") (MInt :: Vector(R), addTpePars = R, effect = mutable) implements composite ${
+      compiler ("vector_raw_alloc") (MLong :: Vector(R), addTpePars = R, effect = mutable) implements composite ${
         Vector[R]($1)
       }
-      compiler ("vector_appendable") ((MInt,T) :: MBoolean) implements single("true")
-      compiler ("vector_copy") ((MInt,Vector(T),MInt,MInt) :: MUnit, effect = write(2)) implements single ${
+      compiler ("vector_appendable") ((MLong,T) :: MBoolean) implements single("true")
+      compiler ("vector_copy") ((MLong,Vector(T),MLong,MLong) :: MUnit, effect = write(2)) implements single ${
         val src = vector_raw_data($self)
         val dest = vector_raw_data($2)
         array_copy(src, $1, dest, $3, $4)
@@ -172,7 +172,7 @@ trait SimpleVectorDSL extends ForgeApplication {
     }
 
     /* Testing: some codegen op that takes a block with arguments */
-    val z = direct (Vector) ("foo", T, List(MInt ==> T, MInt, MThunk(MInt), (MInt,MInt) ==> MInt, MDouble, MDouble ==> MDouble) :: T) implements codegen($cala, ${
+    val z = direct (Vector) ("foo", T, List(MLong ==> T, MLong, MThunk(MLong), (MLong,MLong) ==> MLong, MDouble, MDouble ==> MDouble) :: T) implements codegen($cala, ${
       var i = 0
       val a = new Array[$t[T]](100)
 
@@ -193,7 +193,7 @@ trait SimpleVectorDSL extends ForgeApplication {
        Currently 'foo' above cannot be generated for C++ target because the outer-most block has return (e.g., $b[0]).
        TODO: enable the outermost blocks with a return.
     */
-    val foo2 = direct (Vector) ("foo2", T, List(MInt ==> MUnit, MInt, MThunk(MInt), (MInt,T) ==> MInt) :: MUnit)
+    val foo2 = direct (Vector) ("foo2", T, List(MLong ==> MUnit, MLong, MThunk(MLong), (MLong,T) ==> MLong) :: MUnit)
 
     impl (foo2) (codegen($cala, ${
       var i = 0

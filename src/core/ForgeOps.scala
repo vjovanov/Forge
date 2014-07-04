@@ -491,19 +491,19 @@ trait ForgeOpsExp extends ForgeSugar with BaseExp {
   def checkDcFunctions(tpe: Rep[DSLType], dc: ForgeCollectionType) {
     // verify the dc functions match our expectations
 
-    if (dc.alloc.args.size != 2 || dc.alloc.tpePars.size > 2 /*getHkTpe(dc.alloc.args.apply(0).tpe) != getHkTpe(tpe) */|| dc.alloc.args.apply(1).tpe != MInt
+    if (dc.alloc.args.size != 2 || dc.alloc.tpePars.size > 2 /*getHkTpe(dc.alloc.args.apply(0).tpe) != getHkTpe(tpe) */|| dc.alloc.args.apply(1).tpe != MLong
       || ((getHkTpe(dc.alloc.retTpe) != getHkTpe(tpe)) && (getHkTpe(dc.alloc.retTpe) != MNothing)))
-      // err("dcAlloc must take two arguments (" + tpe.name + ", " + MInt.name + ") and return an instance of " + tpe.name)
-      err("dcAlloc must take at most two type parameters, two arguments ([Col], " + MInt.name + ") and return an instance of " + tpe.name)
+      // err("dcAlloc must take two arguments (" + tpe.name + ", " + MLong.name + ") and return an instance of " + tpe.name)
+      err("dcAlloc must take at most two type parameters, two arguments ([Col], " + MLong.name + ") and return an instance of " + tpe.name)
     if (dc.alloc.tpePars.length > 2)
       warn("dcAlloc with more than 2 type parameters has undefined semantics. Consider trying to rewrite your alloc method to be in the form alloc[A,R](in: C[A], size: Int): C[R]")
-    if (dc.size.args.size != 1 || getHkTpe(dc.size.args.apply(0).tpe) != getHkTpe(tpe) || (dc.size.retTpe != MInt))
-      err("dcSize must take a single argument of type " + tpe.name + " and return an MInt")
-    if (dc.apply.args.size != 2 || ((getHkTpe(dc.apply.args.apply(0).tpe), dc.apply.args.apply(1).tpe) != (getHkTpe(tpe), MInt)) || (dc.apply.retTpe != dc.tpeArg))
-      err("dcApply must take two arguments of type(" + tpe.name + ", " + MInt.name + ") and return a " + dc.tpeArg.name)
-    if (dc.update.args.size != 3 || ((getHkTpe(dc.update.args.apply(0).tpe), dc.update.args.apply(1).tpe, dc.update.args.apply(2).tpe) != (getHkTpe(tpe), MInt, dc.tpeArg))
+    if (dc.size.args.size != 1 || getHkTpe(dc.size.args.apply(0).tpe) != getHkTpe(tpe) || (dc.size.retTpe != MLong))
+      err("dcSize must take a single argument of type " + tpe.name + " and return an MLong")
+    if (dc.apply.args.size != 2 || ((getHkTpe(dc.apply.args.apply(0).tpe), dc.apply.args.apply(1).tpe) != (getHkTpe(tpe), MLong)) || (dc.apply.retTpe != dc.tpeArg))
+      err("dcApply must take two arguments of type(" + tpe.name + ", " + MLong.name + ") and return a " + dc.tpeArg.name)
+    if (dc.update.args.size != 3 || ((getHkTpe(dc.update.args.apply(0).tpe), dc.update.args.apply(1).tpe, dc.update.args.apply(2).tpe) != (getHkTpe(tpe), MLong, dc.tpeArg))
       || ((dc.update.retTpe != MUnit) && (dc.update.retTpe != MNothing)))
-      err("dcUpdate must take arguments of type (" + tpe.name + ", " + MInt.name + ", " + dc.tpeArg.name + ") and return " + MUnit.name)
+      err("dcUpdate must take arguments of type (" + tpe.name + ", " + MLong.name + ", " + dc.tpeArg.name + ") and return " + MUnit.name)
   }
 
   /* A reference to an external ops group */

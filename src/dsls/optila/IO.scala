@@ -69,7 +69,7 @@ trait IOOps {
       write_vector_helper($path, densevector_raw_data($v.map(_.makeStr)), $v.length)
     }
 
-    compiler (IO) ("write_vector_helper", Nil, (("path",MString),("data",MArray(MString)),("length",MInt)) :: MUnit, effect = simple) implements codegen($cala, ${
+    compiler (IO) ("write_vector_helper", Nil, (("path",MString),("data",MArray(MString)),("length",MLong)) :: MUnit, effect = simple) implements codegen($cala, ${
       val xfs = new java.io.BufferedWriter(new java.io.FileWriter($path))
       for (i <- 0 until $length) {
         xfs.write($data(i) + "\\n")
@@ -81,7 +81,7 @@ trait IOOps {
       write_matrix_helper($path, densematrix_raw_data($m.map(_.makeStr)), $m.numRows, $m.numCols, $delim)
     }
 
-    compiler (IO) ("write_matrix_helper", Nil, (("path",MString),("data",MArray(MString)),("numRows",MInt),("numCols",MInt),("delim",MString)) :: MUnit, effect = simple) implements codegen($cala, ${
+    compiler (IO) ("write_matrix_helper", Nil, (("path",MString),("data",MArray(MString)),("numRows",MLong),("numCols",MLong),("delim",MString)) :: MUnit, effect = simple) implements codegen($cala, ${
       val xfs = new java.io.BufferedWriter(new java.io.FileWriter($path))
       for (i <- 0 until $numRows) {
         for (j <- 0 until $numCols) {

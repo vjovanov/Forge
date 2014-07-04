@@ -49,17 +49,17 @@ trait OptiLADSL extends ForgeApplication
 
     // sneak in a compiler-only range method
     val Range = tpe("Range")
-    data(Range, ("start", MInt), ("end", MInt))
-    compiler (Range) ("range_start", Nil, Range :: MInt) implements getter(0, "start")
-    compiler (Range) ("range_end", Nil, Range :: MInt) implements getter(0, "end")
+    data(Range, ("start", MLong), ("end", MLong))
+    compiler (Range) ("range_start", Nil, Range :: MLong) implements getter(0, "start")
+    compiler (Range) ("range_end", Nil, Range :: MLong) implements getter(0, "end")
 
     noInfixList :::= List("infix_foreach")
-    compiler (Range) ("infix_until", Nil, (MInt,MInt) :: Range) implements allocates(Range, quotedArg(0), quotedArg(1))
+    compiler (Range) ("infix_until", Nil, (MLong,MLong) :: Range) implements allocates(Range, quotedArg(0), quotedArg(1))
 
     // infix_foreach must be compiler only both so that it is not used improperly and to not interfere with other codegen nodes in the library
     // this is a little convoluted unfortunately (because of the restriction on passing structs to codegen nodes)
-    compiler (Range) ("infix_foreach", Nil, (Range, MInt ==> MUnit) :: MUnit) implements composite ${ range_foreach(range_start($0), range_end($0), $1) }
-    val range_foreach = compiler (Range) ("range_foreach", Nil, (("start",MInt),("end",MInt),("func",MInt ==> MUnit)) :: MUnit) 
+    compiler (Range) ("infix_foreach", Nil, (Range, MLong ==> MUnit) :: MUnit) implements composite ${ range_foreach(range_start($0), range_end($0), $1) }
+    val range_foreach = compiler (Range) ("range_foreach", Nil, (("start",MLong),("end",MLong),("func",MLong ==> MUnit)) :: MUnit) 
     impl (range_foreach) (codegen($cala, ${
       var i = $start
       while (i < $end) {
@@ -134,13 +134,13 @@ if ($a.isInstanceOf[Double] || $a.isInstanceOf[Float]) numericStr($a) else ("" +
 
     // vector constructor (0 :: end) { ... }
     noSourceContextList ::= "::" // surpress SourceContext implicit because it interferes with the 'apply' method being immediately callable
-    infix (IndexVector) ("::", Nil, ((("end", MInt), ("start", MInt)) :: IndexVector)) implements composite ${ IndexVector($start, $end) }
+    infix (IndexVector) ("::", Nil, ((("end", MLong), ("start", MLong)) :: IndexVector)) implements composite ${ IndexVector($start, $end) }
 
     // should add apply directly to IndexVector, otherwise we have issues with ambiguous implicit conversions
-    infix (IndexVector) ("apply", T, (IndexVector, MInt ==> T)  :: DenseVector(T)) implements composite ${ $0.map($1) }
+    infix (IndexVector) ("apply", T, (IndexVector, MLong ==> T)  :: DenseVector(T)) implements composite ${ $0.map($1) }
 
     // matrix constructor (0::numRows,0::numCols) { ... }
-    infix (IndexVector) ("apply", T, (CTuple2(IndexVector,IndexVector), (MInt,MInt) ==> T) :: DenseMatrix(T)) implements composite ${
+    infix (IndexVector) ("apply", T, (CTuple2(IndexVector,IndexVector), (MLong,MLong) ==> T) :: DenseMatrix(T)) implements composite ${
       val (rowIndices,colIndices) = $0
 
       // can fuse with flat matrix loops
@@ -174,7 +174,7 @@ if ($a.isInstanceOf[Double] || $a.isInstanceOf[Float]) numericStr($a) else ("" +
     // furthermore, due to the effectful implementation, these cannot be fused or hoisted...
     
     for (rhs <- List(DenseVector(T)/*, DenseVectorView(T))*/)) {
-      infix (IndexVector) ("apply", T, (CTuple2(IndexVector,IndexWildcard), MInt ==> rhs) :: DenseMatrix(T)) implements composite ${
+      infix (IndexVector) ("apply", T, (CTuple2(IndexVector,IndexWildcard), MLong ==> rhs) :: DenseMatrix(T)) implements composite ${
         val rowIndices = $0._1
         val first = $1(rowIndices(0)) // better be pure, because we ignore it to maintain normal loop size below
         val out = DenseMatrix[T](rowIndices.length,first.length)
@@ -184,7 +184,7 @@ if ($a.isInstanceOf[Double] || $a.isInstanceOf[Float]) numericStr($a) else ("" +
         out.unsafeImmutable
       }
 
-      infix (IndexVector) ("apply", T, (CTuple2(IndexWildcard,IndexVector), MInt ==> rhs) :: DenseMatrix(T)) implements composite ${
+      infix (IndexVector) ("apply", T, (CTuple2(IndexWildcard,IndexVector), MLong ==> rhs) :: DenseMatrix(T)) implements composite ${
         val colIndices = $0._2
         val first = $1(colIndices(0)) // better be pure, because we ignore it to maintain normal loop size below
         val out = DenseMatrix[T](first.length, colIndices.length)

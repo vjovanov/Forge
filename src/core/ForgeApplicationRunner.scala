@@ -42,20 +42,20 @@ trait ForgeApplicationRunner extends ForgeApplication with ForgeExp {
 
     val T = tpePar("T")
 
-    val aAlloc = transient("array_raw_alloc", compilerMethod, T, (MArray(T),MInt), MArray(T), mutable)
-    val aLength = transient("array_length", directMethod, T, MArray(T), MInt, pure)
-    val aApply = transient("array_apply", directMethod, T, (MArray(T),MInt), T, pure)
-    val aUpdate = transient("array_update", compilerMethod, T, (MArray(T),MInt,T), MUnit, write(0))
+    val aAlloc = transient("array_raw_alloc", compilerMethod, T, (MArray(T),MLong), MArray(T), mutable)
+    val aLength = transient("array_length", directMethod, T, MArray(T), MLong, pure)
+    val aApply = transient("array_apply", directMethod, T, (MArray(T),MLong), T, pure)
+    val aUpdate = transient("array_update", compilerMethod, T, (MArray(T),MLong,T), MUnit, write(0))
     parallelize (MArray) as ParallelCollection(T, aAlloc, aLength, aApply, aUpdate)
 
-    val abAlloc = transient("array_buffer_raw_alloc", compilerMethod, T, (MArrayBuffer(T),MInt), MArrayBuffer(T), mutable)
-    val abLength = transient("array_buffer_length", compilerMethod, T, MArrayBuffer(T), MInt, pure)
-    val abApply = transient("array_buffer_apply", compilerMethod, T, (MArrayBuffer(T),MInt), T, pure)
-    val abUpdate = transient("array_buffer_update", compilerMethod, T, (MArrayBuffer(T),MInt,T), MUnit, write(0))
-    val abSetLength = transient("array_buffer_set_length", compilerMethod, T, (MArrayBuffer(T),MInt), MUnit, write(0))
+    val abAlloc = transient("array_buffer_raw_alloc", compilerMethod, T, (MArrayBuffer(T),MLong), MArrayBuffer(T), mutable)
+    val abLength = transient("array_buffer_length", compilerMethod, T, MArrayBuffer(T), MLong, pure)
+    val abApply = transient("array_buffer_apply", compilerMethod, T, (MArrayBuffer(T),MLong), T, pure)
+    val abUpdate = transient("array_buffer_update", compilerMethod, T, (MArrayBuffer(T),MLong,T), MUnit, write(0))
+    val abSetLength = transient("array_buffer_set_length", compilerMethod, T, (MArrayBuffer(T),MLong), MUnit, write(0))
     val abAppendable = transient("array_buffer_appendable", compilerMethod, T, MArrayBuffer(T), MBoolean, pure)
-    val abAppend = transient("array_buffer_dcappend", compilerMethod, T, (MArrayBuffer(T),MInt,T), MUnit, write(0))
-    val abCopy = transient("array_buffer_copy", compilerMethod, T, (MArrayBuffer(T),MInt,MArrayBuffer(T),MInt,MInt), MUnit, write(2))
+    val abAppend = transient("array_buffer_dcappend", compilerMethod, T, (MArrayBuffer(T),MLong,T), MUnit, write(0))
+    val abCopy = transient("array_buffer_copy", compilerMethod, T, (MArrayBuffer(T),MLong,MArrayBuffer(T),MLong,MLong), MUnit, write(2))
     parallelize (MArrayBuffer) as ParallelCollectionBuffer(T, abAlloc, abLength, abApply, abUpdate, abSetLength, abAppendable, abAppend, abCopy)
 
     // -- stage the specification to build the Forge IR
