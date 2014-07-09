@@ -26,6 +26,7 @@ trait SparseMatrixOps {
     data(SparseMatrixBuildable, ("_numRows", MInt), ("_numCols", MInt), ("_data", MArray(T)), ("_colIndices", MArray(MInt)), ("_rowIndices", MArray(MInt)), ("_nnz", MInt))
 
     static (SparseMatrix) ("apply", T, (MInt, MInt) :: SparseMatrixBuildable(T), effect = mutable) implements allocates(SparseMatrixBuildable, ${$0}, ${$1}, ${array_empty[T](unit(32))}, ${array_empty[Int](unit(32))}, ${array_empty[Int](unit(32))}, ${unit(0)})
+    static (SparseMatrix) ("apply", T, MethodSignature(List(MInt, MInt, MArray(T), MArray(MInt), MArray(MInt), MInt), SparseMatrixBuildable(T))) implements allocates(SparseMatrixBuildable, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5})
 
     val SparseMatrixBuildableOps = withTpe(SparseMatrixBuildable)
     SparseMatrixBuildableOps {
