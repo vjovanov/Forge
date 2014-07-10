@@ -12,6 +12,7 @@ trait IOOps {
 
     val DenseVector = lookupTpe("DenseVector")
     val DenseMatrix = lookupTpe("DenseMatrix")
+    val SparseMatrix = lookupTpe("SparseMatrix")
 
     // -- input
 
@@ -100,6 +101,25 @@ trait IOOps {
       if (f.exists) f.delete()
       ()
     })
+
+    // -- sparse matrix input
+
+    direct (IO) ("readSparseMatrixCOO", Nil, (("path", MString), ("numRows", MInt), ("numCols", MInt)) :: SparseMatrix(MDouble)) implements single ${
+      val input_data = ForgeFileReader.readLines($0)({line =>
+        val tokens = line.fsplit("\\\\s+")
+        // TODO: Assert that (array_length(tokens) == 3)
+        pack(tokens(0).toInt, tokens(1).toInt, tokens(2).toDouble)
+      })
+
+      val nnz = array_length(input_data)
+      val data = array_fromfunction(nnz, i => input_data(i)._3)
+      val rowIndices = array_fromfunction(nnz, i => input_data(i)._1 - 1)
+      val colIndices = array_fromfunction(nnz, i => input_data(i)._2 - 1)
+
+      val matrixCOO = SparseMatrix($1, $2, data, colIndices, rowIndices, nnz)
+
+      matrixCOO.finish
+    }
 
   }
 }
