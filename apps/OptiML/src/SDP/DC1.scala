@@ -31,7 +31,7 @@ trait DC1 extends OptiMLApplication {
       dist(t1._1, t2._1)
     }
 
-    val soln = untilconverged(pack(y0, 0), maxIter = kmax) { cur =>
+    val soln = untilconverged(pack(y0, unit(0)), maxIter = kmax) { cur =>
       val (y, k) = unpack(cur)
 
       val ak = alpha / (k + 1)
