@@ -27,6 +27,10 @@ trait DC1 extends OptiMLApplication {
     println("a: " + a)
     println("y0: " + y0)
 
+    val z = a * y0
+
+    println("z: " + z)
+
     // tic()
 
     // implicit def diffPDIP(t1: Rep[Tup2[DenseVector[Double],Int]],
