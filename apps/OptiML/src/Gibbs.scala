@@ -303,10 +303,11 @@ trait Gibbs extends OptiMLApplication {
     // println("first 10 weights: ")
     // G.weights.apply(0::10).map(w => pack(w.id, w.value, w.isFixed)).pprint
 
-    val times = DenseVector[Tup2[Int,Long]](0, true)
+    val times1 = DenseVector[Tup2[Int,Long]](0, true)
+    val times2 = DenseVector[Tup2[Int,Long]](0, true)
 
     tic("learnWeights", G)
-    learnWeights(G, 125, 1, 0.001, 0.01, 0.95, times)
+    learnWeights(G, 5000, 1, 0.01, 0.01, 0.99, times1)
     toc("learnWeights", G)
     writeVector(G.weights.map(w => w.id + "\t" + G.getWeightValue(w.id)), "weights.out")
 
@@ -314,12 +315,15 @@ trait Gibbs extends OptiMLApplication {
     // G.weights.apply(0::10).map(w => pack(w.id, w.value, w.isFixed)).pprint
 
     tic("calculateMarginals", G)
-    val marginals = calculateMarginals(G, 200, G.variables, times)
+    val marginals = calculateMarginals(G, 1000, G.variables, times2)
     toc("calculateMarginals", marginals)
     writeVector(marginals.map(t => t._1 + "\t" + t._4.toInt + "\t" + t._2), "marginals.out")
 
-    val totalNumSamples = times.map(_._1).sum
-    val totalMillis = times.map(_._2).sum
-    println("samples_per_sec= " + (totalNumSamples / (totalMillis/1000.0)))
+    val totalNumSamples1 = times1.map(_._1).sum
+    val totalMillis1 = times1.map(_._2).sum
+    println("Learner: samples_per_sec= " + (totalNumSamples1 / (totalMillis1/1000.0)))
+    val totalNumSamples2 = times2.map(_._1).sum
+    val totalMillis2 = times2.map(_._2).sum
+    println("Sampler: samples_per_sec= " + (totalNumSamples2 / (totalMillis2/1000.0)))
   }
 }
