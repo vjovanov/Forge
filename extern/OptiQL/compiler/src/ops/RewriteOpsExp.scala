@@ -20,7 +20,7 @@ trait RewriteOpsExp extends RewriteOps with TableOpsExp with DeliteOptiQLExtraEx
   }
 
   def sortHackImpl[A:Manifest](self: Rep[Table[A]], comparator: (Rep[A],Rep[A]) => Rep[Int])(implicit pos: SourceContext): Rep[Table[A]] = {
-    val indices = DeliteArray.sortIndices(self.size)((i:Rep[Int],j:Rep[Int]) => comparator(self(i), self(j)))
+    val indices = DeliteArray.sortIndices(self.size)((i:Rep[Long],j:Rep[Long]) => comparator(self(i), self(j)))
     val sorted = DeliteArray.fromFunction(self.size)(i => table_apply(self, darray_apply(indices, i)))  
     Table(sorted, self.size)
   }
@@ -42,7 +42,7 @@ trait RewriteOpsExp extends RewriteOps with TableOpsExp with DeliteOptiQLExtraEx
     val _mK = manifest[K]
   }
 
-  private def hashReduce[A:Manifest,K:Manifest,T:Manifest,R:Manifest](resultSelector: Exp[T] => Exp[R], keySelector: Exp[A] => Exp[K]): Option[(Exp[A]=>Exp[R], (Exp[R],Exp[R])=>Exp[R], (Exp[R],Exp[Int])=>Exp[R])] = {
+  private def hashReduce[A:Manifest,K:Manifest,T:Manifest,R:Manifest](resultSelector: Exp[T] => Exp[R], keySelector: Exp[A] => Exp[K]): Option[(Exp[A]=>Exp[R], (Exp[R],Exp[R])=>Exp[R], (Exp[R],Exp[Long])=>Exp[R])] = {
     var failed = false
     val ctx = implicitly[SourceContext]
     def rewriteMap(value: Exp[Any]) = (value match {
@@ -62,23 +62,23 @@ trait RewriteOpsExp extends RewriteOps with TableOpsExp with DeliteOptiQLExtraEx
       case Def(Field(s,"_1")) => (a:Exp[N],b:Exp[N]) => a
       case Def(d@Table_Sum(_,_)) => (a:Exp[N],b:Exp[N]) => numeric_pl(a,b)(ntype(d._numR),mtype(d._mR),ctx)
       case Def(d@Table_Average(_,_)) => (a:Exp[N],b:Exp[N]) => numeric_pl(a,b)(ntype(d._numR),mtype(d._mR),ctx)
-      case Def(d@Table2_Count(s)) => (a:Exp[N],b:Exp[N]) => numeric_pl(a,b)(ntype(implicitly[Numeric[Int]]),mtype(manifest[Int]),ctx)
+      case Def(d@Table2_Count(s)) => (a:Exp[N],b:Exp[N]) => numeric_pl(a,b)(ntype(implicitly[Numeric[Long]]),mtype(manifest[Long]),ctx)
       case Def(d@Table_Max(_,_)) => (a:Exp[N],b:Exp[N]) => ordering_max(a,b)(otype(d._ordR),mtype(d._mR),ctx)
       case Def(d@Table_Min(_,_)) => (a:Exp[N],b:Exp[N]) => ordering_min(a,b)(otype(d._ordR),mtype(d._mR),ctx)
       case _ => failed = true; null
     }).asInstanceOf[(Exp[N],Exp[N])=>Exp[N]]
 
     def rewriteAverage[N](value: Exp[Any]) = (value match {
-      case Def(d@Table_Average(_,_)) => (a:Exp[N],count:Exp[Int]) => fractional_div(a, count.asInstanceOf[Exp[N]])(mtype(d._mR),frtype(d._fracR),mtype(d._mR),ctx,implicitly[Rep[N]=>Rep[N]])
+      case Def(d@Table_Average(_,_)) => (a:Exp[N],count:Exp[Long]) => fractional_div(a, count.asInstanceOf[Exp[N]])(mtype(d._mR),frtype(d._fracR),mtype(d._mR),ctx,implicitly[Rep[N]=>Rep[N]])
       case _ => (a:Exp[N],count:Exp[N]) => a
-    }).asInstanceOf[(Exp[N],Exp[Int])=>Exp[N]]
+    }).asInstanceOf[(Exp[N],Exp[Long])=>Exp[N]]
 
 
     val funcs = resultSelector(fresh[T]) match {
       case Def(Struct(tag: StructTag[R], elems)) =>
         val valueFunc = (a:Exp[A]) => struct[R](tag, elems map { case (key, value) => (key, rewriteMap(value)(a)) })
         val reduceFunc = (a:Exp[R],b:Exp[R]) => struct[R](tag, elems map { case (key, value) => (key, rewriteReduce(value)(field(a,key)(value.tp,ctx), field(b,key)(value.tp,ctx))) })
-        val averageFunc = (a:Exp[R],count:Exp[Int]) => struct[R](tag, elems map { case (key, value) => (key, rewriteAverage(value)(field(a,key)(value.tp,ctx), count)) })
+        val averageFunc = (a:Exp[R],count:Exp[Long]) => struct[R](tag, elems map { case (key, value) => (key, rewriteAverage(value)(field(a,key)(value.tp,ctx), count)) })
         (valueFunc, reduceFunc, averageFunc)
 
       case a => (rewriteMap(a), rewriteReduce[R](a), rewriteAverage[R](a))
@@ -94,7 +94,7 @@ trait RewriteOpsExp extends RewriteOps with TableOpsExp with DeliteOptiQLExtraEx
       case Some((valueFunc, reduceFunc, averageFunc)) =>
         //Console.err.println("fused GroupBy-Select")
         val hr = groupByReduce(origS, keySelector, valueFunc, reduceFunc, (e:Exp[a]) => unit(true))(g._mA,g._mK,manifest[R],implicitly[SourceContext])
-        val count = groupByReduce(origS, keySelector, (e:Exp[a]) => unit(1), (a:Exp[Int],b:Exp[Int])=>primitive2_forge_int_plus(a,b), (e:Exp[a])=>unit(true))(g._mA,g._mK,manifest[Int],implicitly[SourceContext])
+        val count = groupByReduce(origS, keySelector, (e:Exp[a]) => unit(1l), (a:Exp[Long],b:Exp[Long])=>primitive2_forge_long_plus(a,b), (e:Exp[a])=>unit(true))(g._mA,g._mK,manifest[Long],implicitly[SourceContext])
         bulkDivide(hr, count, averageFunc)(manifest[R],implicitly[SourceContext])
       case None =>
         Console.err.println("WARNING: unable to fuse GroupBy-Select")
@@ -104,7 +104,7 @@ trait RewriteOpsExp extends RewriteOps with TableOpsExp with DeliteOptiQLExtraEx
       case Some((valueFunc, reduceFunc, averageFunc)) =>
         //Console.err.println("fused GroupBy-Select")
         val hr = groupByReduce(origS, keySelector, valueFunc, reduceFunc, cond)(g._mA,g._mK,manifest[R],implicitly[SourceContext])
-        val count = groupByReduce(origS, keySelector, (e:Exp[a]) => unit(1), (a:Exp[Int],b:Exp[Int])=>primitive2_forge_int_plus(a,b), cond)(g._mA,g._mK,manifest[Int],implicitly[SourceContext])
+        val count = groupByReduce(origS, keySelector, (e:Exp[a]) => unit(1l), (a:Exp[Long],b:Exp[Long])=>primitive2_forge_long_plus(a,b), cond)(g._mA,g._mK,manifest[Long],implicitly[SourceContext])
         bulkDivide(hr, count, averageFunc)(manifest[R],implicitly[SourceContext])
       case None =>
         Console.err.println("WARNING: unable to fuse GroupBy-Select")

@@ -28,7 +28,7 @@ trait ForgeHashMapOpsExp extends DeliteMapOpsExp {
     reflectPure(DeliteMapNewImm(keys, values, index, values.length))    
     // dmap_fromCollection[K,K,V](keys, id, values)
   }
-  def fhashmap_size[K:Manifest,V:Manifest](m: Rep[ForgeHashMap[K,V]])(implicit ctx: SourceContext): Rep[Int]
+  def fhashmap_size[K:Manifest,V:Manifest](m: Rep[ForgeHashMap[K,V]])(implicit ctx: SourceContext): Rep[Long]
     = dmap_size(m)
   def fhashmap_get[K:Manifest,V:Manifest](m: Rep[ForgeHashMap[K,V]], key: Rep[K])(implicit ctx: SourceContext): Rep[V]
     = dmap_get(m,key)

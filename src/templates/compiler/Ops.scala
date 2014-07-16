@@ -291,7 +291,7 @@ trait DeliteGenOps extends BaseGenOps {
 
     // see comment about innerDcArg in library/Ops.scala
     val keysDcArg = if (quote(in.tpe) == quote(outerColTpe)) "in" else "null.asInstanceOf["+repify(tpeInst(outerColTpe, tpePars._2))+"]"
-    stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,tpePars._2)) + "("+keysDcArg+", len)")
+    stream.println("    override def alloc(len: Exp[Long]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,tpePars._2)) + "("+keysDcArg+", len)")
 
     emitOpNodeFooter(o, stream)
     stream.println()
@@ -343,7 +343,7 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println()
           stream.println("    val in = " + in.name)
           stream.println("    def func = " + makeOpImplMethodNameWithArgs(o, "_map"))
-          stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,map.tpePars._2)) + "(in, len)")
+          stream.println("    override def alloc(len: Exp[Long]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,map.tpePars._2)) + "(in, len)")
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodName(inDc.size) + "(in))")
           stream.println("    override val numDynamicChunks = " + matchChunkInput(map.numDynamicChunks))
         case zip:Zip =>
@@ -356,7 +356,7 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    val inA = " + inA.name)
           stream.println("    val inB = " + o.args.apply(zip.argIndices._2).name)
           stream.println("    def func = " + makeOpImplMethodNameWithArgs(o, "_zip"))
-          stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,inA.tpe,zip.tpePars._3)) + "(inA, len)")
+          stream.println("    override def alloc(len: Exp[Long]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,inA.tpe,zip.tpePars._3)) + "(inA, len)")
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodName(inDc.size) + "(inA))")
           stream.println("    override val numDynamicChunks = " + matchChunkInput(zip.numDynamicChunks))
         case reduce:Reduce =>
@@ -402,7 +402,7 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    val in = " + in.name)
           stream.println("    def cond = " + makeOpImplMethodNameWithArgs(o, "_cond"))
           stream.println("    def func = " + makeOpImplMethodNameWithArgs(o, "_map"))
-          stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,filter.tpePars._2)) + "(in, len)")
+          stream.println("    override def alloc(len: Exp[Long]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,filter.tpePars._2)) + "(in, len)")
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodName(inDc.size) + "(in))")
           stream.println("    override val numDynamicChunks = " + matchChunkInput(filter.numDynamicChunks))
         case flatmap:FlatMap =>
@@ -414,7 +414,7 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println()
           stream.println("    val in = " + in.name)
           stream.println("    def func = " + makeOpImplMethodNameWithArgs(o, "_func"))
-          stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,flatmap.tpePars._2)) + "(in, len)")
+          stream.println("    override def alloc(len: Exp[Long]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,flatmap.tpePars._2)) + "(in, len)")
           stream.println("    val size = copyTransformedOrElse(_.size)(" + makeOpMethodName(inDc.size) + "(in))")
           stream.println("    override val numDynamicChunks = " + matchChunkInput(flatmap.numDynamicChunks))
         case foreach:Foreach =>
@@ -454,10 +454,10 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    def valFunc = " + makeOpImplMethodNameWithArgs(o, "_map"))
 
           val innerDcArg = if (quote(in.tpe) == quote(innerColTpe)) "in" else "null.asInstanceOf["+repify(tpeInst(innerColTpe, gb.tpePars._3))+"]"
-          stream.println("    override def allocI(len: Exp[Int]) = " + makeOpMethodName(innerDc.alloc) + makeTpePars(instAllocReturnTpe(innerDc.alloc, in.tpe, gb.tpePars._3)) + "("+innerDcArg+", len)")
+          stream.println("    override def allocI(len: Exp[Long]) = " + makeOpMethodName(innerDc.alloc) + makeTpePars(instAllocReturnTpe(innerDc.alloc, in.tpe, gb.tpePars._3)) + "("+innerDcArg+", len)")
 
           val outDcArg = if (quote(in.tpe) == quote(outerColTpe)) "in" else "null.asInstanceOf["+repify(tpeInst(outerColTpe, tpeInst(innerColTpe, gb.tpePars._3)))+"]"
-          stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc, in.tpe, tpeInst(innerColTpe, gb.tpePars._3))) + "("+outDcArg+", len)")
+          stream.println("    override def alloc(len: Exp[Long]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc, in.tpe, tpeInst(innerColTpe, gb.tpePars._3))) + "("+outDcArg+", len)")
 
           emitOpNodeFooter(o, stream)
           stream.println()
@@ -481,7 +481,7 @@ trait DeliteGenOps extends BaseGenOps {
           stream.println("    def reduceFunc = " + makeOpImplMethodNameWithArgs(o, "_reduce"))
 
           val outDcArg = if (getHkTpe(in.tpe) == getHkTpe(outerColTpe)) "in" else "null.asInstanceOf["+repify(tpeInst(outerColTpe, gbr.tpePars._3))+"]"
-          stream.println("    override def alloc(len: Exp[Int]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,gbr.tpePars._3)) + "("+outDcArg+", len)")
+          stream.println("    override def alloc(len: Exp[Long]) = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,gbr.tpePars._3)) + "("+outDcArg+", len)")
 
           emitOpNodeFooter(o, stream)
           stream.println()
@@ -769,12 +769,12 @@ trait DeliteGenOps extends BaseGenOps {
         stream.println("    else super.dc_size(x)")
         stream.println("  }")
         stream.println()
-        stream.println("  override def dc_apply[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Int])(implicit ctx: SourceContext) = {")
+        stream.println("  override def dc_apply[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Long])(implicit ctx: SourceContext) = {")
         stream.print(dcApplyStream)
         stream.println("    else super.dc_apply(x,n)")
         stream.println("  }")
         stream.println()
-        stream.println("  override def dc_update[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Int], y: Exp[A])(implicit ctx: SourceContext) = {")
+        stream.println("  override def dc_update[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Long], y: Exp[A])(implicit ctx: SourceContext) = {")
         stream.print(dcUpdateStream)
         stream.println("    else super.dc_update(x,n,y)")
         stream.println("  }")
@@ -786,27 +786,27 @@ trait DeliteGenOps extends BaseGenOps {
         stream.println("    else super.dc_parallelization(x, hasConditions)")
         stream.println("  }")
         stream.println()
-        stream.println("  override def dc_set_logical_size[A:Manifest](x: Exp[DeliteCollection[A]], y: Exp[Int])(implicit ctx: SourceContext) = {")
+        stream.println("  override def dc_set_logical_size[A:Manifest](x: Exp[DeliteCollection[A]], y: Exp[Long])(implicit ctx: SourceContext) = {")
         stream.print(dcSetLogicalSizeStream)
         stream.println("    else super.dc_set_logical_size(x,y)")
         stream.println("  }")
         stream.println()
-        stream.println("  override def dc_appendable[A:Manifest](x: Exp[DeliteCollection[A]], i: Exp[Int], y: Exp[A])(implicit ctx: SourceContext) = {")
+        stream.println("  override def dc_appendable[A:Manifest](x: Exp[DeliteCollection[A]], i: Exp[Long], y: Exp[A])(implicit ctx: SourceContext) = {")
         stream.print(dcAppendableStream)
         stream.println("    else super.dc_appendable(x,i,y)")
         stream.println("  }")
         stream.println()
-        stream.println("  override def dc_append[A:Manifest](x: Exp[DeliteCollection[A]], i: Exp[Int], y: Exp[A])(implicit ctx: SourceContext) = {")
+        stream.println("  override def dc_append[A:Manifest](x: Exp[DeliteCollection[A]], i: Exp[Long], y: Exp[A])(implicit ctx: SourceContext) = {")
         stream.print(dcAppendStream)
         stream.println("    else super.dc_append(x,i,y)")
         stream.println("  }")
         stream.println()
-        stream.println("  override def dc_alloc[A:Manifest,CA<:DeliteCollection[A]:Manifest](x: Exp[CA], size: Exp[Int])(implicit ctx: SourceContext) = {")
+        stream.println("  override def dc_alloc[A:Manifest,CA<:DeliteCollection[A]:Manifest](x: Exp[CA], size: Exp[Long])(implicit ctx: SourceContext) = {")
         stream.print(dcAllocStream)
         stream.println("    else super.dc_alloc[A,CA](x,size)")
         stream.println("  }")
         stream.println()
-        stream.println("  override def dc_copy[A:Manifest](src: Exp[DeliteCollection[A]], srcPos: Exp[Int], dst: Exp[DeliteCollection[A]], dstPos: Exp[Int], size: Exp[Int])(implicit ctx: SourceContext) = {")
+        stream.println("  override def dc_copy[A:Manifest](src: Exp[DeliteCollection[A]], srcPos: Exp[Long], dst: Exp[DeliteCollection[A]], dstPos: Exp[Long], size: Exp[Long])(implicit ctx: SourceContext) = {")
         stream.print(dcCopyStream)
         stream.println("    else super.dc_copy(src,srcPos,dst,dstPos,size)")
         stream.println("  }")

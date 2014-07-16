@@ -19,16 +19,16 @@ trait TableOps {
 
     //internal data format
     //TODO: this is equivalent to a DeliteArrayBuffer, we should be able to just use that
-    data(Table, "size" -> MInt, "data" -> MArray(A))
+    data(Table, "size" -> MLong, "data" -> MArray(A))
     
     //static constructors
-    static (Table) ("apply", A, MInt :: Table(A), effect = mutable) implements allocates(Table, ${$0}, ${array_empty[A]($0) })
+    static (Table) ("apply", A, MLong :: Table(A), effect = mutable) implements allocates(Table, ${$0}, ${array_empty[A]($0) })
     static (Table) ("apply", A, MArray(A) :: Table(A)) implements allocates(Table, ${array_length($0)}, ${$0})
-    static (Table) ("apply", A, (MArray(A), MInt) :: Table(A)) implements allocates(Table, ${$1}, ${$0})
+    static (Table) ("apply", A, (MArray(A), MLong) :: Table(A)) implements allocates(Table, ${$1}, ${$0})
     static (Table) ("apply", A, varArgs(A) :: Table(A)) implements allocates(Table, ${unit($0.length)}, ${array_fromseq($0)})
-    static (Table) ("range", Nil, (MInt, MInt) :: Table(MInt)) implements composite ${
+    static (Table) ("range", Nil, (MLong, MLong) :: Table(MLong)) implements composite ${
       val a = array_fromfunction($1-$0, i => i + $0)
-      Table[Int](a)
+      Table[Long](a)
     }
 
     static (Table) ("fromFile", A, CurriedMethodSignature(List(List(MString), List(MString ==> A)), Table(A))) implements composite ${
@@ -89,19 +89,19 @@ trait TableOps {
 
       //TODO: composite op
       infix ("Average") ("selector" -> (A ==> R) :: R, addTpePars = R withBound TNumeric withBound TFractional) implements single ${
-        $self.Sum($selector) / upgradeInt[R](table_count($self))
+        $self.Sum($selector) / upgradeLong[R](table_count($self))
       }
 
       infix ("Max") ("selector" -> (A ==> R) :: R, addTpePars = R withBound TOrdering) implements mapReduce((A,R), 0, ${$selector}, ${minValue[R]}, ${(a,b) => a max b})
       infix ("Min") ("selector" -> (A ==> R) :: R, addTpePars = R withBound TOrdering) implements mapReduce((A,R), 0, ${$selector}, ${maxValue[R]}, ${(a,b) => a min b})
 
-      infix ("Count") ("predicate" -> (A ==> MBoolean) :: MInt) implements mapReduce((A,MInt), 0, ${e => unit(1)}, ${unit(0)}, ${(a,b) => a + b}, Some(${$predicate}))
+      infix ("Count") ("predicate" -> (A ==> MBoolean) :: MLong) implements mapReduce((A,MLong), 0, ${e => unit(1)}, ${unit(0l)}, ${(a,b) => a + b}, Some(${$predicate}))
       //TODO: these create a scalac typer bug in mirroring definition (see Ops.scala:634) 
       //infix ("First") ("predicate" -> (A ==> MBoolean) :: A) implements mapReduce((A,A), 0, ${e => e}, ${zeroType[A]}, ${(a,b) => a}, Some(${$predicate}))
       //infix ("Last") ("predicate" -> (A ==> MBoolean) :: A) implements mapReduce((A,A), 0, ${e => e}, ${zeroType[A]}, ${(a,b) => b}, Some(${$predicate}))
 
       //simple ops that can also be implemented as a reduce
-      infix ("Count") (Nil :: MInt) implements single ${ table_size($self) }
+      infix ("Count") (Nil :: MLong) implements single ${ table_size($self) }
       infix ("First") (Nil :: A) implements single ${ table_apply($self, 0) }
       infix ("Last") (Nil :: A) implements single ${ table_apply($self, table_size($self)-1) }
 
@@ -157,33 +157,33 @@ trait TableOps {
         Table[V](fhashmap_values(map))
       }
       compiler("groupByReduceOp")(("keySelector" -> (A ==> K), "valueSelector" -> (A ==> V), "reducer" -> ((V,V) ==> V), "condition" -> (A ==> MBoolean)) :: MHashMap(K,V), addTpePars = (K,V)) implements groupByReduce((A,K,V), 0, ${$keySelector}, ${$valueSelector}, ${zeroType[V]}, ${$reducer}, Some(${condition}))
-      compiler("bulkDivide") (("counts" -> Table(MInt), "avgFunc" -> ((A,MInt) ==> A)) :: Table(A)) implements zip((A,MInt,A), (0,1), ${$avgFunc})
+      compiler("bulkDivide") (("counts" -> Table(MLong), "avgFunc" -> ((A,MLong) ==> A)) :: Table(A)) implements zip((A,MLong,A), (0,1), ${$avgFunc})
 
       
       //methods needed to implement Table as a Delite ParallelCollectionBufer
 
       //accessors
-      infix ("apply") (MInt :: A) implements composite ${ table_apply_internal($self, $1) }
-      infix ("size") (Nil :: MInt) implements composite ${ table_size_internal($self) }
+      infix ("apply") (MLong :: A) implements composite ${ table_apply_internal($self, $1) }
+      infix ("size") (Nil :: MLong) implements composite ${ table_size_internal($self) }
 
       compiler ("table_raw_data") (Nil :: MArray(A)) implements getter(0, "data")
-      compiler ("table_size_internal") (Nil :: MInt) implements getter(0, "size")
-      compiler ("table_apply_internal") (MInt :: A) implements composite ${
+      compiler ("table_size_internal") (Nil :: MLong) implements getter(0, "size")
+      compiler ("table_apply_internal") (MLong :: A) implements composite ${
         array_apply(table_raw_data($self), $1)
       }
 
       //mutators
       compiler ("table_set_raw_data") (MArray(A) :: MUnit, effect = write(0)) implements setter(0, "data", quotedArg(1))
-      compiler ("table_set_size") (MInt :: MUnit, effect = write(0)) implements setter(0, "size", quotedArg(1))
-      compiler ("table_update") (("i"->MInt,"e"->A) :: MUnit, effect = write(0)) implements composite ${
+      compiler ("table_set_size") (MLong :: MUnit, effect = write(0)) implements setter(0, "size", quotedArg(1))
+      compiler ("table_update") (("i"->MLong,"e"->A) :: MUnit, effect = write(0)) implements composite ${
         array_update(table_raw_data($self), $i, $e)
       }
 
-      compiler ("table_alloc") (MInt :: Table(R), addTpePars = R, effect = mutable) implements composite ${
+      compiler ("table_alloc") (MLong :: Table(R), addTpePars = R, effect = mutable) implements composite ${
         Table[R]($1)
       }
 
-      infix ("insert") ((MInt,A) :: MUnit, effect = write(0)) implements single ${
+      infix ("insert") ((MLong,A) :: MUnit, effect = write(0)) implements single ${
         table_insertspace($self,$1,1)
         table_update($self, $1, $2)
       }
@@ -192,34 +192,34 @@ trait TableOps {
         table_insert($self, table_size($self), $1)
       }
 
-      compiler ("table_insertspace") ((("pos",MInt),("len",MInt)) :: MUnit, effect = write(0)) implements single ${
+      compiler ("table_insertspace") ((("pos",MLong),("len",MLong)) :: MUnit, effect = write(0)) implements single ${
         table_ensureextra($self,$len)
         val data = table_raw_data($self)
         array_copy(data,$pos,data,$pos+$len,table_size($self)-$pos)
         table_set_size($self,table_size($self)+$len)
       }
 
-      compiler ("table_ensureextra") (("extra",MInt) :: MUnit, effect = write(0)) implements single ${
+      compiler ("table_ensureextra") (("extra",MLong) :: MUnit, effect = write(0)) implements single ${
         val data = table_raw_data($self)
         if (array_length(data) - table_size($self) < $extra) {
           table_realloc($self, table_size($self)+$extra)
         }
       }
 
-      compiler ("table_realloc") (("minLen",MInt) :: MUnit, effect = write(0)) implements single ${
+      compiler ("table_realloc") (("minLen",MLong) :: MUnit, effect = write(0)) implements single ${
         val data = table_raw_data($self)
-        var n = unit(4) max (array_length(data)*2)
+        var n = ordering2_max(unit(4l), (array_length(data)*2))
         while (n < $minLen) n = n*2
         val d = array_empty[A](n)
         array_copy(data, 0, d, 0, table_size($self))
         table_set_raw_data($self, d.unsafeImmutable)
       }
 
-      compiler ("table_appendable") ((MInt,A) :: MBoolean) implements single("true")
-      compiler ("table_dc_append") ((MInt,A) :: MUnit, effect = write(0)) implements single ${
+      compiler ("table_appendable") ((MLong,A) :: MBoolean) implements single("true")
+      compiler ("table_dc_append") ((MLong,A) :: MUnit, effect = write(0)) implements single ${
         table_append($self, $2)
       }
-      compiler ("table_copy") ((MInt,Table(A),MInt,MInt) :: MUnit, effect = write(2)) implements single ${
+      compiler ("table_copy") ((MLong,Table(A),MLong,MLong) :: MUnit, effect = write(2)) implements single ${
         val src = table_raw_data($self)
         val dest = table_raw_data($2)
         array_copy(src, $1, dest, $3, $4)

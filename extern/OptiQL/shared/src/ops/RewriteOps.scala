@@ -53,8 +53,8 @@ trait RewriteCompilerOps extends RewriteOps {
     case _ => cast_asinstanceof[Null,T](unit(null)) //shouldn't be used for reference types
   }).asInstanceOf[Rep[T]]
 
-  def upgradeInt[T:Manifest](value: Rep[Int]): Rep[T] = (manifest[T] match {
-    case v if v == manifest[Int] => value
+  def upgradeLong[T:Manifest](value: Rep[Long]): Rep[T] = (manifest[T] match {
+    case v if v == manifest[Int] => value.toInt
     case v if v == manifest[Long] => value.toLong
     case v if v == manifest[Double] => value.toDouble
     case v if v == manifest[Float] => value.toFloat

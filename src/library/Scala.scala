@@ -457,6 +457,10 @@ trait ScalaOps {
     val length = infix (Str) ("length", Nil, MString :: MInt)
     val endsWith = infix (Str) ("endsWith", Nil, (MString,MString) :: MBoolean)
     val contains = infix (Str) ("contains", Nil, (MString,MString) :: MBoolean)
+    val substring = infix (Str) ("substring", Nil, (MString,MInt,MInt) :: MString)
+    infix (Str) ("substring", Nil, (MString,MInt) :: MString) implements composite ${
+      fstring_substring($0,$1,fstring_length($0))
+    }
 
     impl (toInt) (codegen($cala, ${ $0.toInt })) 
     impl (toLong) (codegen($cala, ${ $0.toLong })) 
@@ -470,6 +474,7 @@ trait ScalaOps {
     impl (length) (codegen($cala, ${ $0.length }))
     impl (endsWith) (codegen($cala, ${ $0.endsWith($1) })) 
     impl (contains) (codegen($cala, ${ $0.contains($1) })) 
+    impl (substring) (codegen($cala, ${ $0.substring($1,$2) }))
     
     impl (toInt) (codegen(cpp, ${ string_toInt($0) })) 
     impl (toLong) (codegen(cpp, ${ string_toLong($0) })) 
@@ -479,8 +484,10 @@ trait ScalaOps {
     impl (trim) (codegen(cpp, ${ string_trim($0) })) 
     impl (fcharAt) (codegen(cpp, ${ string_charAt($0,$1) })) 
     impl (startsWith) (codegen(cpp, ${ string_startsWith($0,$1) })) 
+    impl (length) (codegen(cpp, ${ $0->length }))
     impl (endsWith) (codegen(cpp, ${ string_endsWith($0,$1) })) 
     impl (contains) (codegen(cpp, ${ string_contains($0,$1) })) 
+    impl (substring) (codegen(cpp, ${ $0->substr($1,$2-$1) })) //c++ is (beginIdx,len) rather than (beginIdx,endIdx)
 
     // not much we can do here to use "split" as long as Delite brings in LMS' version, since we can't overload on the return type
     // we should refactor LMS/Delite to only use the StringOpsExp trait and not StringOps

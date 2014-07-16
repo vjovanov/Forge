@@ -65,7 +65,7 @@ trait LibGenOps extends BaseGenOps with BaseGenDataStructures {
           // TODO: why not just makeTpePars(o.retTpe.tpePars)? and sanity check with map.tpePars._2:
           //  need to call the dcAlloc function, which may have different tpe pars than the output..
           emitWithIndent("val out = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,map.tpePars._2)) + "(in, " + makeOpMethodName(inDc.size) + "(in)" + ")", stream, indent+2) // TODO - makeArg
-          emitWithIndent("var i = 0", stream, indent+2)
+          emitWithIndent("var i = 0l", stream, indent+2)
           emitWithIndent("while (i < " + makeOpMethodName(inDc.size) + "(in)" + ") {", stream, indent+2)
           emitWithIndent(makeOpMethodName(outDc.update) + "(out, i, func(" + makeOpMethodName(inDc.apply) + "(in, i)))", stream, indent+4)
           emitWithIndent("i += 1", stream, indent+4)
@@ -81,7 +81,7 @@ trait LibGenOps extends BaseGenOps with BaseGenDataStructures {
           emitWithIndent("val inA = " + inA.name, stream, indent+2)
           emitWithIndent("val inB = " + inB.name, stream, indent+2)
           emitWithIndent("val out = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,inA.tpe,zip.tpePars._3)) + "(inA, " + makeOpMethodName(inADc.size) + "(inA)" + ")", stream, indent+2)
-          emitWithIndent("var i = 0", stream, indent+2)
+          emitWithIndent("var i = 0l", stream, indent+2)
           emitWithIndent("while (i < " + makeOpMethodName(inADc.size) + "(inA)" + ") {", stream, indent+2)
           emitWithIndent(makeOpMethodName(outDc.update) + "(out, i, func(" + makeOpMethodName(inADc.apply) + "(inA, i)," + makeOpMethodName(inBDc.apply) + "(inB, i)))", stream, indent+4)
           emitWithIndent("i += 1", stream, indent+4)
@@ -94,7 +94,7 @@ trait LibGenOps extends BaseGenOps with BaseGenDataStructures {
           emitWithIndent("def zero: " + repify(reduce.tpePar) + " = " + inline(o, reduce.zero), stream, indent+2)
           emitWithIndent("val in = " + c.name, stream, indent+2)
           emitWithIndent("var acc = if (" + makeOpMethodName(dc.size) + "(in) == 0) zero else " + makeOpMethodName(dc.apply) + "(in, 0)", stream, indent+2)
-          emitWithIndent("var i = 1", stream, indent+2)
+          emitWithIndent("var i = 1l", stream, indent+2)
           emitWithIndent("while (i < " + makeOpMethodName(dc.size) + "(in)" + ") {", stream, indent+2)
           emitWithIndent("acc = " + " func(acc, " + makeOpMethodName(dc.apply) + "(in, i))", stream, indent+4)
           emitWithIndent("i += 1", stream, indent+4)
@@ -110,11 +110,11 @@ trait LibGenOps extends BaseGenOps with BaseGenDataStructures {
           if (mapreduce.cond.isDefined) {
             emitWithIndent("def cond: " + repify(mapreduce.tpePars._1) + " => " + repify(MBoolean) + " = " + inline(o, mapreduce.cond.get), stream, indent+2)
             emitWithIndent("var acc = null.asInstanceOf["+quote(mapreduce.tpePars._2)+"]", stream, indent+2)
-            emitWithIndent("var i = 0", stream, indent+2)
+            emitWithIndent("var i = 0l", stream, indent+2)
           }
           else {
             emitWithIndent("var acc = if (" + makeOpMethodName(dc.size) + "(in) == 0) zero else map(" + makeOpMethodName(dc.apply) + "(in, 0))", stream, indent+2)
-            emitWithIndent("var i = 1", stream, indent+2)
+            emitWithIndent("var i = 1l", stream, indent+2)
           }
           emitWithIndent("while (i < " + makeOpMethodName(dc.size) + "(in)" + ") {", stream, indent+2)
           emitWithIndent("val e = " + makeOpMethodName(dc.apply) + "(in, i)", stream, indent+4)
@@ -138,7 +138,7 @@ trait LibGenOps extends BaseGenOps with BaseGenDataStructures {
           emitWithIndent("def cond: " + repify(filter.tpePars._1) + " => " + repify(MBoolean) + " = " + inline(o, filter.cond), stream, indent+2)
           emitWithIndent("val in = " + in.name, stream, indent+2)
           emitWithIndent("val out = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,filter.tpePars._2)) + "(in,0)", stream, indent+2)
-          emitWithIndent("var i = 0", stream, indent+2)
+          emitWithIndent("var i = 0l", stream, indent+2)
           emitWithIndent("while (i < " + makeOpMethodName(inDc.size) + "(in)"  + ") {", stream, indent+2)
           emitWithIndent("val e = " + makeOpMethodName(inDc.apply) + "(in, i)", stream, indent+4)
           emitWithIndent("if (cond(e)) {", stream, indent+4)
@@ -155,12 +155,12 @@ trait LibGenOps extends BaseGenOps with BaseGenDataStructures {
           emitWithIndent("def func: " + repify(flatmap.tpePars._1) + " => " + repify(tpeInst(outCol, flatmap.tpePars._2)) + " = " + inline(o, flatmap.func), stream, indent+2)
           emitWithIndent("val in = " + in.name, stream, indent+2)
           emitWithIndent("val out = " + makeOpMethodName(outDc.alloc) + makeTpePars(instAllocReturnTpe(outDc.alloc,in.tpe,flatmap.tpePars._2)) + "(in,0)", stream, indent+2)
-          emitWithIndent("var sz = 0", stream, indent+2)
-          emitWithIndent("var i = 0", stream, indent+2)
+          emitWithIndent("var sz = 0l", stream, indent+2)
+          emitWithIndent("var i = 0l", stream, indent+2)
           emitWithIndent("while (i < " + makeOpMethodName(inDc.size) + "(in)) {", stream, indent+2)
           emitWithIndent("val e = " + makeOpMethodName(inDc.apply) + "(in, i)", stream, indent+4)
           emitWithIndent("val buf = func(e)", stream, indent+4)
-          emitWithIndent("var j = 0", stream, indent+4)
+          emitWithIndent("var j = 0l", stream, indent+4)
           emitWithIndent("while (j < " + makeOpMethodName(outDc.size) + "(buf)) {", stream, indent+4)
           emitWithIndent(makeOpMethodName(outDc.append) + "(out, sz, buf(j))", stream, indent+6)
           emitWithIndent("sz += 1", stream, indent+6)
@@ -184,7 +184,7 @@ trait LibGenOps extends BaseGenOps with BaseGenDataStructures {
           emitWithIndent("def map: " + repify(gb.tpePars._1) + " => " + repify(gb.tpePars._3) + " = " + inline(o, gb.map), stream, indent+2)
           emitWithIndent("val in = " + in.name, stream, indent+2)
           emitWithIndent("val out = SHashMap["+quote(gb.tpePars._2)+","+quote(tpeInst(innerColTpe, gb.tpePars._3))+"]()", stream, indent+2)
-          emitWithIndent("var i = 0", stream, indent+2)
+          emitWithIndent("var i = 0l", stream, indent+2)
           emitWithIndent("while (i < " + makeOpMethodName(inDc.size) + "(in)"  + ") {", stream, indent+2)
           emitWithIndent("val e = " + makeOpMethodName(inDc.apply) + "(in, i)", stream, indent+4)
           if (gb.cond.isDefined) {
@@ -223,7 +223,7 @@ trait LibGenOps extends BaseGenOps with BaseGenDataStructures {
           emitWithIndent("def reduce: (" + repify(gbr.tpePars._3) + "," + repify(gbr.tpePars._3) + ") => " + repify(gbr.tpePars._3) + " = " + inline(o, gbr.reduce), stream, indent+2)
           emitWithIndent("val in = " + in.name, stream, indent+2)
           emitWithIndent("val out = SHashMap["+quote(gbr.tpePars._2)+","+quote(gbr.tpePars._3)+"]()", stream, indent+2)
-          emitWithIndent("var i = 0", stream, indent+2)
+          emitWithIndent("var i = 0l", stream, indent+2)
           emitWithIndent("while (i < " + makeOpMethodName(inDc.size) + "(in)"  + ") {", stream, indent+2)
           emitWithIndent("val e = " + makeOpMethodName(inDc.apply) + "(in, i)", stream, indent+4)
           if (gbr.cond.isDefined) {
@@ -247,7 +247,7 @@ trait LibGenOps extends BaseGenOps with BaseGenDataStructures {
           val dc = ForgeCollections(getHkTpe(c.tpe))
           emitWithIndent("def func: " + repify(foreach.tpePar) + " => " + repify(MUnit) + " = " + inline(o, foreach.func), stream, indent+2)
           emitWithIndent("val in = " + c.name, stream, indent+2)
-          emitWithIndent("var i = 0", stream, indent+2)
+          emitWithIndent("var i = 0l", stream, indent+2)
           emitWithIndent("while (i < " + makeOpMethodName(dc.size) + "(in)" + ") {", stream, indent+2)
           emitWithIndent("func(" + makeOpMethodName(dc.apply) + "(in, i))", stream, indent+4)
           emitWithIndent("i += 1", stream, indent+4)
