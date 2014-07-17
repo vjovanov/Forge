@@ -36,7 +36,7 @@ trait DC1 extends OptiMLApplication {
 
       val ak = alpha / (k + 1)
 
-        val y_next = (1.0 - ak) * y + ak * (a * y)
+      val y_next = (1.0 - ak) * y + (ak / (y *:* y)) * (a * y)
 
       pack(y_next, k + 1)
     }
