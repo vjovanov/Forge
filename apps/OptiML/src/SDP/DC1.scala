@@ -26,27 +26,24 @@ trait DC1 extends OptiMLApplication {
 
     tic()
 
-    // implicit def diffPDIP(t1: Rep[Tup2[DenseVector[Double],Int]],
-    //                       t2: Rep[Tup2[DenseVector[Double],Int]]) = {
-    //   dist(t1._1, t2._1)
-    // }
+    implicit def diffPDIP(t1: Rep[Tup2[DenseVector[Double],Int]],
+                          t2: Rep[Tup2[DenseVector[Double],Int]]) = {
+      dist(t1._1, t2._1)
+    }
 
-    // val soln = untilconverged(pack(y0, unit(0)), maxIter = kmax) { cur =>
-    //   val (y, k) = unpack(cur)
+    val soln = untilconverged(pack(y0, unit(0)), maxIter = kmax) { cur =>
+      val (y, k) = unpack(cur)
 
-    //   val ak = alpha / (k + 1)
+      val ak = alpha / (k + 1)
 
-      val y = y0
-      val ak = alpha
-      val y_next = ak * (a * y)
-    //  val y_next =  + a * y
+        val y_next = (1.0 - ak) * y + ak * (a * y)
 
-    //   pack(y_next, k + 1)
-    // }
-    // val (y_soln, k_soln) = unpack(soln)
+      pack(y_next, k + 1)
+    }
+    val (y_soln, k_soln) = unpack(soln)
 
-    toc(y_next)
+    toc(soln)
     println("y:")
-    y_next.pprint
+    y_soln.pprint
   }
 }
