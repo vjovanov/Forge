@@ -24,7 +24,7 @@ trait DC1 extends OptiMLApplication {
     println("alpha: " + alpha)
     println("kmax:  " + kmax)
 
-    val err_init = (a * y0) - ((y0 *:* y0) * y_soln)
+    val err_init = (a * y0) - ((y0 *:* y0) * y0)
     println("err_init: " + sqrt(err_init *:* err_init))
 
     tic()
