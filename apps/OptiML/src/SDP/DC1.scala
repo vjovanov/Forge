@@ -34,10 +34,19 @@ trait DC1 extends OptiMLApplication {
     val soln = untilconverged(pack(y0, unit(0)), maxIter = kmax) { cur =>
       val (y, k) = unpack(cur)
 
-      val ak = alpha / (k + 1)
+      //val ak = alpha / (k + 1)
 
       val n2y: Rep[Double] = y *:* y
       val dy = ((1.0 / n2y) * (a * y)) - y
+
+      val p1 = -4.0 * (y *:* (a * dy)) + 4.0 * ((y *:* y) * (y *:* dy))
+      val p2 = -2.0 * (dy *:* (a * dy)) + 2.0 * ((y *:* y) * (dy *:* dy)) + 4.0 * ((y *:* dy) * (dy *:* dy))
+      val p3 = 4.0 * ((y *:* dy) * (dy *:* dy))
+      val p4 = (dy *:* dy) * (dy *:* dy)
+
+      val ak = -p1 / (2.0 * p2)
+
+      println(ak)
 
       val y_next = y + ak * dy
 
