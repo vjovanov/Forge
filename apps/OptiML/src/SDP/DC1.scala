@@ -40,7 +40,7 @@ trait DC1 extends OptiMLApplication {
       val dy = ((1.0 / n2y) * (a * y)) - y
 
       val p1 = -4.0 * (y *:* (a * dy)) + 4.0 * ((y *:* y) * (y *:* dy))
-      val p2 = -2.0 * (dy *:* (a * dy)) + 2.0 * ((y *:* y) * (dy *:* dy)) + 4.0 * ((y *:* dy) * (dy *:* dy))
+      val p2 = -2.0 * (dy *:* (a * dy)) + 2.0 * ((y *:* y) * (dy *:* dy)) + 4.0 * ((y *:* dy) * (y *:* dy))
       val p3 = 4.0 * ((y *:* dy) * (dy *:* dy))
       val p4 = (dy *:* dy) * (dy *:* dy)
 
