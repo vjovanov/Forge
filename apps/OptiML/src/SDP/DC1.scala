@@ -45,7 +45,8 @@ trait DC1 extends OptiMLApplication {
     val (y_soln, k_soln) = unpack(soln)
 
     toc(soln)
-    println("y:")
-    y_soln.pprint
+    
+    val err = (a * y_soln) - ((y_soln *:* y_soln) * y_soln)
+    println("err: " + sqrt(err *:* err))
   }
 }
