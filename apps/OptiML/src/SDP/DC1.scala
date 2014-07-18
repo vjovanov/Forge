@@ -44,7 +44,11 @@ trait DC1 extends OptiMLApplication {
       val p3 = 4.0 * ((y *:* dy) * (dy *:* dy))
       val p4 = (dy *:* dy) * (dy *:* dy)
 
-      val ak = -p1 / (2.0 * p2)
+      // make a few iterations of newton's method
+      var ak = 0
+      ak = ak - (p1 + 2 * p2 * ak + 3 * p3 * ak * ak + 4 * p4 * ak * ak * ak) / (2 * p2 + 6 * p3 * ak + 12 * p4 * ak * ak)
+      ak = ak - (p1 + 2 * p2 * ak + 3 * p3 * ak * ak + 4 * p4 * ak * ak * ak) / (2 * p2 + 6 * p3 * ak + 12 * p4 * ak * ak)
+      ak = ak - (p1 + 2 * p2 * ak + 3 * p3 * ak * ak + 4 * p4 * ak * ak * ak) / (2 * p2 + 6 * p3 * ak + 12 * p4 * ak * ak)
 
       println(ak)
 
