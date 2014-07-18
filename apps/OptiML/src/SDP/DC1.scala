@@ -50,7 +50,7 @@ trait DC1 extends OptiMLApplication {
       ak = ak - (p1 + 2.0 * p2 * ak + 3.0 * p3 * ak * ak + 4.0 * p4 * ak * ak * ak) / (2.0 * p2 + 6.0 * p3 * ak + 12.0 * p4 * ak * ak)
       ak = ak - (p1 + 2.0 * p2 * ak + 3.0 * p3 * ak * ak + 4.0 * p4 * ak * ak * ak) / (2.0 * p2 + 6.0 * p3 * ak + 12.0 * p4 * ak * ak)
 
-      println(ak)
+      println(p1 + 2.0 * p2 * ak + 3.0 * p3 * ak * ak + 4.0 * p4 * ak * ak * ak)
 
       val y_next = y + ak * dy
 
