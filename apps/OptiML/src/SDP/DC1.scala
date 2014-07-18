@@ -44,7 +44,7 @@ trait DC1 extends OptiMLApplication {
       val p3 = 4.0 * ((y *:* dy) * (dy *:* dy))
       val p4 = (dy *:* dy) * (dy *:* dy)
 
-      val ak = -p1 / (2.0 * p2)
+      val ak = p1 / (2.0 * p2)
 
       println(ak)
 
