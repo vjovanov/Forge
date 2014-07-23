@@ -21,9 +21,9 @@ trait LAPACKCompilerOps extends LAPACKOps with LAPACKHelperOps {
 trait LAPACKHelperOps {
   this: OptiLAApplication =>
 
-  def ipiv_to_P(numRows: Rep[Int], ipiv: Rep[DenseVector[Int]]): Rep[DenseMatrix[Int]] = {
-    val P_indices = (0::numRows).mutable
-    var i = 0
+  def ipiv_to_P(numRows: Rep[Long], ipiv: Rep[DenseVector[Long]]): Rep[DenseMatrix[Long]] = {
+    val P_indices = (0l::numRows).mutable
+    var i = 0l
     while (i < ipiv.length) {
       // FIXME: scheduling bug in LMS/Delite if swap is a val instead of var
       var swap = P_indices(i)
@@ -33,8 +33,8 @@ trait LAPACKHelperOps {
       i += 1
     }
 
-    val P = DenseMatrix[Int](numRows, numRows)
-    var j = 0
+    val P = DenseMatrix[Long](numRows, numRows)
+    var j = 0l
     while (j < P_indices.length) {
       P(j,P_indices(j)) = 1
       j += 1
@@ -43,10 +43,10 @@ trait LAPACKHelperOps {
     P.unsafeImmutable
   }
 
-  def postprocess_lu(a: Rep[DenseMatrix[Double]], ipiv: Rep[DenseVector[Int]])(implicit __pos: SourceContext): (Rep[DenseMatrix[Double]],Rep[DenseMatrix[Double]],Rep[DenseMatrix[Int]]) = {
+  def postprocess_lu(a: Rep[DenseMatrix[Double]], ipiv: Rep[DenseVector[Long]])(implicit __pos: SourceContext): (Rep[DenseMatrix[Double]],Rep[DenseMatrix[Double]],Rep[DenseMatrix[Long]]) = {
     val d = min(a.numRows, a.numCols)
-    val L = (0::a.numRows, 0::d) { (i,j) => if (i > j) a(i,j) else if (i == j) 1.0 else 0.0 }
-    val U = (0::d, 0::a.numCols) { (i,j) => if (i <= j) a(i,j) else 0.0 }
+    val L = (0l::a.numRows, 0l::d) { (i,j) => if (i > j) a(i,j) else if (i == j) 1.0 else 0.0 }
+    val U = (0l::d, 0l::a.numCols) { (i,j) => if (i <= j) a(i,j) else 0.0 }
     val P = ipiv_to_P(a.numRows, ipiv)
 
     (L,U,P)

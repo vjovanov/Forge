@@ -19,10 +19,10 @@ trait ImageOps {
     val ImageOps = withTpe(GrayscaleImage)
     ImageOps {
       infix ("data") (Nil :: DenseMatrix(MDouble)) implements getter(0, "_data")
-      infix ("numRows") (Nil :: MInt) implements redirect ${ $self.data.numRows }
-      infix ("numCols") (Nil :: MInt) implements redirect ${ $self.data.numCols }
+      infix ("numRows") (Nil :: MLong) implements redirect ${ $self.data.numRows }
+      infix ("numCols") (Nil :: MLong) implements redirect ${ $self.data.numCols }
 
-      infix ("downsample") (CurriedMethodSignature(List(List(("rowFactor", MInt), ("colFactor", MInt)), List(("sample", GrayscaleImage ==> MDouble))), GrayscaleImage)) implements composite ${
+      infix ("downsample") (CurriedMethodSignature(List(List(("rowFactor", MLong), ("colFactor", MLong)), List(("sample", GrayscaleImage ==> MDouble))), GrayscaleImage)) implements composite ${
         val sampledData = (0::($self.numRows / rowFactor), 0::($self.numCols / colFactor))  { (i,j) =>          
           sample(GrayscaleImage($self.data.slice(rowFactor * i, rowFactor*i + rowFactor, colFactor*j, colFactor*j + colFactor)))
         }
@@ -33,7 +33,7 @@ trait ImageOps {
         $self.windowedFilter(kernel.numRows, kernel.numCols) { slice => (slice.data *:* kernel).sum }        
       }
 
-      infix ("windowedFilter") (CurriedMethodSignature(List(List(("rowDim", MInt), ("colDim", MInt)), List(("block", GrayscaleImage ==> MDouble))), GrayscaleImage)) implements composite ${
+      infix ("windowedFilter") (CurriedMethodSignature(List(List(("rowDim", MLong), ("colDim", MLong)), List(("block", GrayscaleImage ==> MDouble))), GrayscaleImage)) implements composite ${
         // we want a rowDim x colDim size window, so we move rowOffset or colOffset away
         val rowOffset = (rowDim - 1) / 2
         val colOffset = (colDim - 1) / 2
@@ -53,9 +53,9 @@ trait ImageOps {
         GrayscaleImage(out)
       }
 
-      infix ("histogram") (Nil :: DenseVector(MInt)) implements composite ${
-        val buckets = $self.data.flattenToVector.groupByReduce(e => e.toInt, e => 1, (a: Rep[Int],b: Rep[Int]) => a+b)
-        (0::256) { i => if (buckets.contains(i)) buckets(i) else 0 }
+      infix ("histogram") (Nil :: DenseVector(MLong)) implements composite ${
+        val buckets = $self.data.flattenToVector.groupByReduce(e => e.toLong, e => unit(1l), (a: Rep[Long],b: Rep[Long]) => a+b)
+        (0::256) { i => if (buckets.contains(i)) buckets(i) else 0l }
       }
 
       // -- ported from previous version of OptiML, but it is not clear if these are general

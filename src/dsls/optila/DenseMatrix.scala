@@ -49,14 +49,14 @@ trait DenseMatrixOps {
     // we can't reuse "apply", because it is ambiguous with the row constructor above
     static (DenseMatrix) ("block", T, varArgs(DenseVector(DenseMatrix(T))) :: DenseMatrix(T)) implements single ${
       // precompute output size
-      var totalNumRows = 0
-      var totalNumCols = 0
+      var totalNumRows = 0l
+      var totalNumCols = 0l
       val seq = array_fromseq($0)
-      for (i <- 0 until array_length(seq)) {
+      for (i <- 0l until array_length(seq)) {
         val subMatRow = array_apply(seq,i)
         val numRows = subMatRow(0).numRows
         var numCols = subMatRow(0).numCols
-        for (j <- 1 until subMatRow.length) {
+        for (j <- 1l until subMatRow.length) {
           fassert(subMatRow(j).numRows == numRows, "dimension mismatch in block matrix constructor: " + subMatRow(j).numRows + " != " + numRows)
           numCols += subMatRow(j).numCols
         }
@@ -72,14 +72,14 @@ trait DenseMatrixOps {
 
       // write blocks
       val out = DenseMatrix[T](totalNumRows, totalNumCols)
-      var rowIdx = 0
-      var colIdx = 0
-      for (i <- 0 until array_length(seq)) {
+      var rowIdx = 0l
+      var colIdx = 0l
+      for (i <- 0l until array_length(seq)) {
         val subMatRow = array_apply(seq,i)
-        colIdx = 0
-        for (j <- 0 until subMatRow.length) {
-          for (k <- 0 until subMatRow(j).numRows) {
-            for (l <- 0 until subMatRow(j).numCols) {
+        colIdx = 0l
+        for (j <- 0l until subMatRow.length) {
+          for (k <- 0l until subMatRow(j).numRows) {
+            for (l <- 0l until subMatRow(j).numCols) {
               out(rowIdx+k, colIdx+l) = subMatRow(j).apply(k,l)
             }
           }
@@ -141,6 +141,7 @@ trait DenseMatrixOps {
       infix ("toDouble") (Nil :: DenseMatrix(MDouble), ("conv",T ==> MDouble)) implements map((T,MDouble), 0, ${$conv})
       infix ("toFloat") (Nil :: DenseMatrix(MFloat), ("conv",T ==> MFloat)) implements map((T,MFloat), 0, ${$conv})
       infix ("toInt") (Nil :: DenseMatrix(MInt), ("conv",T ==> MInt)) implements map((T,MInt), 0, ${$conv})
+      infix ("toLong") (Nil :: DenseMatrix(MLong), ("conv",T ==> MLong)) implements map((T,MLong), 0, ${$conv})
 
       infix ("flattenToVector") (Nil :: DenseVector(T)) implements composite ${
         (0::$self.size) { i => densematrix_raw_apply($self, i) }
@@ -223,7 +224,7 @@ trait DenseMatrixOps {
            s = "[ ]"
          }
          else {
-           for (i <- 0 until $self.numRows-1) {
+           for (i <- 0l until $self.numRows-1) {
              s = s + $self(i).makeStr + "\\n"
            }
            s = s + $self($self.numRows-1).makeStr
@@ -239,7 +240,7 @@ trait DenseMatrixOps {
            s = "[ ]"
          }
          else {
-           for (i <- 0 until $self.numRows-1) {
+           for (i <- 0l until $self.numRows-1) {
              s = s + densevectorview_tostring($self(i)) + "\\n"
            }
            s = s + densevectorview_tostring($self($self.numRows-1))
@@ -252,8 +253,8 @@ trait DenseMatrixOps {
        infix ("Clone") (Nil :: DenseMatrix(T), aliasHint = copies(0)) implements map((T,T), 0, "e => e")
        infix ("mutable") (Nil :: DenseMatrix(T), effect = mutable, aliasHint = copies(0)) implements single ${
          val out = DenseMatrix[T]($self.numRows, $self.numCols)
-         for (i <- 0 until $self.numRows) {
-           for (j <- 0 until $self.numCols) {
+         for (i <- 0l until $self.numRows) {
+           for (j <- 0l until $self.numCols) {
              out(i,j) = $self(i,j)
            }
          }
@@ -261,10 +262,10 @@ trait DenseMatrixOps {
        }
        infix ("replicate") ((MLong,MLong) :: DenseMatrix(T)) implements single ${
          val out = DenseMatrix[T]($1*$self.numRows, $2*$self.numCols)
-         for (ii <- 0 until $1) {
-           for (i <- 0 until $self.numRows) {
-             for (jj <- 0 until $2) {
-               for (j <- 0 until $self.numCols) {
+         for (ii <- 0l until $1) {
+           for (i <- 0l until $self.numRows) {
+             for (jj <- 0l until $2) {
+               for (j <- 0l until $self.numCols) {
                  out(ii*$self.numRows+i, jj*$self.numCols+j) = $self(i,j)
                }
              }
@@ -297,26 +298,26 @@ trait DenseMatrixOps {
       }
 
       infix ("<<") (DenseVector(T) :: DenseMatrix(T)) implements single ${
-        val out = DenseMatrix[T](0, 0)
+        val out = DenseMatrix[T](0l, 0l)
         out <<= $self
         out <<= $1
         out.unsafeImmutable
       }
       infix ("<<") (DenseMatrix(T) :: DenseMatrix(T)) implements single ${
-        val out = DenseMatrix[T](0, 0)
+        val out = DenseMatrix[T](0l, 0l)
         out <<= $self
         out <<= $1
         out.unsafeImmutable
       }
       infix ("<<|") (DenseVector(T) :: DenseMatrix(T)) implements single ${
-        val out = DenseMatrix[T](0, 0)
-        out.insertAllCols(0, $self)
+        val out = DenseMatrix[T](0l, 0l)
+        out.insertAllCols(0l, $self)
         out.insertCol($self.numCols, $1)
         out.unsafeImmutable
       }
       infix ("<<|") (DenseMatrix(T) :: DenseMatrix(T)) implements single ${
-        val out = DenseMatrix[T](0, 0)
-        out.insertAllCols(0, $self)
+        val out = DenseMatrix[T](0l, 0l)
+        out.insertAllCols(0l, $self)
         out.insertAllCols($self.numCols, $1)
         out.unsafeImmutable
       }
@@ -350,9 +351,9 @@ trait DenseMatrixOps {
         val newCols = $self.numCols+1
         if ($self.size == 0) densematrix_set_numrows($self, $y.length)
         val outData = array_empty[T]($self.numRows*newCols)
-        for (i <- 0 until $self.numRows){
-          var col = 0
-          for (j <- 0 until newCols) {
+        for (i <- 0l until $self.numRows){
+          var col = 0l
+          for (j <- 0l until newCols) {
             if (j == $pos){
               outData(i*newCols+j) = $y(i)
             }
@@ -369,9 +370,9 @@ trait DenseMatrixOps {
         val newCols = $self.numCols+$xs.numCols
         if ($self.size == 0) densematrix_set_numrows($self, $xs.numRows)
         val outData = array_empty[T]($self.numRows*newCols)
-        for (i <- 0 until $self.numRows){
-          var col = 0
-          for (j <- 0 until newCols){
+        for (i <- 0l until $self.numRows){
+          var col = 0l
+          for (j <- 0l until newCols){
             if (j < $1 || j >= $pos+$xs.numCols){
               outData(i*newCols+j) = $self(i,col)
               col += 1
@@ -389,7 +390,7 @@ trait DenseMatrixOps {
         val data = densematrix_raw_data($self)
         if ($self.size < array_length(data)) {
           val d = array_empty[T]($self.size)
-          array_copy(data, 0, d, 0, $self.size)
+          array_copy(data, 0l, d, 0l, $self.size)
           densematrix_set_raw_data($self, d.unsafeImmutable)
         }
       }
@@ -406,9 +407,9 @@ trait DenseMatrixOps {
       infix ("removeCols") ((("pos",MLong),("num",MLong)) :: MUnit, effect=write(0)) implements single ${
         val newCols = $self.numCols-$num
         val outData = array_empty[T]($self.numRows*newCols)
-        for (i <- 0 until $self.numRows){
-          var col = 0
-          for (j <- 0 until $self.numCols){
+        for (i <- 0l until $self.numRows){
+          var col = 0l
+          for (j <- 0l until $self.numCols){
             if (j < $pos || j >= $pos+$num){
               outData(i*newCols+col) = $self(i,j)
               col += 1
@@ -433,10 +434,10 @@ trait DenseMatrixOps {
       }
       compiler ("densematrix_realloc") (("minLen",MLong) :: MUnit, effect = write(0)) implements single ${
         val data = densematrix_raw_data($self)
-        var n = max(4, array_length(data) * 2)
+        var n = max(4l, array_length(data) * 2)
         while (n < minLen) n = n*2
         val d = array_empty[T](n)
-        array_copy(data, 0, d, 0, $self.size)
+        array_copy(data, 0l, d, 0l, $self.size)
         densematrix_set_raw_data($self, d.unsafeImmutable)
       }
 
@@ -480,10 +481,10 @@ trait DenseMatrixOps {
          // naive
          val yT = $1.t
          val out = DenseMatrix[T]($self.numRows, $1.numCols)
-         for (rowIdx <- 0 until $self.numRows) {
-           for (i <- 0 until $1.numCols) {
-             var acc = $self(rowIdx, 0) * yT(i, 0)
-             for (j <- 1 until yT.numCols) {
+         for (rowIdx <- 0l until $self.numRows) {
+           for (i <- 0l until $1.numCols) {
+             var acc = $self(rowIdx, 0) * yT(i, 0l)
+             for (j <- 1l until yT.numCols) {
                acc += $self(rowIdx, j) * yT(i, j)
              }
              out(rowIdx, i) = acc
@@ -494,7 +495,7 @@ trait DenseMatrixOps {
        infix ("*") (DenseVector(T) :: DenseVector(T), TArith(T)) implements single ${
         fassert($self.numCols == $1.length && !$1.isRow, "dimension mismatch: matrix * vector")
         val out = DenseVector[T]($self.numRows, false)
-        for (rowIdx <- 0 until $self.numRows) {
+        for (rowIdx <- 0l until $self.numRows) {
           out(rowIdx) = $self(rowIdx) *:* $1
         }
         out.unsafeImmutable
@@ -540,11 +541,11 @@ trait DenseMatrixOps {
 
        // TODO: switch to reduce when TupleReduce is generalized
        infix ("minIndex") (Nil :: Tuple2(MLong,MLong), TOrdering(T)) implements composite ${
-         var min = $self(0,0)
-         var minRow = 0
-         var minCol = 0
-         for (i <- 0 until $self.numRows) {
-           for (j <- 0 until $self.numCols) {
+         var min = $self(0l,0l)
+         var minRow = 0l
+         var minCol = 0l
+         for (i <- 0l until $self.numRows) {
+           for (j <- 0l until $self.numCols) {
              if ($self(i,j) < min) {
                min = $self(i,j)
                minRow = i
@@ -555,11 +556,11 @@ trait DenseMatrixOps {
          pack((minRow,minCol))
        }
        infix ("maxIndex") (Nil :: Tuple2(MLong,MLong), TOrdering(T)) implements composite ${
-         var max = $self(0,0)
-         var maxRow = 0
-         var maxCol = 0
-         for (i <- 0 until $self.numRows) {
-           for (j <- 0 until $self.numCols) {
+         var max = $self(0l,0l)
+         var maxRow = 0l
+         var maxCol = 0l
+         for (i <- 0l until $self.numRows) {
+           for (j <- 0l until $self.numCols) {
              if ($self(i,j) > max) {
                max = $self(i,j)
                maxRow = i
@@ -576,7 +577,7 @@ trait DenseMatrixOps {
        direct ("__equal") (DenseMatrix(T) :: MBoolean) implements composite ${
         if ($self.numRows != $1.numRows || $self.numCols != $1.numCols) false
           else {
-            val c = sum($self.zip($1) { (a,b) => if (a == b) 0 else 1})
+            val c = sum($self.zip($1) { (a,b) => if (a == b) unit(0) else unit(1)})
             c == 0
           }
        }
@@ -705,118 +706,118 @@ trait DenseMatrixOps {
 
     // the conversions here will be costly unless things fuse. alternatively, we could convert element by element.
 
-    infix (DenseMatrix) ("+", Nil, (MInt,DenseMatrix(MInt)) :: DenseMatrix(MInt)) implements redirect ${ densematrix_pl[Int]($1,$0) }
-    infix (DenseMatrix) ("+", Nil, (MInt,DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($1,$0.toFloat) }
-    infix (DenseMatrix) ("+", Nil, (MInt,DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($1,$0.toDouble) }
-    infix (DenseMatrix) ("+", Nil, (MFloat,DenseMatrix(MInt)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($1.toFloat,$0) }
+    infix (DenseMatrix) ("+", Nil, (MLong,DenseMatrix(MLong)) :: DenseMatrix(MLong)) implements redirect ${ densematrix_pl[Long]($1,$0) }
+    infix (DenseMatrix) ("+", Nil, (MLong,DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($1,$0.toFloat) }
+    infix (DenseMatrix) ("+", Nil, (MLong,DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($1,$0.toDouble) }
+    infix (DenseMatrix) ("+", Nil, (MFloat,DenseMatrix(MLong)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($1.toFloat,$0) }
     infix (DenseMatrix) ("+", Nil, (MFloat,DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($1,$0) }
     infix (DenseMatrix) ("+", Nil, (MFloat,DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($1,$0.toDouble) }
-    infix (DenseMatrix) ("+", Nil, (MDouble,DenseMatrix(MInt)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($1.toDouble,$0) }
+    infix (DenseMatrix) ("+", Nil, (MDouble,DenseMatrix(MLong)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($1.toDouble,$0) }
     infix (DenseMatrix) ("+", Nil, (MDouble,DenseMatrix(MFloat)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($1.toDouble,$0) }
     infix (DenseMatrix) ("+", Nil, (MDouble,DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($1,$0) }
-    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MInt),MInt) :: DenseMatrix(MInt)) implements redirect ${ densematrix_pl[Int]($0,$1) }
-    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MInt),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($0.toFloat,$1) }
-    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MInt),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MFloat),MInt) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($0,$1.toFloat) }
+    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MLong),MLong) :: DenseMatrix(MLong)) implements redirect ${ densematrix_pl[Long]($0,$1) }
+    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MLong),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($0.toFloat,$1) }
+    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MLong),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0.toDouble,$1) }
+    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MFloat),MLong) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($0,$1.toFloat) }
     infix (DenseMatrix) ("+", Nil, (DenseMatrix(MFloat),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($0,$1) }
     infix (DenseMatrix) ("+", Nil, (DenseMatrix(MFloat),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MDouble),MInt) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0,$1.toDouble) }
+    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MDouble),MLong) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("+", Nil, (DenseMatrix(MDouble),MFloat) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0.toDouble,$1) }
     infix (DenseMatrix) ("+", Nil, (DenseMatrix(MDouble),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0,$1) }
-    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MInt),DenseMatrix(MInt)) :: DenseMatrix(MInt)) implements redirect ${ densematrix_pl[Int]($0,$1) }
-    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MInt),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($0.toFloat,$1) }
-    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MInt),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MFloat),DenseMatrix(MInt)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($0,$1.toFloat) }
+    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MLong),DenseMatrix(MLong)) :: DenseMatrix(MLong)) implements redirect ${ densematrix_pl[Long]($0,$1) }
+    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MLong),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($0.toFloat,$1) }
+    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MLong),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0.toDouble,$1) }
+    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MFloat),DenseMatrix(MLong)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($0,$1.toFloat) }
     infix (DenseMatrix) ("+", Nil, (DenseMatrix(MFloat),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_pl[Float]($0,$1) }
     infix (DenseMatrix) ("+", Nil, (DenseMatrix(MFloat),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MDouble),DenseMatrix(MInt)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0,$1.toDouble) }
+    infix (DenseMatrix) ("+", Nil, (DenseMatrix(MDouble),DenseMatrix(MLong)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("+", Nil, (DenseMatrix(MDouble),DenseMatrix(MFloat)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("+", Nil, (DenseMatrix(MDouble),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_pl[Double]($0,$1) }
 
-    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MInt),MInt) :: DenseMatrix(MInt)) implements redirect ${ densematrix_sub[Int]($0,$1) }
-    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MInt),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_sub[Float]($0.toFloat,$1) }
-    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MInt),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MFloat),MInt) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_sub[Float]($0,$1.toFloat) }
+    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MLong),MLong) :: DenseMatrix(MLong)) implements redirect ${ densematrix_sub[Long]($0,$1) }
+    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MLong),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_sub[Float]($0.toFloat,$1) }
+    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MLong),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0.toDouble,$1) }
+    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MFloat),MLong) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_sub[Float]($0,$1.toFloat) }
     infix (DenseMatrix) ("-", Nil, (DenseMatrix(MFloat),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_sub[Float]($0,$1) }
     infix (DenseMatrix) ("-", Nil, (DenseMatrix(MFloat),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MDouble),MInt) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0,$1.toDouble) }
+    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MDouble),MLong) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("-", Nil, (DenseMatrix(MDouble),MFloat) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0.toDouble,$1) }
     infix (DenseMatrix) ("-", Nil, (DenseMatrix(MDouble),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0,$1) }
-    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MInt),DenseMatrix(MInt)) :: DenseMatrix(MInt)) implements redirect ${ densematrix_sub[Int]($0,$1) }
-    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MInt),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_sub[Float]($0.toFloat,$1) }
-    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MInt),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MFloat),DenseMatrix(MInt)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_sub[Float]($0,$1.toFloat) }
+    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MLong),DenseMatrix(MLong)) :: DenseMatrix(MLong)) implements redirect ${ densematrix_sub[Long]($0,$1) }
+    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MLong),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_sub[Float]($0.toFloat,$1) }
+    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MLong),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0.toDouble,$1) }
+    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MFloat),DenseMatrix(MLong)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_sub[Float]($0,$1.toFloat) }
     infix (DenseMatrix) ("-", Nil, (DenseMatrix(MFloat),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_sub[Float]($0,$1) }
     infix (DenseMatrix) ("-", Nil, (DenseMatrix(MFloat),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MDouble),DenseMatrix(MInt)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0,$1.toDouble) }
+    infix (DenseMatrix) ("-", Nil, (DenseMatrix(MDouble),DenseMatrix(MLong)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("-", Nil, (DenseMatrix(MDouble),DenseMatrix(MFloat)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("-", Nil, (DenseMatrix(MDouble),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_sub[Double]($0,$1) }
 
-    infix (DenseMatrix) ("unary_-", Nil, (DenseMatrix(MInt)) :: DenseMatrix(MInt)) implements redirect ${ densematrix_mul[Int]($0,unit(-1)) }
+    infix (DenseMatrix) ("unary_-", Nil, (DenseMatrix(MLong)) :: DenseMatrix(MLong)) implements redirect ${ densematrix_mul[Long]($0,unit(-1)) }
     infix (DenseMatrix) ("unary_-", Nil, (DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($0,unit(-1f)) }
     infix (DenseMatrix) ("unary_-", Nil, (DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($0,unit(-1.0)) }
-    infix (DenseMatrix) ("*", Nil, (MInt,DenseMatrix(MInt)) :: DenseMatrix(MInt)) implements redirect ${ densematrix_mul[Int]($1,$0) }
-    infix (DenseMatrix) ("*", Nil, (MInt,DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($1,$0.toFloat) }
-    infix (DenseMatrix) ("*", Nil, (MInt,DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($1,$0.toDouble) }
-    infix (DenseMatrix) ("*", Nil, (MFloat,DenseMatrix(MInt)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($1.toFloat,$0) }
+    infix (DenseMatrix) ("*", Nil, (MLong,DenseMatrix(MLong)) :: DenseMatrix(MLong)) implements redirect ${ densematrix_mul[Long]($1,$0) }
+    infix (DenseMatrix) ("*", Nil, (MLong,DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($1,$0.toFloat) }
+    infix (DenseMatrix) ("*", Nil, (MLong,DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($1,$0.toDouble) }
+    infix (DenseMatrix) ("*", Nil, (MFloat,DenseMatrix(MLong)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($1.toFloat,$0) }
     infix (DenseMatrix) ("*", Nil, (MFloat,DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($1,$0) }
     infix (DenseMatrix) ("*", Nil, (MFloat,DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($1,$0.toDouble) }
-    infix (DenseMatrix) ("*", Nil, (MDouble,DenseMatrix(MInt)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($1.toDouble,$0) }
+    infix (DenseMatrix) ("*", Nil, (MDouble,DenseMatrix(MLong)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($1.toDouble,$0) }
     infix (DenseMatrix) ("*", Nil, (MDouble,DenseMatrix(MFloat)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($1.toDouble,$0) }
     infix (DenseMatrix) ("*", Nil, (MDouble,DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($1,$0) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MInt),MInt) :: DenseMatrix(MInt)) implements redirect ${ densematrix_mul[Int]($0,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MInt),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($0.toFloat,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MInt),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),MInt) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($0,$1.toFloat) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MLong),MLong) :: DenseMatrix(MLong)) implements redirect ${ densematrix_mul[Long]($0,$1) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MLong),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($0.toFloat,$1) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MLong),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($0.toDouble,$1) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),MLong) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($0,$1.toFloat) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mul[Float]($0,$1) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),MInt) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($0,$1.toDouble) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),MLong) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),MFloat) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($0.toDouble,$1) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mul[Double]($0,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MInt),DenseMatrix(MInt)) :: DenseMatrix(MInt)) implements redirect ${ densematrix_matmult[Int]($0,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MInt),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_matmult[Float]($0.toFloat,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MInt),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_matmult[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),DenseMatrix(MInt)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_matmult[Float]($0,$1.toFloat) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MLong),DenseMatrix(MLong)) :: DenseMatrix(MLong)) implements redirect ${ densematrix_matmult[Long]($0,$1) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MLong),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_matmult[Float]($0.toFloat,$1) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MLong),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_matmult[Double]($0.toDouble,$1) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),DenseMatrix(MLong)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_matmult[Float]($0,$1.toFloat) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_matmult[Float]($0,$1) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_matmult[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),DenseMatrix(MInt)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_matmult[Double]($0,$1.toDouble) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),DenseMatrix(MLong)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_matmult[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),DenseMatrix(MFloat)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_matmult[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_matmult[Double]($0,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MInt),DenseVector(MInt)) :: DenseVector(MInt)) implements redirect ${ densematrix_matvecmult[Int]($0,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MInt),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densematrix_matvecmult[Float]($0.toFloat,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MInt),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densematrix_matvecmult[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),DenseVector(MInt)) :: DenseVector(MFloat)) implements redirect ${ densematrix_matvecmult[Float]($0,$1.toFloat) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MLong),DenseVector(MLong)) :: DenseVector(MLong)) implements redirect ${ densematrix_matvecmult[Long]($0,$1) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MLong),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densematrix_matvecmult[Float]($0.toFloat,$1) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MLong),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densematrix_matvecmult[Double]($0.toDouble,$1) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),DenseVector(MLong)) :: DenseVector(MFloat)) implements redirect ${ densematrix_matvecmult[Float]($0,$1.toFloat) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densematrix_matvecmult[Float]($0,$1) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MFloat),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densematrix_matvecmult[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),DenseVector(MInt)) :: DenseVector(MDouble)) implements redirect ${ densematrix_matvecmult[Double]($0,$1.toDouble) }
+    infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),DenseVector(MLong)) :: DenseVector(MDouble)) implements redirect ${ densematrix_matvecmult[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),DenseVector(MFloat)) :: DenseVector(MDouble)) implements redirect ${ densematrix_matvecmult[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("*", Nil, (DenseMatrix(MDouble),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densematrix_matvecmult[Double]($0,$1) }
-    infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MInt),DenseMatrix(MInt)) :: DenseMatrix(MInt)) implements redirect ${ densematrix_mulclnmul[Int]($0,$1) }
-    infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MInt),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mulclnmul[Float]($0.toFloat,$1) }
-    infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MInt),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mulclnmul[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MFloat),DenseMatrix(MInt)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mulclnmul[Float]($0,$1.toFloat) }
+    infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MLong),DenseMatrix(MLong)) :: DenseMatrix(MLong)) implements redirect ${ densematrix_mulclnmul[Long]($0,$1) }
+    infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MLong),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mulclnmul[Float]($0.toFloat,$1) }
+    infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MLong),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mulclnmul[Double]($0.toDouble,$1) }
+    infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MFloat),DenseMatrix(MLong)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mulclnmul[Float]($0,$1.toFloat) }
     infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MFloat),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_mulclnmul[Float]($0,$1) }
     infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MFloat),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mulclnmul[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MDouble),DenseMatrix(MInt)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mulclnmul[Double]($0,$1.toDouble) }
+    infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MDouble),DenseMatrix(MLong)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mulclnmul[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MDouble),DenseMatrix(MFloat)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mulclnmul[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("*:*", Nil, (DenseMatrix(MDouble),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_mulclnmul[Double]($0,$1) }
 
-    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MInt),MInt) :: DenseMatrix(MInt)) implements redirect ${ densematrix_div[Int]($0,$1) }
-    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MInt),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_div[Float]($0.toFloat,$1) }
-    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MInt),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MFloat),MInt) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_div[Float]($0,$1.toFloat) }
+    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MLong),MLong) :: DenseMatrix(MLong)) implements redirect ${ densematrix_div[Long]($0,$1) }
+    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MLong),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_div[Float]($0.toFloat,$1) }
+    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MLong),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0.toDouble,$1) }
+    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MFloat),MLong) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_div[Float]($0,$1.toFloat) }
     infix (DenseMatrix) ("/", Nil, (DenseMatrix(MFloat),MFloat) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_div[Float]($0,$1) }
     infix (DenseMatrix) ("/", Nil, (DenseMatrix(MFloat),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MDouble),MInt) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0,$1.toDouble) }
+    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MDouble),MLong) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("/", Nil, (DenseMatrix(MDouble),MFloat) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0.toDouble,$1) }
     infix (DenseMatrix) ("/", Nil, (DenseMatrix(MDouble),MDouble) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0,$1) }
-    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MInt),DenseMatrix(MInt)) :: DenseMatrix(MInt)) implements redirect ${ densematrix_div[Int]($0,$1) }
-    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MInt),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_div[Float]($0.toFloat,$1) }
-    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MInt),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MFloat),DenseMatrix(MInt)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_div[Float]($0,$1.toFloat) }
+    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MLong),DenseMatrix(MLong)) :: DenseMatrix(MLong)) implements redirect ${ densematrix_div[Long]($0,$1) }
+    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MLong),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_div[Float]($0.toFloat,$1) }
+    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MLong),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0.toDouble,$1) }
+    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MFloat),DenseMatrix(MLong)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_div[Float]($0,$1.toFloat) }
     infix (DenseMatrix) ("/", Nil, (DenseMatrix(MFloat),DenseMatrix(MFloat)) :: DenseMatrix(MFloat)) implements redirect ${ densematrix_div[Float]($0,$1) }
     infix (DenseMatrix) ("/", Nil, (DenseMatrix(MFloat),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0.toDouble,$1) }
-    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MDouble),DenseMatrix(MInt)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0,$1.toDouble) }
+    infix (DenseMatrix) ("/", Nil, (DenseMatrix(MDouble),DenseMatrix(MLong)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("/", Nil, (DenseMatrix(MDouble),DenseMatrix(MFloat)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0,$1.toDouble) }
     infix (DenseMatrix) ("/", Nil, (DenseMatrix(MDouble),DenseMatrix(MDouble)) :: DenseMatrix(MDouble)) implements redirect ${ densematrix_div[Double]($0,$1) }
   }

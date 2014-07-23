@@ -17,7 +17,7 @@ import optiml.library.classes._
 trait SumWrapper {
   this: OptiMLBase with OptiMLClasses with CanSumOps =>
 
-  def optiml_sum[A:Manifest:Arith](start: Rep[Int], end: Rep[Int], block: Rep[Int] => Rep[A])(implicit cs: CanSum[A,A], ctx: SourceContext): Rep[A] = {
+  def optiml_sum[A:Manifest:Arith](start: Rep[Long], end: Rep[Long], block: Rep[Long] => Rep[A])(implicit cs: CanSum[A,A], ctx: SourceContext): Rep[A] = {
     var acc = implicitly[CanSum[A,A]].mutableA(block(start))
     var i = start+1
     while (i < end) {
@@ -27,7 +27,7 @@ trait SumWrapper {
     acc
   }
 
-  def optiml_sumif[R:Manifest:Arith,A:Manifest](start: Rep[Int], end: Rep[Int], cond: Rep[Int] => Rep[Boolean], block: Rep[Int] => Rep[A])(implicit cs: CanSum[R,A], ctx: SourceContext): Rep[R] = {
+  def optiml_sumif[R:Manifest:Arith,A:Manifest](start: Rep[Long], end: Rep[Long], cond: Rep[Long] => Rep[Boolean], block: Rep[Long] => Rep[A])(implicit cs: CanSum[R,A], ctx: SourceContext): Rep[R] = {
     var acc = null.asInstanceOf[Rep[R]]
     var init = false
 

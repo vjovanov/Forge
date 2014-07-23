@@ -23,9 +23,9 @@ trait BasicMathOps {
     direct (Math) ("log10", Nil, MDouble :: MDouble) implements redirect ${ Math.log10($0) }
     direct (Math) ("square", Nil, MDouble :: MDouble) implements redirect ${ $0*$0 }
     direct (Math) ("sqrt", Nil, MDouble :: MDouble) implements redirect ${ Math.sqrt($0) }
-    direct (Math) ("ceil", Nil, MDouble :: MInt) implements redirect ${ Math.ceil($0).toInt }
-    direct (Math) ("floor", Nil, MDouble :: MInt) implements redirect ${ Math.floor($0).toInt }
-    direct (Math) ("round", Nil, MDouble :: MInt) implements redirect ${ Math.round($0).toInt }
+    direct (Math) ("ceil", Nil, MDouble :: MLong) implements redirect ${ Math.ceil($0).toLong }
+    direct (Math) ("floor", Nil, MDouble :: MLong) implements redirect ${ Math.floor($0).toLong }
+    direct (Math) ("round", Nil, MDouble :: MLong) implements redirect ${ Math.round($0).toLong }
     direct (Math) ("sin", Nil, MDouble :: MDouble) implements redirect ${ Math.sin($0) }
     direct (Math) ("sinh", Nil, MDouble :: MDouble) implements redirect ${ Math.sinh($0) }
     direct (Math) ("asin", Nil, MDouble :: MDouble) implements redirect ${ Math.asin($0) }
@@ -82,8 +82,8 @@ trait BasicMathOps {
       val O = if (V != IndexVector) List(TOrdering(T)) else Nil
       val C = if (V != IndexVector) List(arg("conv",T ==> MDouble)) else Nil
       val P = if (V != IndexVector) List(T) else Nil
-      val R1 = if (V == DenseMatrix(T)) DenseMatrix(T) else if (V == IndexVector) DenseVector(MInt) else DenseVector(T)
-      val R2 = if (V != IndexVector) T else MInt
+      val R1 = if (V == DenseMatrix(T)) DenseMatrix(T) else if (V == IndexVector) DenseVector(MLong) else DenseVector(T)
+      val R2 = if (V != IndexVector) T else MLong
 
       direct (Math) ("abs", P, V :: R1, A) implements redirect ${ $0.abs }
       direct (Math) ("exp", P, V :: R1, A) implements redirect ${ $0.exp }

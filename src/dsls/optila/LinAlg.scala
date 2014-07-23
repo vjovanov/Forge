@@ -18,7 +18,7 @@ trait LinAlgOps {
     label(lookupOp("LinAlg","\\"), "linsolve")
 
     /* LU factorization */
-    direct (LinAlg) ("lu", Nil, DenseMatrix(MDouble) :: CTuple3(DenseMatrix(MDouble),DenseMatrix(MDouble),DenseMatrix(MInt))) implements composite ${ (fatal("no non-native lu method exists"), fatal(""), fatal("")) }
+    direct (LinAlg) ("lu", Nil, DenseMatrix(MDouble) :: CTuple3(DenseMatrix(MDouble),DenseMatrix(MDouble),DenseMatrix(MLong))) implements composite ${ (fatal("no non-native lu method exists"), fatal(""), fatal("")) }
 
     /* Cholesky factorization */
     direct (LinAlg) ("chol", Nil, MethodSignature(List(("A",DenseMatrix(MDouble)), ("tri",MString,"unit(\"upper\")")),DenseMatrix(MDouble))) implements composite ${ fatal("no non-native chol method exists") }

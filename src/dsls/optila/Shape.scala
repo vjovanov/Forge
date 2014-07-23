@@ -45,7 +45,7 @@ trait ShapeOps {
     infix (Shape) ("apply", S, (S, MLong) :: Tup2(MLong,MLong))
 
     // the total number of indices contained in the shape
-    infix (Shape) ("size", S, S :: MLong)        
+    infix (Shape) ("size", S, S :: MLong)
   }    
 
   def importTriangleOps() {
@@ -81,9 +81,9 @@ trait ShapeOps {
       // O(1), but with non-trivial overhead. We should compare against the explicitly stored version.
       infix ("apply") (("n", MLong) :: Tup2(MLong, MLong)) implements composite ${        
         val m = if ($self.includeDiagonal) $self.N else $self.N-1
-        val off = if ($self.includeDiagonal) 0 else 1
+        val off = if ($self.includeDiagonal) unit(0) else unit(1)
         val t = tri_size(m)-1-n
-        val k = floor((sqrt(8*t+1)-1)/2)
+        val k = floor((sqrt(8l*t+1)-1)/2)
         val row = m-1-k
         pack((row, (n+tri_size(row))%m+off))
       }      

@@ -36,7 +36,7 @@ trait LAPACKWrapperBase extends LinAlgWrapper {
     else super.linsolve(__arg0,__arg1)
   }
 
-  override def linalg_lu(a: Rep[DenseMatrix[Double]])(implicit __pos: SourceContext): (Rep[DenseMatrix[Double]],Rep[DenseMatrix[Double]],Rep[DenseMatrix[Int]]) = {
+  override def linalg_lu(a: Rep[DenseMatrix[Double]])(implicit __pos: SourceContext): (Rep[DenseMatrix[Double]],Rep[DenseMatrix[Double]],Rep[DenseMatrix[Long]]) = {
     if (useLAPACK) {
       val A = densematrix_t(a) // must be col-major
       val (m,n,lda,ipiv,info) = lapack_lu_getparams(a)
@@ -44,7 +44,7 @@ trait LAPACKWrapperBase extends LinAlgWrapper {
       LAPACK.getInstance().dgetrf(m, n, A._data, lda, ipiv._data, info);
 
       // transpose again because result is col-major
-      postprocess_lu(densematrix_t(A),ipiv)
+      postprocess_lu(densematrix_t(A),densevector_tolong(ipiv))
     }
     else super.linalg_lu(a)
   }
@@ -71,8 +71,8 @@ trait LAPACKWrapperImpl {
   // ** getparams functions are computed on the original (untransposed) A!
 
   def lapack_linsolve_getparams(A: Rep[DenseMatrix[Double]], b: Rep[DenseVector[Double]])(implicit __pos: SourceContext) = {
-    val M = A.numRows
-    val N = A.numCols
+    val M = A.numRows.toInt
+    val N = A.numCols.toInt
     val lda = M // col major, so M entries between columns
     val ldb = max(M,N)
     val nrhs = 1
@@ -85,8 +85,8 @@ trait LAPACKWrapperImpl {
   }
 
   def lapack_lu_getparams(A: Rep[DenseMatrix[Double]])(implicit __pos: SourceContext) = {
-    val M = A.numRows
-    val N = A.numCols
+    val M = A.numRows.toInt
+    val N = A.numCols.toInt
     val lda = M // col major, so M entries between columns
     val ipiv = DenseVector[Int](min(M,N), false)
     val info = new intW(0)
@@ -94,7 +94,7 @@ trait LAPACKWrapperImpl {
   }
 
   def lapack_chol_getparams(A: Rep[DenseMatrix[Double]], tri: Rep[String])(implicit __pos: SourceContext) = {
-    val N = A.numRows
+    val N = A.numRows.toInt
     val lda = N // col major, so N entries between columns
     val info = new intW(0)
     (N,lda,info)

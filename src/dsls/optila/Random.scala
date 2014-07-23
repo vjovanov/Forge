@@ -20,13 +20,14 @@ trait RandomOps {
         case Manifest.Double => optila_rand_double.AsInstanceOf[A]
         case Manifest.Float => optila_rand_float.AsInstanceOf[A]
         case Manifest.Int => optila_rand_int.AsInstanceOf[A]
+        case Manifest.Long => optila_rand_long.AsInstanceOf[A]
         case Manifest.Boolean => optila_rand_boolean.AsInstanceOf[A]
         case _ => sys.error("no random implementation available for type " + mA.toString)
       }
     }
 
     direct (Rand) ("randomElem", A, DenseVector(A) :: A, effect = simple) implements single ${
-      $0(randomInt($0.length))
+      $0(randomInt($0.length.toInt))
     }
 
     direct (Rand) ("randomInt", Nil, MInt :: MInt, effect = simple) implements codegen($cala, ${
@@ -49,6 +50,9 @@ trait RandomOps {
     })
     compiler (Rand) ("optila_rand_int", Nil, Nil :: MInt, effect = simple) implements codegen($cala, ${
       Global.randRef.nextInt()
+    })
+    compiler (Rand) ("optila_rand_long", Nil, Nil :: MLong, effect = simple) implements codegen($cala, ${
+      Global.randRef.nextLong()
     })
     compiler (Rand) ("optila_rand_boolean", Nil, Nil :: MBoolean, effect = simple) implements codegen($cala, ${
       Global.randRef.nextBoolean()
@@ -80,7 +84,7 @@ trait RandomOps {
 
       var i = len-1
       while (i > 1) {
-        val swap = randomInt(i+1)
+        val swap = randomInt((i+1).toInt)
         val a = array_apply(out,i)
         array_update(out,i,array_apply(out,swap))
         array_update(out,swap,a)

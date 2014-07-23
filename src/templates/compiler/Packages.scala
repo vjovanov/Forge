@@ -94,9 +94,9 @@ trait DeliteGenPackages extends BaseGenPackages {
     stream.println("  implicit def repToOrderingOps[A:Manifest:Ordering](x: Rep[A]) = repOrderingToOrderingOps(x)")
     stream.println("  implicit def varToOrderingOps[A:Manifest:Ordering](x: Var[A]) = varOrderingToOrderingOps(x)")
     stream.println("  // forward to LMS primitive ops to make stencil analysis detect intervals (and get constant folding rewrites)")
-    stream.println("  override def primitive2_forge_int_plus(__arg0: Rep[Int],__arg1: Rep[Int])(implicit __pos: SourceContext) = int_plus(__arg0, __arg1)")
-    stream.println("  override def primitive2_forge_int_minus(__arg0: Rep[Int],__arg1: Rep[Int])(implicit __pos: SourceContext) = int_minus(__arg0, __arg1)")
-    stream.println("  override def primitive2_forge_int_times(__arg0: Rep[Int],__arg1: Rep[Int])(implicit __pos: SourceContext) = int_times(__arg0, __arg1)")
+    stream.println("  override def primitive2_forge_long_plus(__arg0: Rep[Long],__arg1: Rep[Long])(implicit __pos: SourceContext) = long_plus(__arg0, __arg1)")
+    stream.println("  override def primitive2_forge_long_minus(__arg0: Rep[Long],__arg1: Rep[Long])(implicit __pos: SourceContext) = long_minus(__arg0, __arg1)")
+    stream.println("  override def primitive2_forge_long_times(__arg0: Rep[Long],__arg1: Rep[Long])(implicit __pos: SourceContext) = long_times(__arg0, __arg1)")
 
     stream.println()
     emitBlockComment("dsl types", stream, indent=2)

@@ -20,17 +20,17 @@ trait NeighborViewOps {
     val R = tpePar("R")
     val NeighborView = tpe("NeighborView",T)
 
-    data(NeighborView, ("_data", MArray(T)), ("_start", MInt), ("_length", MInt))
-    static (NeighborView) ("apply", T, (MArray(T), MInt, MInt) :: NeighborView(T)) implements allocates(NeighborView, ${$0}, ${$1}, ${$2})
+    data(NeighborView, ("_data", MArray(T)), ("_start", MLong), ("_length", MLong))
+    static (NeighborView) ("apply", T, (MArray(T), MLong, MLong) :: NeighborView(T)) implements allocates(NeighborView, ${$0}, ${$1}, ${$2})
     val NeighborViewOps = withTpe(NeighborView)
     NeighborViewOps {
-      infix ("length") (Nil :: MInt) implements getter(0, "_length")
-      infix ("apply") (MInt :: T) implements composite ${ array_apply(NeighborView_data($self), NeighborView_start($self) + $1) }
+      infix ("length") (Nil :: MLong) implements getter(0, "_length")
+      infix ("apply") (MLong :: T) implements composite ${ array_apply(NeighborView_data($self), NeighborView_start($self) + $1) }
       infix ("reduce") (((T,T) ==> T) :: T, TNumeric(T)) implements reduce(T, 0, ${numeric_zero[T]}, ${ (a,b) => $1(a,b) })
       infix ("mapreduce") ( (T ==> R,(R,R) ==> R, T==>MBoolean) :: R, TNumeric(R), addTpePars=(T,R)) implements mapReduce((T,R), 0, ${e => $1(e)}, ${numeric_zero[R]}, ${(a,b) => $2(a,b)}, Some(${c => $3(c)}) )
       infix ("foreach") ((T ==> MUnit) :: MUnit, effect = simple) implements foreach(T, 0, ${a => $1(a)})
       infix ("serialForEach") ((T ==> MUnit) :: MUnit, effect = simple) implements single ${
-        var i = 0
+        var i = 0l
         while(i < $self.length){
           $1($self(i))
           i += 1
@@ -57,9 +57,9 @@ trait NeighborViewOps {
       compiler ("ndv_intersect_sets") (NeighborView(T) :: MLong, TNumeric(T)) implements single ${
         val nbrs = $self
         val nbrsOfNbrs = $1
-        var i = 0
+        var i = 0l
         var t = 0l
-        var j = 0
+        var j = 0l
         val small = if(nbrs.length < nbrsOfNbrs.length) nbrs else nbrsOfNbrs
         val large = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrs else nbrs
         //I understand there are simplier ways to write this, I tried a lot of versions
@@ -103,8 +103,8 @@ trait NeighborViewOps {
       compiler ("ndv_intersect_sets_in_range") ((("nbrsOfNbrs",NeighborView(T)),("nbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
         val nbrs = $self
         var t = 0l
-        var i = 0
-        var j = 0
+        var i = 0l
+        var j = 0l
         val small = if(nbrs.length < nbrsOfNbrs.length) nbrs else nbrsOfNbrs
         val large = if(nbrs.length < nbrsOfNbrs.length) nbrsOfNbrs else nbrs
         val smallMax = nbrsMax 
@@ -138,9 +138,9 @@ trait NeighborViewOps {
       }
 
       compiler ("NeighborView_data") (Nil :: MArray(T)) implements getter(0, "_data")
-      compiler ("NeighborView_start") (Nil :: MInt) implements getter(0, "_start")
-      compiler ("NeighborView_illegalalloc") (MInt :: MNothing, effect = simple) implements composite ${ fatal("NeighborViews cannot be allocated from a parallel op") }
-      compiler ("NeighborView_illegalupdate") ((MInt, T) :: MNothing, effect = simple) implements composite ${ fatal("NeighborViews cannot be updated") }
+      compiler ("NeighborView_start") (Nil :: MLong) implements getter(0, "_start")
+      compiler ("NeighborView_illegalalloc") (MLong :: MNothing, effect = simple) implements composite ${ fatal("NeighborViews cannot be allocated from a parallel op") }
+      compiler ("NeighborView_illegalupdate") ((MLong, T) :: MNothing, effect = simple) implements composite ${ fatal("NeighborViews cannot be updated") }
       
       parallelize as ParallelCollection(T, lookupOp("NeighborView_illegalalloc"), lookupOp("length"), lookupOverloaded("apply",1), lookupOp("NeighborView_illegalupdate"))
     }

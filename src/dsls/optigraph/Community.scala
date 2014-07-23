@@ -27,9 +27,9 @@ trait CommunityOps {
     val V = tpePar("V")
     val SHashMap = tpe("scala.collection.mutable.HashMap", (K,V))
 
-    data(Community,("_size",MInt),("_precision",MDouble),("_modularity",MDouble),("_canImprove",MBoolean),("_totalWeight",MDouble),("_graph",UndirectedGraph),("_n2c",MArray(MInt)),("_tot",MArray(MDouble)),("_in",MArray(MDouble)))
+    data(Community,("_size",MLong),("_precision",MDouble),("_modularity",MDouble),("_canImprove",MBoolean),("_totalWeight",MDouble),("_graph",UndirectedGraph),("_n2c",MArray(MLong)),("_tot",MArray(MDouble)),("_in",MArray(MDouble)))
     static(Community)("apply", Nil, (("g",UndirectedGraph),("precision",MDouble)) :: Community) implements allocates(Community,${alloc_size(g)},${precision},${unit(0d)},${unit(true)},${alloc_total_weight($0)},${$0},${alloc_ints(alloc_size(g),{e => e})},${alloc_weights(g)},${alloc_selfs(g)})
-    static(Community)("apply", Nil, MethodSignature(List(("size",MInt),("precision",MDouble),("modularity",MDouble),("canImprove",MBoolean),("totalWeight",MDouble),("g",UndirectedGraph),("n2c",MArray(MInt)),("tot",MArray(MDouble)),("in",MArray(MDouble))),Community)) implements allocates(Community,${size},${precision},${modularity},${canImprove},${totalWeight},${g},${n2c},${tot},${in})
+    static(Community)("apply", Nil, MethodSignature(List(("size",MLong),("precision",MDouble),("modularity",MDouble),("canImprove",MBoolean),("totalWeight",MDouble),("g",UndirectedGraph),("n2c",MArray(MLong)),("tot",MArray(MDouble)),("in",MArray(MDouble))),Community)) implements allocates(Community,${size},${precision},${modularity},${canImprove},${totalWeight},${g},${n2c},${tot},${in})
 
     /*
       n2c -> size == numNodes, indexed by nodeID gives the community a node belongs to
@@ -72,14 +72,14 @@ trait CommunityOps {
         (dnc - totc*degc/m2)
       }
       infix("display")(Nil :: MUnit, effect=simple) implements single ${
-        var i = 0
+        var i = 0l
         while(i < $self.size){
           println(" " + i + "/" + $self.n2c(i) + "/" + $self.in(i) + "/" + $self.tot(i))
           i += 1
         }
       }
-      infix("display")((("n2c",MArray(MInt)),("in",MArray(MDouble)),("tot",MArray(MDouble))) :: MUnit, effect=simple) implements single ${
-        var i = 0
+      infix("display")((("n2c",MArray(MLong)),("in",MArray(MDouble)),("tot",MArray(MDouble))) :: MUnit, effect=simple) implements single ${
+        var i = 0l
         while(i < $self.size){
           println(" " + i + "/" + n2c(i) + "/" + in(i) + "/" + tot(i))
           i += 1
@@ -115,7 +115,7 @@ trait CommunityOps {
           val nodesInComm = NodeData(fhashmap_get(groupedComms,oldComm))
           nodesInComm.foreach({ n => 
             val (nbrs,nbrWeights) = unpack(g.getNeighborsAndWeights(Node(n)))
-            var i = 0
+            var i = 0l
 
             while(i < nbrs.length){
               val dst = old2newHash(n2c(nbrs(i)))
@@ -130,24 +130,24 @@ trait CommunityOps {
           })
           nodeHash
         })
-        val numEdges = newGraph.mapreduce[Int](a => array_length(a.keys), (a,b) => a+b, a => true)
+        val numEdges = newGraph.mapreduce[Long](a => array_length(a.keys), (a,b) => a+b, a => true)
         val serial_out = $self.assignUndirectedIndicies(newSize,numEdges,newGraph.getRawArray)
 
         UndirectedGraph(newSize,oldComms.getRawArray,serial_out._1,serial_out._2,serial_out._3)    
       }
 
-      infix("assignUndirectedIndicies")((("numNodes",MInt),("numEdges",MInt),("src_groups",MArray(SHashMap(MInt,MDouble)))) :: Tuple3(MArray(MInt),MArray(MInt),MArray(MDouble))) implements single ${
-        val src_edge_array = NodeData[Int](numEdges)
+      infix("assignUndirectedIndicies")((("numNodes",MLong),("numEdges",MLong),("src_groups",MArray(SHashMap(MLong,MDouble)))) :: Tuple3(MArray(MLong),MArray(MLong),MArray(MDouble))) implements single ${
+        val src_edge_array = NodeData[Long](numEdges)
         val src_edge_weight_array = NodeData[Double](numEdges)
-        val src_node_array = NodeData[Int](numNodes)
-        var i = 0
-        var j = 0
+        val src_node_array = NodeData[Long](numNodes)
+        var i = 0l
+        var j = 0l
         //I can do -1 here because I am pruning so the last node will never have any neighbors
         while(i < numNodes){
           val neighborhash = src_groups(i)
           val neighborhood = NodeData(neighborhash.keys).sort
           val neighWeights = neighborhood.map(e => neighborhash(e))
-          var k = 0
+          var k = 0l
           while(k < neighborhood.length){
             src_edge_array(j) = neighborhood(k)
             src_edge_weight_array(j) = neighWeights(k)
@@ -162,7 +162,7 @@ trait CommunityOps {
         pack(src_node_array.getRawArray,src_edge_array.getRawArray,src_edge_weight_array.getRawArray)
       }
       //Why do I have to mark the community as mutable still?
-      infix("buildNeighboringCommunities")((("n",Node),("n2c",MArray(MInt))) :: SHashMap(MInt,MDouble)) implements single ${
+      infix("buildNeighboringCommunities")((("n",Node),("n2c",MArray(MLong))) :: SHashMap(MLong,MDouble)) implements single ${
         //////////////////////////////////////////
         //Formerly neigh communities method
         //This section pulls all the communities out of the neighborhoods
@@ -173,7 +173,7 @@ trait CommunityOps {
         val commWeights = SHashMap[Int,Double]()
         commWeights.update(n2c(n.id),0d) //Add current nodes community with a weight of 0
         val (nbrs,nbrWeights) = unpack(g.getNeighborsAndWeights(n))
-        var i = 0
+        var i = 0l
         while(i < nbrs.length){
           val neigh_comm = n2c(nbrs(i))
           if(nbrs(i) != n.id){
@@ -188,7 +188,7 @@ trait CommunityOps {
         }
         commWeights
       }
-      infix("findBestCommunityMove")((("n",Node),("n2c",MArray(MInt)),("tot",MArray(MDouble)),("commWeights",SHashMap(MInt,MDouble))) :: Tuple2(MInt,MDouble)) implements single ${
+      infix("findBestCommunityMove")((("n",Node),("n2c",MArray(MLong)),("tot",MArray(MDouble)),("commWeights",SHashMap(MLong,MDouble))) :: Tuple2(MLong,MDouble)) implements single ${
         val g = $self.graph
         val node_comm = n2c(n.id) //READ
         val w_degree = g.weightedDegree(n.id)
@@ -199,7 +199,7 @@ trait CommunityOps {
         var best_increase = $self.modularityGain(tot(node_comm)-g.weightedDegree(n.id),best_nblinks,w_degree) //READ
 
         val comms = commWeights.keys
-        var i = 0
+        var i = 0l
         while(i < array_length(comms)){
           val neigh_comm = comms(i)
           if(neigh_comm != node_comm){
@@ -227,7 +227,7 @@ trait CommunityOps {
 
         val tot = array_empty[Double](array_length($self.tot)) 
         val in = array_empty[Double](array_length($self.in)) 
-        val n2c = array_empty[Int](array_length($self.n2c)) 
+        val n2c = array_empty[Long](array_length($self.n2c)) 
 
         $self.parallelArrayCopy(tot,$self.tot)  //tot = $self.tot
         $self.parallelArrayCopy(in,$self.in) //in = $self.in
@@ -236,7 +236,7 @@ trait CommunityOps {
         /*
         val oldtot = array_empty[Double](array_length($self.tot)) 
         val oldin = array_empty[Double](array_length($self.in)) 
-        val oldn2c = array_empty[Int](array_length($self.n2c)) 
+        val oldn2c = array_empty[Long](array_length($self.n2c)) 
         $self.parallelArrayCopy(oldn2c,$self.n2c) //oldn2c = $self.n2c
         $self.parallelArrayCopy(oldin,$self.in) //oldin = $self.in
         $self.parallelArrayCopy(oldtot,$self.tot) //oldtot = $self.tot
@@ -285,7 +285,7 @@ trait CommunityOps {
         Community(size,$self.precision,new_mod,improvement,totalWeight,g,n2c,tot,in)
       }
 
-      infix("insert")( MethodSignature(List(("n2c",MArray(MInt)),("in",MArray(MDouble)),("tot",MArray(MDouble)),("node",MInt),("old_comm",MInt),("olddnodecomm",MDouble),("comm",MInt),("dnodecomm",MDouble)),MUnit), effect = write(1,2,3)) implements single ${
+      infix("insert")( MethodSignature(List(("n2c",MArray(MLong)),("in",MArray(MDouble)),("tot",MArray(MDouble)),("node",MLong),("old_comm",MLong),("olddnodecomm",MDouble),("comm",MLong),("dnodecomm",MDouble)),MUnit), effect = write(1,2,3)) implements single ${
         array_update(tot,old_comm,tot(old_comm)-$self.graph.weightedDegree(node))
         array_update(tot,comm,tot(comm)+$self.graph.weightedDegree(node))
 
@@ -295,35 +295,35 @@ trait CommunityOps {
         array_update(n2c,node,comm)
       }
 
-      infix ("size") (Nil :: MInt) implements getter(0, "_size")
+      infix ("size") (Nil :: MLong) implements getter(0, "_size")
       infix ("precision") (Nil :: MDouble) implements getter(0, "_precision")
       infix ("totalWeight") (Nil :: MDouble) implements getter(0, "_totalWeight")
       infix ("storedModularity") (Nil :: MDouble) implements getter(0, "_modularity")
       infix ("canImprove") (Nil :: MBoolean) implements getter(0, "_canImprove")
       infix ("graph") (Nil :: UndirectedGraph) implements getter(0, "_graph")
-      infix ("n2c") (Nil :: MArray(MInt)) implements getter(0, "_n2c")
+      infix ("n2c") (Nil :: MArray(MLong)) implements getter(0, "_n2c")
       infix ("in") (Nil :: MArray(MDouble)) implements getter(0, "_in")
       infix ("tot") (Nil :: MArray(MDouble)) implements getter(0, "_tot")   
       
-      infix ("tot") (MInt :: MDouble) implements composite ${array_apply($self.tot, $1)}
-      infix ("in") (MInt :: MDouble) implements composite ${array_apply($self.in, $1)}
-      infix ("n2c") (MInt :: MInt) implements composite ${array_apply($self.n2c, $1)}
+      infix ("tot") (MLong :: MDouble) implements composite ${array_apply($self.tot, $1)}
+      infix ("in") (MLong :: MDouble) implements composite ${array_apply($self.in, $1)}
+      infix ("n2c") (MLong :: MLong) implements composite ${array_apply($self.n2c, $1)}
 
       /*
       We might need these when parallelism is added in.
-      infix ("updateTot") ( (MInt,MDouble) :: MUnit, effect = write(0)) implements composite ${ array_update($self.tot,$1,$2)}
-      infix ("updateIn") ( (MInt,MDouble) :: MUnit, effect = write(0)) implements composite ${ array_update($self.in,$1,$2)}
-      infix ("updateN2c") ( (MInt,MInt) :: MUnit, effect = write(0)) implements composite ${ array_update($self.n2c,$1,$2)}
+      infix ("updateTot") ( (MLong,MDouble) :: MUnit, effect = write(0)) implements composite ${ array_update($self.tot,$1,$2)}
+      infix ("updateIn") ( (MLong,MDouble) :: MUnit, effect = write(0)) implements composite ${ array_update($self.in,$1,$2)}
+      infix ("updateN2c") ( (MLong,MLong) :: MUnit, effect = write(0)) implements composite ${ array_update($self.n2c,$1,$2)}
 
       infix ("setTot") (MArray(MDouble) :: MUnit, effect = write(0)) implements setter(0, "_tot", quotedArg(1))
       infix ("setIn") (MArray(MDouble) :: MUnit, effect = write(0)) implements setter(0, "_in", quotedArg(1))
-      infix ("setN2c") (MArray(MInt) :: MUnit, effect = write(0)) implements setter(0, "_n2c", quotedArg(1))
+      infix ("setN2c") (MArray(MLong) :: MUnit, effect = write(0)) implements setter(0, "_n2c", quotedArg(1))
       */
     }
     compiler (Community) ("alloc_total_weight", Nil, UndirectedGraph :: MDouble) implements single ${$0.totalWeight}
-    compiler (Community) ("alloc_size", Nil, UndirectedGraph :: MInt) implements single ${$0.numNodes}
-    compiler (Community) ("alloc_doubles", Nil, (MInt,(MInt ==> MDouble)) :: MArray(MDouble)) implements single ${array_fromfunction[Double]($0,$1)}
-    compiler (Community) ("alloc_ints", Nil, (MInt,(MInt ==> MInt)) :: MArray(MInt)) implements single ${array_fromfunction[Int]($0,$1)}
+    compiler (Community) ("alloc_size", Nil, UndirectedGraph :: MLong) implements single ${$0.numNodes}
+    compiler (Community) ("alloc_doubles", Nil, (MLong,(MLong ==> MDouble)) :: MArray(MDouble)) implements single ${array_fromfunction[Double]($0,$1)}
+    compiler (Community) ("alloc_ints", Nil, (MLong,(MLong ==> MInt)) :: MArray(MInt)) implements single ${array_fromfunction[Int]($0,$1)}
     compiler (Community) ("alloc_weights", Nil, UndirectedGraph :: MArray(MDouble)) implements single ${array_fromfunction[Double](alloc_size($0),{n => $0.weightedDegree(n)})}
     compiler (Community) ("alloc_selfs", Nil, UndirectedGraph :: MArray(MDouble)) implements single ${array_fromfunction[Double](alloc_size($0),{n => $0.numSelfLoops(n)})}
   } 

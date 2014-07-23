@@ -33,38 +33,38 @@ trait UndirectedGraphOps{
     val V = tpePar("V")
     val Tuple2 = lookupTpe("Tup2")
 
-    data(UndirectedGraph,("_numNodes",MInt),("_externalIDs",MArray(MInt)),("_nodes",MArray(MInt)),("_edges",MArray(MInt)),("_weights",MArray(MDouble)))
-    static(UndirectedGraph)("apply", Nil, (MethodSignature(List(("count",MInt),("exID",MArray(MInt)),("outNodes",MArray(MInt)),("outEdges",MArray(MInt))), UndirectedGraph))) implements allocates(UndirectedGraph,${$count},${$exID},${$outNodes},${outEdges},${array_empty[Double](unit(0))})
-    static(UndirectedGraph)("apply", Nil, (MethodSignature(List(("count",MInt),("exID",MArray(MInt)),("outNodes",MArray(MInt)),("outEdges",MArray(MInt)),("weights",MArray(MDouble))), UndirectedGraph))) implements allocates(UndirectedGraph,${$count},${$exID},${$outNodes},${outEdges},${weights})
+    data(UndirectedGraph,("_numNodes",MLong),("_externalIDs",MArray(MLong)),("_nodes",MArray(MLong)),("_edges",MArray(MLong)),("_weights",MArray(MDouble)))
+    static(UndirectedGraph)("apply", Nil, (MethodSignature(List(("count",MLong),("exID",MArray(MLong)),("outNodes",MArray(MLong)),("outEdges",MArray(MLong))), UndirectedGraph))) implements allocates(UndirectedGraph,${$count},${$exID},${$outNodes},${outEdges},${array_empty[Double](unit(0))})
+    static(UndirectedGraph)("apply", Nil, (MethodSignature(List(("count",MLong),("exID",MArray(MLong)),("outNodes",MArray(MLong)),("outEdges",MArray(MLong)),("weights",MArray(MDouble))), UndirectedGraph))) implements allocates(UndirectedGraph,${$count},${$exID},${$outNodes},${outEdges},${weights})
 
     val UndirectedGraphOps = withTpe(UndirectedGraph)     
     UndirectedGraphOps{
-      infix ("numEdges")(Nil :: MInt) implements composite ${array_length($self.getEdges)}
+      infix ("numEdges")(Nil :: MLong) implements composite ${array_length($self.getEdges)}
 
       //UndirectedGraph directed or not?
       infix ("isDirected") (Nil :: MBoolean) implements composite ${false}
       
-      infix ("sumOverNbrs") ( CurriedMethodSignature(List(("n",Node),("data",MInt==>R),("cond",MInt==>MBoolean)),R), TNumeric(R), addTpePars=R) implements composite ${
+      infix ("sumOverNbrs") ( CurriedMethodSignature(List(("n",Node),("data",MLong==>R),("cond",MLong==>MBoolean)),R), TNumeric(R), addTpePars=R) implements composite ${
         sumOverCollection($self.neighbors(n))(data)(cond)
       }
       //Perform a sum over the neighbors
-      infix ("sumOverNbrs") ( CurriedMethodSignature(List(("n",MInt),("data",MInt==>R),("cond",MInt==>MBoolean)),R), TNumeric(R), addTpePars=R) implements composite ${
+      infix ("sumOverNbrs") ( CurriedMethodSignature(List(("n",MLong),("data",MLong==>R),("cond",MLong==>MBoolean)),R), TNumeric(R), addTpePars=R) implements composite ${
         sumOverCollection($self.neighbors(n))(data)(cond)
       }
-      infix ("sumDownNbrs") ( CurriedMethodSignature(List(List(("n",Node),("level",NodeData(MInt))),("data",MInt==>R)),R), TFractional(R), addTpePars=R) implements composite ${
+      infix ("sumDownNbrs") ( CurriedMethodSignature(List(List(("n",Node),("level",NodeData(MLong))),("data",MLong==>R)),R), TFractional(R), addTpePars=R) implements composite ${
         //only sum in neighbors a level up
         sumOverCollection($self.outNbrs(n))(data){e => (level(e)==(level(n.id)+1))}
       }
-      infix ("sumUpNbrs") ( CurriedMethodSignature(List(List(("n",Node),("level",NodeData(MInt))),("data",MInt==>R)),R), TFractional(R), addTpePars=R) implements composite ${
+      infix ("sumUpNbrs") ( CurriedMethodSignature(List(List(("n",Node),("level",NodeData(MLong))),("data",MLong==>R)),R), TFractional(R), addTpePars=R) implements composite ${
         sumOverCollection($self.inNbrs(n))(data){e => (level(e)==(level(n.id)-1))}
       }
       infix ("totalWeight") (Nil :: MDouble) implements composite ${
         array_reduce[Double](edge_weights($self),{(a,b) => a+b},unit(0d))
       }
-      infix ("weightedDegree") (MInt :: MDouble) implements composite ${
+      infix ("weightedDegree") (MLong :: MDouble) implements composite ${
         get_edge_weights($self,Node($1)).reduce({(a,b)=>a+b})
       }
-      infix ("numSelfLoops") (MInt :: MDouble) implements composite ${
+      infix ("numSelfLoops") (MLong :: MDouble) implements composite ${
         ///it seems like a perf hit to do it this way.
         var degree = 0d
         var i = 0
@@ -79,32 +79,32 @@ trait UndirectedGraphOps{
         }
         degree
       }
-      infix ("degree") (Node :: MInt) implements composite ${
+      infix ("degree") (Node :: MLong) implements composite ${
         val end  = if( ($1.id+1) < array_length($self.getNodes) ) node_apply($self,($1.id+1)) 
           else array_length($self.getEdges)
         end - node_apply($self,$1.id) 
       }
-      infix ("outDegree") (Node :: MInt) implements composite ${
+      infix ("outDegree") (Node :: MLong) implements composite ${
         val end  = if( ($1.id+1) < array_length($self.getNodes) ) node_apply($self,($1.id+1)) 
           else array_length($self.getEdges)
         end - node_apply($self,$1.id) 
       }
-      infix ("getNeighborsAndWeights") (Node :: Tuple2(NeighborView(MInt),NeighborView(MDouble))) implements composite ${
+      infix ("getNeighborsAndWeights") (Node :: Tuple2(NeighborView(MLong),NeighborView(MDouble))) implements composite ${
         val start = node_apply($self,$1.id)
         val end = if( ($1.id+1) < array_length($self.getNodes) ) node_apply($self,($1.id+1))
           else array_length($self.getEdges)
-        pack(NeighborView[Int]($self.getEdges,start,end-start),NeighborView[Double](edge_weights($self),start,end-start))
+        pack(NeighborView[Long]($self.getEdges,start,end-start),NeighborView[Double](edge_weights($self),start,end-start))
       }
-      infix ("inDegree") (Node :: MInt) implements composite ${$self.outDegree($1)}
-      infix ("outNbrs") (Node :: NeighborView(MInt)) implements composite ${get_nbrs($self,$1)} 
-      infix ("inNbrs") (Node :: NeighborView(MInt)) implements composite ${get_nbrs($self,$1)}
-      infix ("neighbors") (MInt :: NeighborView(MInt)) implements composite ${get_nbrs($self,Node($1))}
-      infix ("neighbors") (Node :: NeighborView(MInt)) implements composite ${get_nbrs($self,$1)}
-      compiler ("get_nbrs") (Node :: NeighborView(MInt)) implements composite ${
+      infix ("inDegree") (Node :: MLong) implements composite ${$self.outDegree($1)}
+      infix ("outNbrs") (Node :: NeighborView(MLong)) implements composite ${get_nbrs($self,$1)} 
+      infix ("inNbrs") (Node :: NeighborView(MLong)) implements composite ${get_nbrs($self,$1)}
+      infix ("neighbors") (MLong :: NeighborView(MLong)) implements composite ${get_nbrs($self,Node($1))}
+      infix ("neighbors") (Node :: NeighborView(MLong)) implements composite ${get_nbrs($self,$1)}
+      compiler ("get_nbrs") (Node :: NeighborView(MLong)) implements composite ${
         val start = node_apply($self,$1.id)
         val end = if( ($1.id+1) < array_length($self.getNodes) ) node_apply($self,($1.id+1))
           else array_length($self.getEdges)
-        NeighborView[Int]($self.getEdges,start,end-start)
+        NeighborView[Long]($self.getEdges,start,end-start)
       }
       compiler ("get_edge_weights") (Node :: NeighborView(MDouble)) implements composite ${
         val start = node_apply($self,$1.id)
@@ -113,10 +113,10 @@ trait UndirectedGraphOps{
         NeighborView[Double](edge_weights($self),start,end-start)
       }
       compiler ("edge_weights") (Nil :: MArray(MDouble)) implements getter(0, "_weights")
-      infix ("getNodes") (Nil :: MArray(MInt)) implements getter(0, "_nodes")
-      compiler("node_apply")(MInt :: MInt) implements composite ${array_apply($self.getNodes,$1)}
-      infix ("getEdges") (Nil :: MArray(MInt)) implements getter(0, "_edges")
-      compiler("edge_apply")(MInt :: MInt) implements composite ${array_apply($self.getEdges,$1)}
+      infix ("getNodes") (Nil :: MArray(MLong)) implements getter(0, "_nodes")
+      compiler("node_apply")(MLong :: MLong) implements composite ${array_apply($self.getNodes,$1)}
+      infix ("getEdges") (Nil :: MArray(MLong)) implements getter(0, "_edges")
+      compiler("edge_apply")(MLong :: MLong) implements composite ${array_apply($self.getEdges,$1)}
     }
     addGraphCommonOps(UndirectedGraph) 
   } 

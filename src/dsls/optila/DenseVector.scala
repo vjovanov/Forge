@@ -68,9 +68,9 @@ trait DenseVectorOps {
       }
       else {
         val sizes = $pieces map { e => e.length }
-        val (total,begins) = unpack(densevector_precumulate[Int](sizes, 0, (_: Rep[Int]) + (_: Rep[Int])))
+        val (total,begins) = unpack(densevector_precumulate[Long](sizes, 0l, (_: Rep[Long]) + (_: Rep[Long])))
         val result = DenseVector[T](total, $pieces.isRow)
-        for (i <- 0 until $pieces.length) {
+        for (i <- 0l until $pieces.length) {
           result.copyFrom(begins(i), $pieces(i))
         }
         result.unsafeImmutable
@@ -87,7 +87,7 @@ trait DenseVectorOps {
       else {
         val result = DenseVector[T](0, $v.isRow)
         var accum = $identity
-        for (i <- 0 until $v.length) {
+        for (i <- 0l until $v.length) {
           result <<= accum
           accum = $func(accum, $v(i))
         }
@@ -109,7 +109,7 @@ trait DenseVectorOps {
     }
 
     compiler (DenseVector) ("densevector_sortindex_helper", T, (MLong,MLong,MArray(T)) :: MArray(MLong), TOrdering(T)) implements codegen($cala, ${
-      ($0 until $1: scala.Range).toArray.sortWith((a,b) => $2(a) < $2(b))
+      Array.tabulate(($1-$0).toInt)(i => i.toLong).sortWith((a,b) => $2(a.toInt) < $2(b.toInt))
     })
 
     val K = tpePar("K")
@@ -192,10 +192,10 @@ trait DenseVectorOps {
       }
       infix("<<") (DenseVector(T) :: DenseVector(T)) implements single ${
         val out = DenseVector[T]($self.length+$1.length, $self.isRow)
-        for (i <- 0 until $self.length){
+        for (i <- 0l until $self.length){
           out(i) = $self(i)
         }
-        for (i <- 0 until $1.length){
+        for (i <- 0l until $1.length){
           out(i+$self.length) = $1(i)
         }
         out.unsafeImmutable
@@ -224,7 +224,7 @@ trait DenseVectorOps {
 
       infix ("copyFrom") ((MLong,DenseVector(T)) :: MUnit, effect = write(0)) implements single ${
         val d = densevector_raw_data($self)
-        for (i <- 0 until $2.length) {
+        for (i <- 0l until $2.length) {
           array_update(d,$1+i,$2(i))
         }
       }
@@ -232,7 +232,7 @@ trait DenseVectorOps {
         val data = densevector_raw_data($self)
         if ($self.length < array_length(data)) {
           val d = array_empty[T]($self.length)
-          array_copy(data, 0, d, 0, $self.length)
+          array_copy(data, 0l, d, 0l, $self.length)
           densevector_set_raw_data($self, d.unsafeImmutable)
         }
       }
@@ -255,10 +255,10 @@ trait DenseVectorOps {
       }
       compiler ("densevector_realloc") (("minLen",MLong) :: MUnit, effect = write(0)) implements single ${
         val data = densevector_raw_data($self)
-        var n = max(4, array_length(data)*2)
+        var n = max(4l, array_length(data)*2)
         while (n < $minLen) n = n*2
         val d = array_empty[T](n)
-        array_copy(data, 0, d, 0, $self.length)
+        array_copy(data, 0l, d, 0l, $self.length)
         densevector_set_raw_data($self, d.unsafeImmutable)
       }
 
@@ -405,109 +405,109 @@ trait DenseVectorOps {
 
     // the conversions here will be costly unless things fuse. alternatively, we could convert element by element.
     // TODO: unfortunately, these have priority over operators defined in VectorCommonOps, so they can sometimes force conversions.
-    infix (DenseVector) ("+", Nil, (MInt,DenseVector(MInt)) :: DenseVector(MInt)) implements redirect ${ densevector_pl[Int]($1,$0) }
-    infix (DenseVector) ("+", Nil, (MInt,DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($1,$0.toFloat) }
-    infix (DenseVector) ("+", Nil, (MInt,DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($1,$0.toDouble) }
-    infix (DenseVector) ("+", Nil, (MFloat,DenseVector(MInt)) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($1.toFloat,$0) }
+    infix (DenseVector) ("+", Nil, (MLong,DenseVector(MLong)) :: DenseVector(MLong)) implements redirect ${ densevector_pl[Long]($1,$0) }
+    infix (DenseVector) ("+", Nil, (MLong,DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($1,$0.toFloat) }
+    infix (DenseVector) ("+", Nil, (MLong,DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($1,$0.toDouble) }
+    infix (DenseVector) ("+", Nil, (MFloat,DenseVector(MLong)) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($1.toFloat,$0) }
     infix (DenseVector) ("+", Nil, (MFloat,DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($1,$0) }
     infix (DenseVector) ("+", Nil, (MFloat,DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($1,$0.toDouble) }
-    infix (DenseVector) ("+", Nil, (MDouble,DenseVector(MInt)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($1.toDouble,$0) }
+    infix (DenseVector) ("+", Nil, (MDouble,DenseVector(MLong)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($1.toDouble,$0) }
     infix (DenseVector) ("+", Nil, (MDouble,DenseVector(MFloat)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($1.toDouble,$0) }
     infix (DenseVector) ("+", Nil, (MDouble,DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($1,$0) }
-    infix (DenseVector) ("+", Nil, (DenseVector(MInt),MInt) :: DenseVector(MInt)) implements redirect ${ densevector_pl[Int]($0,$1) }
-    infix (DenseVector) ("+", Nil, (DenseVector(MInt),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($0.toFloat,$1) }
-    infix (DenseVector) ("+", Nil, (DenseVector(MInt),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("+", Nil, (DenseVector(MFloat),MInt) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($0,$1.toFloat) }
+    infix (DenseVector) ("+", Nil, (DenseVector(MLong),MLong) :: DenseVector(MLong)) implements redirect ${ densevector_pl[Long]($0,$1) }
+    infix (DenseVector) ("+", Nil, (DenseVector(MLong),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($0.toFloat,$1) }
+    infix (DenseVector) ("+", Nil, (DenseVector(MLong),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0.toDouble,$1) }
+    infix (DenseVector) ("+", Nil, (DenseVector(MFloat),MLong) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($0,$1.toFloat) }
     infix (DenseVector) ("+", Nil, (DenseVector(MFloat),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($0,$1) }
     infix (DenseVector) ("+", Nil, (DenseVector(MFloat),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("+", Nil, (DenseVector(MDouble),MInt) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0,$1.toDouble) }
+    infix (DenseVector) ("+", Nil, (DenseVector(MDouble),MLong) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0,$1.toDouble) }
     infix (DenseVector) ("+", Nil, (DenseVector(MDouble),MFloat) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0.toDouble,$1) }
     infix (DenseVector) ("+", Nil, (DenseVector(MDouble),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0,$1) }
-    infix (DenseVector) ("+", Nil, (DenseVector(MInt),DenseVector(MInt)) :: DenseVector(MInt)) implements redirect ${ densevector_pl[Int]($0,$1) }
-    infix (DenseVector) ("+", Nil, (DenseVector(MInt),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($0.toFloat,$1) }
-    infix (DenseVector) ("+", Nil, (DenseVector(MInt),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("+", Nil, (DenseVector(MFloat),DenseVector(MInt)) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($0,$1.toFloat) }
+    infix (DenseVector) ("+", Nil, (DenseVector(MLong),DenseVector(MLong)) :: DenseVector(MLong)) implements redirect ${ densevector_pl[Long]($0,$1) }
+    infix (DenseVector) ("+", Nil, (DenseVector(MLong),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($0.toFloat,$1) }
+    infix (DenseVector) ("+", Nil, (DenseVector(MLong),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0.toDouble,$1) }
+    infix (DenseVector) ("+", Nil, (DenseVector(MFloat),DenseVector(MLong)) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($0,$1.toFloat) }
     infix (DenseVector) ("+", Nil, (DenseVector(MFloat),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_pl[Float]($0,$1) }
     infix (DenseVector) ("+", Nil, (DenseVector(MFloat),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("+", Nil, (DenseVector(MDouble),DenseVector(MInt)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0,$1.toDouble) }
+    infix (DenseVector) ("+", Nil, (DenseVector(MDouble),DenseVector(MLong)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0,$1.toDouble) }
     infix (DenseVector) ("+", Nil, (DenseVector(MDouble),DenseVector(MFloat)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0,$1.toDouble) }
     infix (DenseVector) ("+", Nil, (DenseVector(MDouble),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_pl[Double]($0,$1) }
 
-    infix (DenseVector) ("-", Nil, (DenseVector(MInt),MInt) :: DenseVector(MInt)) implements redirect ${ densevector_sub[Int]($0,$1) }
-    infix (DenseVector) ("-", Nil, (DenseVector(MInt),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_sub[Float]($0.toFloat,$1) }
-    infix (DenseVector) ("-", Nil, (DenseVector(MInt),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("-", Nil, (DenseVector(MFloat),MInt) :: DenseVector(MFloat)) implements redirect ${ densevector_sub[Float]($0,$1.toFloat) }
+    infix (DenseVector) ("-", Nil, (DenseVector(MLong),MLong) :: DenseVector(MLong)) implements redirect ${ densevector_sub[Long]($0,$1) }
+    infix (DenseVector) ("-", Nil, (DenseVector(MLong),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_sub[Float]($0.toFloat,$1) }
+    infix (DenseVector) ("-", Nil, (DenseVector(MLong),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0.toDouble,$1) }
+    infix (DenseVector) ("-", Nil, (DenseVector(MFloat),MLong) :: DenseVector(MFloat)) implements redirect ${ densevector_sub[Float]($0,$1.toFloat) }
     infix (DenseVector) ("-", Nil, (DenseVector(MFloat),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_sub[Float]($0,$1) }
     infix (DenseVector) ("-", Nil, (DenseVector(MFloat),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("-", Nil, (DenseVector(MDouble),MInt) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0,$1.toDouble) }
+    infix (DenseVector) ("-", Nil, (DenseVector(MDouble),MLong) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0,$1.toDouble) }
     infix (DenseVector) ("-", Nil, (DenseVector(MDouble),MFloat) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0.toDouble,$1) }
     infix (DenseVector) ("-", Nil, (DenseVector(MDouble),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0,$1) }
-    infix (DenseVector) ("-", Nil, (DenseVector(MInt),DenseVector(MInt)) :: DenseVector(MInt)) implements redirect ${ densevector_sub[Int]($0,$1) }
-    infix (DenseVector) ("-", Nil, (DenseVector(MInt),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_sub[Float]($0.toFloat,$1) }
-    infix (DenseVector) ("-", Nil, (DenseVector(MInt),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("-", Nil, (DenseVector(MFloat),DenseVector(MInt)) :: DenseVector(MFloat)) implements redirect ${ densevector_sub[Float]($0,$1.toFloat) }
+    infix (DenseVector) ("-", Nil, (DenseVector(MLong),DenseVector(MLong)) :: DenseVector(MLong)) implements redirect ${ densevector_sub[Long]($0,$1) }
+    infix (DenseVector) ("-", Nil, (DenseVector(MLong),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_sub[Float]($0.toFloat,$1) }
+    infix (DenseVector) ("-", Nil, (DenseVector(MLong),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0.toDouble,$1) }
+    infix (DenseVector) ("-", Nil, (DenseVector(MFloat),DenseVector(MLong)) :: DenseVector(MFloat)) implements redirect ${ densevector_sub[Float]($0,$1.toFloat) }
     infix (DenseVector) ("-", Nil, (DenseVector(MFloat),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_sub[Float]($0,$1) }
     infix (DenseVector) ("-", Nil, (DenseVector(MFloat),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("-", Nil, (DenseVector(MDouble),DenseVector(MInt)) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0,$1.toDouble) }
+    infix (DenseVector) ("-", Nil, (DenseVector(MDouble),DenseVector(MLong)) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0,$1.toDouble) }
     infix (DenseVector) ("-", Nil, (DenseVector(MDouble),DenseVector(MFloat)) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0,$1.toDouble) }
     infix (DenseVector) ("-", Nil, (DenseVector(MDouble),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_sub[Double]($0,$1) }
 
-    infix (DenseVector) ("unary_-", Nil, (DenseVector(MInt)) :: DenseVector(MInt)) implements redirect ${ densevector_mul[Int]($0,unit(-1)) }
+    infix (DenseVector) ("unary_-", Nil, (DenseVector(MLong)) :: DenseVector(MLong)) implements redirect ${ densevector_mul[Long]($0,unit(-1l)) }
     infix (DenseVector) ("unary_-", Nil, (DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0,unit(-1f)) }
     infix (DenseVector) ("unary_-", Nil, (DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,unit(-1.0)) }
-    infix (DenseVector) ("*", Nil, (MInt,DenseVector(MInt)) :: DenseVector(MInt)) implements redirect ${ densevector_mul[Int]($1,$0) }
-    infix (DenseVector) ("*", Nil, (MInt,DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($1,$0.toFloat) }
-    infix (DenseVector) ("*", Nil, (MInt,DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($1,$0.toDouble) }
-    infix (DenseVector) ("*", Nil, (MFloat,DenseVector(MInt)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($1.toFloat,$0) }
+    infix (DenseVector) ("*", Nil, (MLong,DenseVector(MLong)) :: DenseVector(MLong)) implements redirect ${ densevector_mul[Long]($1,$0) }
+    infix (DenseVector) ("*", Nil, (MLong,DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($1,$0.toFloat) }
+    infix (DenseVector) ("*", Nil, (MLong,DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($1,$0.toDouble) }
+    infix (DenseVector) ("*", Nil, (MFloat,DenseVector(MLong)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($1.toFloat,$0) }
     infix (DenseVector) ("*", Nil, (MFloat,DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($1,$0) }
     infix (DenseVector) ("*", Nil, (MFloat,DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($1,$0.toDouble) }
-    infix (DenseVector) ("*", Nil, (MDouble,DenseVector(MInt)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($1.toDouble,$0) }
+    infix (DenseVector) ("*", Nil, (MDouble,DenseVector(MLong)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($1.toDouble,$0) }
     infix (DenseVector) ("*", Nil, (MDouble,DenseVector(MFloat)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($1.toDouble,$0) }
     infix (DenseVector) ("*", Nil, (MDouble,DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($1,$0) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MInt),MInt) :: DenseVector(MInt)) implements redirect ${ densevector_mul[Int]($0,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MInt),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0.toFloat,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MInt),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MFloat),MInt) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0,$1.toFloat) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MLong),MLong) :: DenseVector(MLong)) implements redirect ${ densevector_mul[Long]($0,$1) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MLong),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0.toFloat,$1) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MLong),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0.toDouble,$1) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MFloat),MLong) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0,$1.toFloat) }
     infix (DenseVector) ("*", Nil, (DenseVector(MFloat),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0,$1) }
     infix (DenseVector) ("*", Nil, (DenseVector(MFloat),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MDouble),MInt) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1.toDouble) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MDouble),MLong) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1.toDouble) }
     infix (DenseVector) ("*", Nil, (DenseVector(MDouble),MFloat) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0.toDouble,$1) }
     infix (DenseVector) ("*", Nil, (DenseVector(MDouble),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MInt),DenseVector(MInt)) :: DenseVector(MInt)) implements redirect ${ densevector_mul[Int]($0,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MInt),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0.toFloat,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MInt),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MFloat),DenseVector(MInt)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0,$1.toFloat) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MLong),DenseVector(MLong)) :: DenseVector(MLong)) implements redirect ${ densevector_mul[Long]($0,$1) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MLong),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0.toFloat,$1) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MLong),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0.toDouble,$1) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MFloat),DenseVector(MLong)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0,$1.toFloat) }
     infix (DenseVector) ("*", Nil, (DenseVector(MFloat),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0,$1) }
     infix (DenseVector) ("*", Nil, (DenseVector(MFloat),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MDouble),DenseVector(MInt)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1.toDouble) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MDouble),DenseVector(MLong)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1.toDouble) }
     infix (DenseVector) ("*", Nil, (DenseVector(MDouble),DenseVector(MFloat)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1.toDouble) }
     infix (DenseVector) ("*", Nil, (DenseVector(MDouble),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MInt),DenseMatrix(MInt)) :: DenseVector(MInt)) implements redirect ${ densevector_mul[Int]($0,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MInt),DenseMatrix(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0.toFloat,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MInt),DenseMatrix(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MFloat),DenseMatrix(MInt)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0,$1.toFloat) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MLong),DenseMatrix(MLong)) :: DenseVector(MLong)) implements redirect ${ densevector_mul[Long]($0,$1) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MLong),DenseMatrix(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0.toFloat,$1) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MLong),DenseMatrix(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0.toDouble,$1) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MFloat),DenseMatrix(MLong)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0,$1.toFloat) }
     infix (DenseVector) ("*", Nil, (DenseVector(MFloat),DenseMatrix(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_mul[Float]($0,$1) }
     infix (DenseVector) ("*", Nil, (DenseVector(MFloat),DenseMatrix(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("*", Nil, (DenseVector(MDouble),DenseMatrix(MInt)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1.toDouble) }
+    infix (DenseVector) ("*", Nil, (DenseVector(MDouble),DenseMatrix(MLong)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1.toDouble) }
     infix (DenseVector) ("*", Nil, (DenseVector(MDouble),DenseMatrix(MFloat)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1.toDouble) }
     infix (DenseVector) ("*", Nil, (DenseVector(MDouble),DenseMatrix(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_mul[Double]($0,$1) }
 
-    infix (DenseVector) ("/", Nil, (DenseVector(MInt),MInt) :: DenseVector(MInt)) implements redirect ${ densevector_div[Int]($0,$1) }
-    infix (DenseVector) ("/", Nil, (DenseVector(MInt),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_div[Float]($0.toFloat,$1) }
-    infix (DenseVector) ("/", Nil, (DenseVector(MInt),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("/", Nil, (DenseVector(MFloat),MInt) :: DenseVector(MFloat)) implements redirect ${ densevector_div[Float]($0,$1.toFloat) }
+    infix (DenseVector) ("/", Nil, (DenseVector(MLong),MLong) :: DenseVector(MLong)) implements redirect ${ densevector_div[Long]($0,$1) }
+    infix (DenseVector) ("/", Nil, (DenseVector(MLong),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_div[Float]($0.toFloat,$1) }
+    infix (DenseVector) ("/", Nil, (DenseVector(MLong),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0.toDouble,$1) }
+    infix (DenseVector) ("/", Nil, (DenseVector(MFloat),MLong) :: DenseVector(MFloat)) implements redirect ${ densevector_div[Float]($0,$1.toFloat) }
     infix (DenseVector) ("/", Nil, (DenseVector(MFloat),MFloat) :: DenseVector(MFloat)) implements redirect ${ densevector_div[Float]($0,$1) }
     infix (DenseVector) ("/", Nil, (DenseVector(MFloat),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("/", Nil, (DenseVector(MDouble),MInt) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0,$1.toDouble) }
+    infix (DenseVector) ("/", Nil, (DenseVector(MDouble),MLong) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0,$1.toDouble) }
     infix (DenseVector) ("/", Nil, (DenseVector(MDouble),MFloat) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0.toDouble,$1) }
     infix (DenseVector) ("/", Nil, (DenseVector(MDouble),MDouble) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0,$1) }
-    infix (DenseVector) ("/", Nil, (DenseVector(MInt),DenseVector(MInt)) :: DenseVector(MInt)) implements redirect ${ densevector_div[Int]($0,$1) }
-    infix (DenseVector) ("/", Nil, (DenseVector(MInt),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_div[Float]($0.toFloat,$1) }
-    infix (DenseVector) ("/", Nil, (DenseVector(MInt),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("/", Nil, (DenseVector(MFloat),DenseVector(MInt)) :: DenseVector(MFloat)) implements redirect ${ densevector_div[Float]($0,$1.toFloat) }
+    infix (DenseVector) ("/", Nil, (DenseVector(MLong),DenseVector(MLong)) :: DenseVector(MLong)) implements redirect ${ densevector_div[Long]($0,$1) }
+    infix (DenseVector) ("/", Nil, (DenseVector(MLong),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_div[Float]($0.toFloat,$1) }
+    infix (DenseVector) ("/", Nil, (DenseVector(MLong),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0.toDouble,$1) }
+    infix (DenseVector) ("/", Nil, (DenseVector(MFloat),DenseVector(MLong)) :: DenseVector(MFloat)) implements redirect ${ densevector_div[Float]($0,$1.toFloat) }
     infix (DenseVector) ("/", Nil, (DenseVector(MFloat),DenseVector(MFloat)) :: DenseVector(MFloat)) implements redirect ${ densevector_div[Float]($0,$1) }
     infix (DenseVector) ("/", Nil, (DenseVector(MFloat),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0.toDouble,$1) }
-    infix (DenseVector) ("/", Nil, (DenseVector(MDouble),DenseVector(MInt)) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0,$1.toDouble) }
+    infix (DenseVector) ("/", Nil, (DenseVector(MDouble),DenseVector(MLong)) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0,$1.toDouble) }
     infix (DenseVector) ("/", Nil, (DenseVector(MDouble),DenseVector(MFloat)) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0,$1.toDouble) }
     infix (DenseVector) ("/", Nil, (DenseVector(MDouble),DenseVector(MDouble)) :: DenseVector(MDouble)) implements redirect ${ densevector_div[Double]($0,$1) }
   }

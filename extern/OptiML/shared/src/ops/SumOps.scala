@@ -59,14 +59,14 @@ trait CanSumOps extends Base {
 trait SumOps extends CanSumOps {
   this: OptiML =>
 
-  def sum[A:Manifest:Arith](start: Rep[Int], end: Rep[Int])(block: Rep[Int] => Rep[A])(implicit cs: CanSum[A,A], ctx: SourceContext) = optiml_sum(start, end, block)
+  def sum[A:Manifest:Arith](start: Rep[Long], end: Rep[Long])(block: Rep[Long] => Rep[A])(implicit cs: CanSum[A,A], ctx: SourceContext) = optiml_sum(start, end, block)
   // sumRows currently just re-uses sumIf implementation; check if the condition always being true is actually slower than a specialized implementation with no conditional at all
-  def sumRows[A:Manifest:Arith](start: Rep[Int], end: Rep[Int])(block: Rep[Int] => Rep[DenseVectorView[A]])(implicit cs: CanSum[A,A], ctx: SourceContext) = optiml_sumif[DenseVector[A],DenseVectorView[A]](start,end,i => unit(true),block)
-  def sumIf[A:Manifest:Arith](start: Rep[Int], end: Rep[Int])(cond: Rep[Int] => Rep[Boolean])(block: Rep[Int] => Rep[A])(implicit cs: CanSum[A,A], ctx: SourceContext) = optiml_sumif[A,A](start,end,cond,block)
-  def sumRowsIf[A:Manifest:Arith](start: Rep[Int], end: Rep[Int])(cond: Rep[Int] => Rep[Boolean])(block: Rep[Int] => Rep[DenseVectorView[A]])(implicit cs: CanSum[A,A], ctx: SourceContext) = optiml_sumif[DenseVector[A],DenseVectorView[A]](start,end,cond,block)
+  def sumRows[A:Manifest:Arith](start: Rep[Long], end: Rep[Long])(block: Rep[Long] => Rep[DenseVectorView[A]])(implicit cs: CanSum[A,A], ctx: SourceContext) = optiml_sumif[DenseVector[A],DenseVectorView[A]](start,end,i => unit(true),block)
+  def sumIf[A:Manifest:Arith](start: Rep[Long], end: Rep[Long])(cond: Rep[Long] => Rep[Boolean])(block: Rep[Long] => Rep[A])(implicit cs: CanSum[A,A], ctx: SourceContext) = optiml_sumif[A,A](start,end,cond,block)
+  def sumRowsIf[A:Manifest:Arith](start: Rep[Long], end: Rep[Long])(cond: Rep[Long] => Rep[Boolean])(block: Rep[Long] => Rep[DenseVectorView[A]])(implicit cs: CanSum[A,A], ctx: SourceContext) = optiml_sumif[DenseVector[A],DenseVectorView[A]](start,end,cond,block)
 
-  def optiml_sum[A:Manifest:Arith](start: Rep[Int], end: Rep[Int], block: Rep[Int] => Rep[A])(implicit cs: CanSum[A,A], ctx: SourceContext): Rep[A]
-  def optiml_sumif[R:Manifest:Arith,A:Manifest](start: Rep[Int], end: Rep[Int], cond: Rep[Int] => Rep[Boolean], block: Rep[Int] => Rep[A])(implicit cs: CanSum[R,A], ctx: SourceContext): Rep[R]
+  def optiml_sum[A:Manifest:Arith](start: Rep[Long], end: Rep[Long], block: Rep[Long] => Rep[A])(implicit cs: CanSum[A,A], ctx: SourceContext): Rep[A]
+  def optiml_sumif[R:Manifest:Arith,A:Manifest](start: Rep[Long], end: Rep[Long], cond: Rep[Long] => Rep[Boolean], block: Rep[Long] => Rep[A])(implicit cs: CanSum[R,A], ctx: SourceContext): Rep[R]
 }
 
 trait SumCompilerOps extends SumOps { this: OptiML => }

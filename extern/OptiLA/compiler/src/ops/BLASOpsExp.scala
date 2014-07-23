@@ -38,13 +38,13 @@ import optila.compiler.ops._
 trait BLASOpsExp extends BLASOps with DenseMatrixOpsExp {
   this: OptiLAExp =>
 
-  def MIN_SIZE = unit(100)
+  def MIN_SIZE = unit(100l)
 
   /**
    * Intercept BLAS-able operations
    */
 
-  case class Native_matMult[T:Manifest](xR: Rep[Int], xC: Rep[Int], x: Rep[ForgeArray[T]], yR: Rep[Int], yC: Rep[Int], y: Rep[ForgeArray[T]])(implicit val __pos: SourceContext,val __imp0: Arith[T]) extends DeliteOpExternal[ForgeArray[T]] {
+  case class Native_matMult[T:Manifest](xR: Rep[Long], xC: Rep[Long], x: Rep[ForgeArray[T]], yR: Rep[Long], yC: Rep[Long], y: Rep[ForgeArray[T]])(implicit val __pos: SourceContext,val __imp0: Arith[T]) extends DeliteOpExternal[ForgeArray[T]] {
     val _mT = implicitly[Manifest[T]]
 
     override def inputs = scala.List(xR,xC,x,yR,yC,y)
@@ -52,7 +52,7 @@ trait BLASOpsExp extends BLASOps with DenseMatrixOpsExp {
     val funcName = "matMult"
   }
 
-  case class Native_matTimesVec[T:Manifest](xR: Rep[Int], xC: Rep[Int], x: Rep[ForgeArray[T]],y: Rep[ForgeArray[T]])(implicit val __pos: SourceContext,val __imp0: Arith[T]) extends DeliteOpExternal[ForgeArray[T]] {
+  case class Native_matTimesVec[T:Manifest](xR: Rep[Long], xC: Rep[Long], x: Rep[ForgeArray[T]],y: Rep[ForgeArray[T]])(implicit val __pos: SourceContext,val __imp0: Arith[T]) extends DeliteOpExternal[ForgeArray[T]] {
     val _mT = implicitly[Manifest[T]]
 
     override def inputs = scala.List(xR,xC,x,y)
@@ -123,8 +123,8 @@ trait ScalaGenBLASOps extends ScalaGenExternalBase {
         case "Float" => "cblas_sgemm"
       }
       emitInterfaceAndMethod(BLAS, e.funcName,
-        scala.List("mat1:Array[%1$s]", "mat2:Array[%1$s]", "mat3:Array[%1$s]", "mat1_r:Int", "mat1_c:Int", "mat2_c:Int") map { _.format(tp) },
-        scala.List("j%1$sArray mat1", "j%1$sArray mat2", "j%1$sArray mat3", "jint mat1_r", "jint mat1_c", "jint mat2_c") map { _.format(tp.toLowerCase) },
+        scala.List("mat1:Array[%1$s]", "mat2:Array[%1$s]", "mat3:Array[%1$s]", "mat1_r:Long", "mat1_c:Long", "mat2_c:Long") map { _.format(tp) },
+        scala.List("j%1$sArray mat1", "j%1$sArray mat2", "j%1$sArray mat3", "jlong mat1_r", "jlong mat1_c", "jlong mat2_c") map { _.format(tp.toLowerCase) },
         """
         {
           jboolean copy;
@@ -147,8 +147,8 @@ trait ScalaGenBLASOps extends ScalaGenExternalBase {
         case "Float" => "cblas_sgemv"
       }
       emitInterfaceAndMethod(BLAS, e.funcName,
-        scala.List("mat1:Array[%1$s]", "vec2:Array[%1$s]", "vec3:Array[%1$s]", "mat_row:Int", "mat_col:Int", "vec_offset:Int", "vec_stride:Int") map { _.format(tp) },
-        scala.List("j%1$sArray mat1", "j%1$sArray vec2", "j%1$sArray vec3", "jint mat_row", "jint mat_col", "jint vec_offset", "jint vec_stride") map { _.format(tp.toLowerCase) },
+        scala.List("mat1:Array[%1$s]", "vec2:Array[%1$s]", "vec3:Array[%1$s]", "mat_row:Long", "mat_col:Long", "vec_offset:Long", "vec_stride:Long") map { _.format(tp) },
+        scala.List("j%1$sArray mat1", "j%1$sArray vec2", "j%1$sArray vec3", "jlong mat_row", "jlong mat_col", "jlong vec_offset", "jlong vec_stride") map { _.format(tp.toLowerCase) },
         """
         {
           jboolean copy;

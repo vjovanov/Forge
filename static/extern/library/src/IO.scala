@@ -14,7 +14,7 @@ trait InputOutputWrapper extends HUMAN_DSL_NAMEBase {
   def forge_filereader_readlines_flattened[A:Manifest](path: Rep[String], f: Rep[String] => Rep[ForgeArray[A]])(implicit ctx: SourceContext): Rep[ForgeArray[A]] = {
     forge_filereader_readlines_unstructured(path, (line, buf) => {
       val a = f(line)
-      for (i <- 0 until array_length(a).asInstanceOf[Int]) {
+      for (i <- 0 until array_length(a).toInt) {
         array_buffer_append(buf, a(i))
       }
     })

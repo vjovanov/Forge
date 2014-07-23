@@ -50,12 +50,12 @@ trait BitSetOps {
       //////////////////////////////Basic Accessors////////////////////////////////////////
 
       // Length is defined here as the physical # of bits allocated. (physical size)
-      infix("length")(Nil :: MInt) implements single ${ $self.numWords << 6} //multiply by 64
+      infix("length")(Nil :: MLong) implements single ${ $self.numWords << 6 } //multiply by 64
       infix("numWords")(Nil :: MInt) implements single ${ array_length(bs_get_words($self)) }
       // Number of bits set to 1 in this bitset
       infix("cardinality")(Nil :: MInt) implements getter(0, "_cardinality")
       infix("apply")(MInt :: MBoolean) implements single ${ bs_get($self,$1) }
-      infix("set")((MInt,MBoolean) :: MUnit, effect=write(0)) implements single ${
+      infix("set")((MLong,MBoolean) :: MUnit, effect=write(0)) implements single ${
         if ($1 < 0 || $1 > $0.length)  fatal("Cannot set bit set index: " + $1 + " BitSet physical range is 0-" + $0.length)
         else {
           if($2) bs_set($self,$1)
@@ -144,8 +144,8 @@ trait BitSetOps {
       compiler("bs_get_words")(Nil :: MArray(MLong)) implements getter(0, "_words")
       compiler("bs_set_word")(( ("wordIndex",MInt),("value",MLong)) :: MUnit, effect=write(0)) implements single ${array_update(bs_get_words($self),wordIndex,value)}
       
-      compiler("bs_raw_alloc")(MInt :: BitSet) implements single ${BitSet($1)}
-      compiler("bs_apply")(MInt :: MBoolean) implements single ${ $self($1) }
+      compiler("bs_raw_alloc")(MLong :: BitSet) implements single ${BitSet($1)}
+      compiler("bs_apply")(MLong :: MBoolean) implements single ${ $self($1) }
       parallelize as ParallelCollection(MBoolean, lookupOp("bs_raw_alloc"), lookupOp("length"), lookupOp("bs_apply"), lookupOp("set"))
     }
 

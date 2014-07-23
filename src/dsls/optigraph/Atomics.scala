@@ -15,12 +15,12 @@ trait AtomicIntArrayOps {
   	def importAtomicIntArrayOps() {
   		val AtomicIntArray = grp("AtomicIntArray")
     	val AArray = ephemeralTpe("java.util.concurrent.atomic.AtomicIntegerArray")
-    	static (AtomicIntArray) ("apply", Nil, MInt :: AArray, effect=mutable) implements codegen($cala, ${new java.util.concurrent.atomic.AtomicIntegerArray($0)})
-    	direct (AtomicIntArray) ("testAtomic", Nil, (AArray,MInt,MInt) :: MBoolean) implements composite ${get($0,$1)==$2}
-    	direct (AtomicIntArray) ("get", Nil, (AArray,MInt) :: MInt) implements codegen($cala, ${$0.get($1)})
-      direct (AtomicIntArray) ("getAndAdd", Nil, (AArray,MInt,MInt) :: MInt, effect = write(0)) implements codegen($cala, ${$0.getAndAdd($1,$2)})
-	    direct (AtomicIntArray) ("testAndSetAtomic", Nil, (AArray,MInt,MInt,MInt) :: MBoolean, effect=write(0)) implements codegen($cala, ${$0.compareAndSet($1,$2,$3)})
-	    direct (AtomicIntArray) ("set", Nil, (AArray,MInt,MInt) :: MUnit, effect=write(0)) implements codegen($cala, ${$0.set($1,$2)})
+    	static (AtomicIntArray) ("apply", Nil, MLong :: AArray, effect=mutable) implements codegen($cala, ${new java.util.concurrent.atomic.AtomicIntegerArray($0)})
+    	direct (AtomicIntArray) ("testAtomic", Nil, (AArray,MLong,MLong) :: MBoolean) implements composite ${get($0,$1)==$2}
+    	direct (AtomicIntArray) ("get", Nil, (AArray,MLong) :: MLong) implements codegen($cala, ${$0.get($1)})
+      direct (AtomicIntArray) ("getAndAdd", Nil, (AArray,MLong,MLong) :: MLong, effect = write(0)) implements codegen($cala, ${$0.getAndAdd($1,$2)})
+	    direct (AtomicIntArray) ("testAndSetAtomic", Nil, (AArray,MLong,MLong,MLong) :: MBoolean, effect=write(0)) implements codegen($cala, ${$0.compareAndSet($1,$2,$3)})
+	    direct (AtomicIntArray) ("set", Nil, (AArray,MLong,MLong) :: MUnit, effect=write(0)) implements codegen($cala, ${$0.set($1,$2)})
   }
 }
 
@@ -29,10 +29,10 @@ trait AtomicDoubleArrayOps {
     def importAtomicDoubleArrayOps() {
       val AtomicDoubleArray = grp("AtomicDoubleArray")
       val AArray = ephemeralTpe("com.google.common.util.concurrent.AtomicDoubleArray")
-      static (AtomicDoubleArray) ("apply", Nil, MInt :: AArray, effect=mutable) implements codegen($cala, ${new com.google.common.util.concurrent.AtomicDoubleArray($0)})
-      direct (AtomicDoubleArray) ("get", Nil, (AArray,MInt) :: MDouble) implements codegen($cala, ${$0.get($1)})
-      direct (AtomicDoubleArray) ("getAndAdd", Nil, (AArray,MInt,MDouble) :: MDouble, effect = write(0)) implements codegen($cala, ${$0.getAndAdd($1,$2)})
-      direct (AtomicDoubleArray) ("set", Nil, (AArray,MInt,MDouble) :: MUnit, effect=write(0)) implements codegen($cala, ${$0.set($1,$2)})
+      static (AtomicDoubleArray) ("apply", Nil, MLong :: AArray, effect=mutable) implements codegen($cala, ${new com.google.common.util.concurrent.AtomicDoubleArray($0)})
+      direct (AtomicDoubleArray) ("get", Nil, (AArray,MLong) :: MDouble) implements codegen($cala, ${$0.get($1)})
+      direct (AtomicDoubleArray) ("getAndAdd", Nil, (AArray,MLong,MDouble) :: MDouble, effect = write(0)) implements codegen($cala, ${$0.getAndAdd($1,$2)})
+      direct (AtomicDoubleArray) ("set", Nil, (AArray,MLong,MDouble) :: MUnit, effect=write(0)) implements codegen($cala, ${$0.set($1,$2)})
   }
 }
 

@@ -69,7 +69,7 @@ trait OptiLADSL extends ForgeApplication
     }))
 
     impl (range_foreach) (codegen(cpp, ${
-      for(int i=$start ; i<$end ; i++) {
+      for(int64_t i=$start ; i<$end ; i++) {
         $b[func](i)
       }
     }))

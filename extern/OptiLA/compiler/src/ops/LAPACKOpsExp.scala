@@ -35,7 +35,7 @@ trait LAPACKOpsExp extends LAPACKOps with LinAlgOpsExp {
     val funcName = "linsolve"
   }
 
-  case class Native_lu(a: Rep[DenseMatrix[Double]], ipiv: Rep[DenseVector[Int]])(implicit val __pos: SourceContext) extends DeliteOpExternal[Unit] {
+  case class Native_lu(a: Rep[DenseMatrix[Double]], ipiv: Rep[DenseVector[Long]])(implicit val __pos: SourceContext) extends DeliteOpExternal[Unit] {
     override def inputs = scala.List(a,ipiv)
     def alloc = Const(())
     val funcName = "lu"
@@ -52,7 +52,7 @@ trait LAPACKOpsExp extends LAPACKOps with LinAlgOpsExp {
     if (useLAPACK) {
       // a, b will be overwritten with answers
       val outB = DenseVector[Double](max(a.numRows,a.numCols), unit(false))
-      outB(unit(0)::b.length) = b(unit(0)::b.length)
+      outB(unit(0l)::b.length) = b(unit(0l)::b.length)
       val alloc = a.mutable
       reflectWrite(alloc,outB)(Native_linsolve(alloc, outB))
       outB.take(a.numCols) // answer is written in the first n entries of b
@@ -60,10 +60,10 @@ trait LAPACKOpsExp extends LAPACKOps with LinAlgOpsExp {
     else super.linsolve(a,b)
   }
 
-  override def linalg_lu(a: Rep[DenseMatrix[Double]])(implicit __pos: SourceContext): (Rep[DenseMatrix[Double]],Rep[DenseMatrix[Double]],Rep[DenseMatrix[Int]]) = {
+  override def linalg_lu(a: Rep[DenseMatrix[Double]])(implicit __pos: SourceContext): (Rep[DenseMatrix[Double]],Rep[DenseMatrix[Double]],Rep[DenseMatrix[Long]]) = {
     if (useLAPACK) {
       val piv_len = if (a.numRows < a.numCols) a.numRows else a.numCols
-      val ipiv = DenseVector[Int](piv_len, unit(false))
+      val ipiv = DenseVector[Long](piv_len, unit(false))
       val alloc = a.mutable
       reflectWrite(alloc,ipiv)(Native_lu(alloc, ipiv))
       postprocess_lu(alloc, ipiv)
@@ -129,8 +129,8 @@ trait ScalaGenLAPACKOps extends ScalaGenExternalBase {
     case e@Native_linsolve(a,b) =>
       val tp = "Double"
       emitInterfaceAndMethod(LAPACK, e.funcName,
-        scala.List("A:Array[%1$s]", "b:Array[%1$s]", "M:Int", "N:Int") map { _.format(tp) },
-        scala.List("j%1$sArray A", "j%1$sArray b", "jint M", "jint N") map { _.format(tp.toLowerCase) },
+        scala.List("A:Array[%1$s]", "b:Array[%1$s]", "M:Long", "N:Long") map { _.format(tp) },
+        scala.List("j%1$sArray A", "j%1$sArray b", "jlong M", "jlong N") map { _.format(tp.toLowerCase) },
         """
         {
           jboolean copy;
@@ -148,8 +148,8 @@ trait ScalaGenLAPACKOps extends ScalaGenExternalBase {
     case e@Native_lu(a,p) =>
       val tp = "Double"
       emitInterfaceAndMethod(LAPACK, e.funcName,
-        scala.List("A:Array[%1$s]", "ipiv:Array[Int]", "M:Int", "N:Int") map { _.format(tp) },
-        scala.List("j%1$sArray A", "jintArray ipiv", "jint M", "jint N") map { _.format(tp.toLowerCase) },
+        scala.List("A:Array[%1$s]", "ipiv:Array[Long]", "M:Long", "N:Long") map { _.format(tp) },
+        scala.List("j%1$sArray A", "jlongArray ipiv", "jlong M", "jlong N") map { _.format(tp.toLowerCase) },
         """
         {
           jboolean copy;
@@ -168,8 +168,8 @@ trait ScalaGenLAPACKOps extends ScalaGenExternalBase {
     case e@Native_chol(a,t) =>
       val tp = "Double"
       emitInterfaceAndMethod(LAPACK, e.funcName,
-        scala.List("A:Array[%1$s]", "M:Int", "N:Int", "tri:Char") map { _.format(tp) },
-        scala.List("j%1$sArray A", "jint M", "jint N", "jchar tri") map { _.format(tp.toLowerCase) },
+        scala.List("A:Array[%1$s]", "M:Long", "N:Long", "tri:Char") map { _.format(tp) },
+        scala.List("j%1$sArray A", "jlong M", "jlong N", "jchar tri") map { _.format(tp.toLowerCase) },
         """
         {
           jboolean copy;

@@ -25,7 +25,7 @@ trait BufferableOps {
     // Bufferable type class interface
     infix (Bufferable) ("mutable", T, T :: T, effect = mutable)
     infix (Bufferable) ("write", T, (T,T) :: MUnit, effect = write(1))
-    infix (Bufferable) ("size", T, T :: MInt)
+    infix (Bufferable) ("size", T, T :: MLong)
 
     // OptiLA types
     val DenseVector = lookupTpe("DenseVector")
@@ -36,7 +36,7 @@ trait BufferableOps {
     infix (DenseVectorBufferable) ("write", T, (DenseVector(T),DenseVector(T)) :: MUnit, effect = write(1)) implements composite ${
       $0.indices foreach { i => $1(i) = $0(i) }
     }
-    infix (DenseVectorBufferable) ("size", T, DenseVector(T) :: MInt) implements composite ${ $0.length }
+    infix (DenseVectorBufferable) ("size", T, DenseVector(T) :: MLong) implements composite ${ $0.length }
 
     val DenseMatrixBufferable = tpeClassInst("BufferableDenseMatrix", T, Bufferable(DenseMatrix(T)))
     infix (DenseMatrixBufferable) ("mutable", T, DenseMatrix(T) :: DenseMatrix(T), effect = mutable) implements composite ${ DenseMatrix[T]($0.numRows, $0.numCols) }
@@ -54,7 +54,7 @@ trait BufferableOps {
       //   }
       // }
     }
-    infix (DenseMatrixBufferable) ("size", T, DenseMatrix(T) :: MInt) implements composite ${ $0.size }
+    infix (DenseMatrixBufferable) ("size", T, DenseMatrix(T) :: MLong) implements composite ${ $0.size }
 
     // tuples of bufferables
     for (arity <- 2 until maxTuples) {
@@ -70,7 +70,7 @@ trait BufferableOps {
 
       // val sizeTupBufStr = (1 to arity).map(i => "t._"+i+".size").mkString("+") // scalac typer crash
       val sizeTupBufStr = (1 to arity).map(i => "bufferable_size(t._"+i+")").mkString("+")
-      infix (TupBuf) ("size", pars, ("t",Tup) :: MInt) implements composite ${ \$sizeTupBufStr }
+      infix (TupBuf) ("size", pars, ("t",Tup) :: MLong) implements composite ${ \$sizeTupBufStr }
     }
 
   }

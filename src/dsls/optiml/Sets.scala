@@ -37,12 +37,12 @@ trait SetOps {
       ops {
         infix ("data") (Nil :: DenseMatrix(D)) implements getter(0, "_data")
 
-        infix ("apply") ((MInt,MInt) :: D) implements composite ${ $self.data.apply($1,$2) }
-        infix ("apply") (MInt :: DenseVectorView(D)) implements composite ${ $self.data.apply($1) }
+        infix ("apply") ((MLong,MLong) :: D) implements composite ${ $self.data.apply($1,$2) }
+        infix ("apply") (MLong :: DenseVectorView(D)) implements composite ${ $self.data.apply($1) }
         // infix ("apply") (IndexVector :: t) implements composite ${ TrainingSet($self.data.apply($1),$self.labels.apply($1)) }   // scalac typer crash...
 
-        infix ("numSamples") (Nil :: MInt) implements composite ${ $self.data.numRows }
-        infix ("numFeatures") (Nil :: MInt) implements composite ${ $self.data.numCols }
+        infix ("numSamples") (Nil :: MLong) implements composite ${ $self.data.numRows }
+        infix ("numFeatures") (Nil :: MLong) implements composite ${ $self.data.numCols }
       }
     }
   }

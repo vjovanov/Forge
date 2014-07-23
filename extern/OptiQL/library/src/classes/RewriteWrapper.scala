@@ -10,7 +10,7 @@ trait RewriteWrapper {
   this: OptiQLBase with OptiQLClasses =>
 
   def groupByHackImpl[K:Manifest,V:Manifest](self: Rep[Table[V]], keySelector: Rep[V] => Rep[K])(implicit pos: SourceContext): Rep[Table[Tup2[K,Table[V]]]] = {
-    val arr = self.data.take(self.size.asInstanceOf[Int])
+    val arr = self.data.take(self.size.toInt)
     val keys = arr.map(keySelector).distinct //DeliteMap is order-preserving on keys, be consistent for sanity
     val map = arr.groupBy(keySelector)
 
@@ -23,7 +23,7 @@ trait RewriteWrapper {
   }
 
   def sortHackImpl[A:Manifest](self: Rep[Table[A]], comparator: (Rep[A],Rep[A]) => Rep[Int])(implicit pos: SourceContext): Rep[Table[A]] = {
-    val arr = self.data.take(self.size.asInstanceOf[Int])
+    val arr = self.data.take(self.size.toInt)
     val ord = new Ordering[A] {
       def compare(x: A, y: A): Int = comparator(x,y)
     }

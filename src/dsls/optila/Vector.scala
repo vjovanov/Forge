@@ -50,19 +50,20 @@ trait VectorOps {
       infix ("toDouble") (Nil :: DenseVector(MDouble), ("conv",T ==> MDouble)) implements map((T,MDouble), 0, ${$conv})
       infix ("toFloat") (Nil :: DenseVector(MFloat), ("conv",T ==> MFloat)) implements map((T,MFloat), 0, ${$conv})
       infix ("toInt") (Nil :: DenseVector(MInt), ("conv",T ==> MInt)) implements map((T,MInt), 0, ${$conv})
+      infix ("toLong") (Nil :: DenseVector(MLong), ("conv",T ==> MLong)) implements map((T,MLong), 0, ${$conv})
 
       /**
        * Accessors
        */
-      infix ("indices") (Nil :: IndexVector) implements composite ${ IndexVector(unit(0), $self.length, $self.isRow) }
+      infix ("indices") (Nil :: IndexVector) implements composite ${ IndexVector(unit(0l), $self.length, $self.isRow) }
       infix ("isEmpty") (Nil :: MBoolean) implements single ${ $self.length == 0 }
       infix ("first") (Nil :: T) implements composite ${ $self(0) }
       infix ("last") (Nil :: T) implements composite ${ $self($self.length - 1) }
-      infix ("drop") (MInt :: V) implements composite ${ $self.slice($1, $self.length) }
-      infix ("take") (MInt :: V) implements composite ${ $self.slice(0, $1) }
+      infix ("drop") (MLong :: V) implements composite ${ $self.slice($1, $self.length) }
+      infix ("take") (MLong :: V) implements composite ${ $self.slice(0, $1) }
       infix ("contains") (T :: MBoolean) implements single ${
         var found = false
-        var i = 0
+        var i = 0l
         while (i < $self.length && !found) {
           if ($self(i) == $1) {
             found = true
@@ -74,7 +75,7 @@ trait VectorOps {
       infix ("distinct") (Nil :: DenseVector(T)) implements single ${
         val set = SHashMap[\$TT,Int]()
         val out = DenseVector[\$TT](0, $self.isRow)
-        for (i <- 0 until $self.length) {
+        for (i <- 0l until $self.length) {
           if (!set.contains($self(i))) {
             set($self(i)) = 1
             out <<= $self(i)
@@ -85,18 +86,18 @@ trait VectorOps {
 
       infix ("mutable") (Nil :: DenseVector(T), effect = mutable, aliasHint = copies(0)) implements single ${
         val out = DenseVector[\$TT]($self.length, $self.isRow)
-        for (i <- 0 until out.length) {
+        for (i <- 0l until out.length) {
           out(i) = $self(i)
         }
         out
       }
 
-      infix ("replicate") ((MInt,MInt) :: DenseMatrix(T)) implements single ${
+      infix ("replicate") ((MLong,MLong) :: DenseMatrix(T)) implements single ${
         if ($self.isRow) {
           val out = DenseMatrix[\$TT]($1, $2*$self.length)
-          for (col <- 0 until $2*$self.length){
+          for (col <- 0l until $2*$self.length){
             val colToJ = col % $self.length
-            for (rI <- 0 until $1) {
+            for (rI <- 0l until $1) {
               out(rI, col) = $self(colToJ)
             }
           }
@@ -104,9 +105,9 @@ trait VectorOps {
         }
         else {
           val out = DenseMatrix[\$TT]($1*$self.length, $2)
-          for (row <- 0 until $1*$self.length){
+          for (row <- 0l until $1*$self.length){
             val rowToI = row % $self.length
-            for (cI <- 0 until $2) {
+            for (cI <- 0l until $2) {
               out(row, cI) = $self(rowToI)
             }
           }
@@ -121,13 +122,13 @@ trait VectorOps {
           s = "[ ]"
         }
         else if ($self.isRow) {
-          for (i <- 0 until $self.length - 1) {
+          for (i <- 0l until $self.length - 1l) {
             s = s + optila_padspace($self(i).makeStr)
           }
           s = s + optila_padspace($self($self.length-1).makeStr)
         }
         else {
-          for (i <- 0 until $self.length - 1) {
+          for (i <- 0l until $self.length - 1l) {
             s = s + optila_padspace($self(i).makeStr) + "\\n"
           }
           s = s + optila_padspace($self($self.length-1).makeStr)
@@ -140,13 +141,13 @@ trait VectorOps {
           s = "[ ]"
         }
         else if ($self.isRow) {
-          for (i <- 0 until $self.length - 1) {
+          for (i <- 0l until $self.length - 1l) {
             s = s + optila_padspace(optila_fmt_str($self(i)))
           }
           s = s + optila_padspace(optila_fmt_str($self($self.length-1)))
         }
         else {
-          for (i <- 0 until $self.length - 1) {
+          for (i <- 0l until $self.length - 1l) {
             s = s + optila_padspace(optila_fmt_str($self(i))) + "\\n"
           }
           s = s + optila_padspace(optila_fmt_str($self($self.length-1)))
@@ -173,8 +174,8 @@ trait VectorOps {
         infix ("**") (rhs :: DenseMatrix(T), A) implements composite ${
           fassert(!$self.isRow && $1.isRow, "dimension mismatch: vector outer product")
           val out = DenseMatrix[\$TT]($self.length, $1.length)
-          for (i <- 0 until $self.length ){
-            for (j <- 0 until $1.length ){
+          for (i <- 0l until $self.length ){
+            for (j <- 0l until $1.length ){
               out(i,j) = $self(i)*$1(j)
             }
           }
@@ -218,11 +219,11 @@ trait VectorOps {
       infix ("min") (Nil :: T, O) implements reduce(T, 0, ${$self(0)}, ${ (a,b) => if (a < b) a else b })
       infix ("max") (Nil :: T, O) implements reduce(T, 0, ${$self(0)}, ${ (a,b) => if (a > b) a else b })
 
-      infix ("minIndex") (Nil :: MInt, O ::: A) implements composite ${
+      infix ("minIndex") (Nil :: MLong, O ::: A) implements composite ${
         $self.indices.reduce { (a,b) => if ($self(a) < $self(b)) a else b }
         // ($self.zip($self.indices) { (a,b) => pack((a,b)) } reduce { (t1,t2) => if (t1._1 < t2._1) t1 else t2 })._2
       }
-      infix ("maxIndex") (Nil :: MInt, O ::: A) implements composite ${
+      infix ("maxIndex") (Nil :: MLong, O ::: A) implements composite ${
         $self.indices.reduce { (a,b) => if ($self(a) > $self(b)) a else b }
         // ($self.zip($self.indices) { (a,b) => pack((a,b)) } reduce { (t1,t2) => if (t1._1 > t2._1) t1 else t2 })._2        
       }
@@ -238,16 +239,16 @@ trait VectorOps {
 
       val filterMap = v.name.toLowerCase + "_densevector_filter_map"
       compiler (filterMap) (((T ==> MBoolean), (T ==> R)) :: DenseVector(R), addTpePars = R) implements filter((T,R), 0, ${ e => $1(e) }, ${ e => $2(e) })
-      infix ("count") ((T ==> MBoolean) :: MInt) implements composite ${
-        val x = \$filterMap($self, $1, (e: Rep[\$TT]) => 1)
+      infix ("count") ((T ==> MBoolean) :: MLong) implements composite ${
+        val x = \$filterMap($self, $1, (e: Rep[\$TT]) => 1l)
         if (x.length > 0) sum(x)
-        else 0
+        else unit(0l)
       }
 
       infix ("partition") (("pred",(T ==> MBoolean)) :: Tuple2(DenseVector(T),DenseVector(T))) implements single ${
         val outT = DenseVector[\$TT](0, $self.isRow)
         val outF = DenseVector[\$TT](0, $self.isRow)
-        for (i <- 0 until $self.length) {
+        for (i <- 0l until $self.length) {
           val x = $self(i)
           if (pred(x)) outT <<= x
           else outF <<= x
@@ -263,7 +264,7 @@ trait VectorOps {
       infix ("scan") (CurriedMethodSignature(List(List(("zero", R)), List((R,T) ==> R)), DenseVector(R)), addTpePars = R) implements single ${
         val out = DenseVector[R]($self.length, $self.isRow)
         out(0) = $2($zero,$self(0))
-        var i = 1
+        var i = 1l
         while (i < $self.length) {
           out(i) = $2(out(i-1), $self(i))
           i += 1

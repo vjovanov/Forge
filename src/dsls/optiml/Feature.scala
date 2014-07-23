@@ -25,8 +25,8 @@ trait FeatureOps {
     }
 
     val DiscreteFeature = tpe("DiscreteFeature")
-    data(DiscreteFeature, ("_features", MHashMap(MString, MInt)))
-    compiler (DiscreteFeature) ("discrete_feature_alloc", Nil, (MHashMap(MString, MInt) :: DiscreteFeature)) implements allocates(DiscreteFeature, ${$0})
+    data(DiscreteFeature, ("_features", MHashMap(MString, MLong)))
+    compiler (DiscreteFeature) ("discrete_feature_alloc", Nil, (MHashMap(MString, MLong) :: DiscreteFeature)) implements allocates(DiscreteFeature, ${$0})
 
     // FIXME: this produces an illegal ordering of effect error when 'composite' instead of 'single'. related to combo of array_fromseq (mutable) and FHashMap?    
     static (DiscreteFeature) ("apply", Nil, (varArgs(MString) :: DiscreteFeature)) implements single ${
@@ -37,10 +37,10 @@ trait FeatureOps {
 
     val DiscreteFeatureOps = withTpe(DiscreteFeature)
     DiscreteFeatureOps {
-      compiler ("getFeatures") (Nil :: MHashMap(MString, MInt)) implements getter(0, "_features")
-      infix ("apply") (MString :: MInt) implements composite ${ 
+      compiler ("getFeatures") (Nil :: MHashMap(MString, MLong)) implements getter(0, "_features")
+      infix ("apply") (MString :: MLong) implements composite ${ 
         val featureMap = getFeatures($self)
-        if (featureMap.contains($1)) featureMap($1) else 0
+        if (featureMap.contains($1)) featureMap($1) else 0l
       }
     }
 
@@ -50,7 +50,7 @@ trait FeatureOps {
 
     val BinaryFeatureOps = withTpe(BinaryFeature)
     BinaryFeatureOps {
-      infix ("apply") (MString :: MInt) implements composite ${ 
+      infix ("apply") (MString :: MLong) implements composite ${ 
         fassert($1.toInt == 0 || $1.toInt == 1, "illegal input to binary feature")
         $1.toInt
       }

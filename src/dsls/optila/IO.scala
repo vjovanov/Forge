@@ -71,7 +71,7 @@ trait IOOps {
 
     compiler (IO) ("write_vector_helper", Nil, (("path",MString),("data",MArray(MString)),("length",MLong)) :: MUnit, effect = simple) implements codegen($cala, ${
       val xfs = new java.io.BufferedWriter(new java.io.FileWriter($path))
-      for (i <- 0 until $length) {
+      for (i:Int <- scala.Range(0, $length.toInt)) {
         xfs.write($data(i) + "\\n")
       }
       xfs.close()
@@ -83,9 +83,10 @@ trait IOOps {
 
     compiler (IO) ("write_matrix_helper", Nil, (("path",MString),("data",MArray(MString)),("numRows",MLong),("numCols",MLong),("delim",MString)) :: MUnit, effect = simple) implements codegen($cala, ${
       val xfs = new java.io.BufferedWriter(new java.io.FileWriter($path))
-      for (i <- 0 until $numRows) {
-        for (j <- 0 until $numCols) {
-          xfs.write($data(i*$numCols+j) + $delim)
+      val nc = $numCols.toInt
+      for (i:Int <- scala.Range(0, $numRows.toInt)) {
+        for (j:Int <- scala.Range(0, nc)) {
+          xfs.write($data(i*nc+j) + $delim)
         }
         xfs.write("\\n")
       }

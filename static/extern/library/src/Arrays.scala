@@ -13,21 +13,21 @@ trait ForgeArrayWrapper extends HUMAN_DSL_NAMEBase {
   def farray_from_sarray[T:Manifest](__arg0: Rep[Array[T]])(implicit __imp0: SourceContext): Rep[ForgeArray[T]]
     = __arg0
   def array_empty[T:Manifest](__arg0: Rep[Long])(implicit __imp0: SourceContext): Rep[ForgeArray[T]]
-    = new ForgeArray[T](__arg0.asInstanceOf[Int])
+    = new ForgeArray[T](__arg0.toInt)
   def array_empty_imm[T:Manifest](__arg0: Rep[Long])(implicit __imp0: SourceContext): Rep[ForgeArray[T]]
     = array_empty[T](__arg0)
   def array_copy[T:Manifest](__arg0: Rep[ForgeArray[T]],__arg1: Rep[Long],__arg2: Rep[ForgeArray[T]],__arg3: Rep[Long],__arg4: Rep[Long])(implicit __imp0: SourceContext): Rep[Unit]
-    = System.arraycopy(__arg0,__arg1.asInstanceOf[Int],__arg2,__arg3.asInstanceOf[Int],__arg4.asInstanceOf[Int])
+    = System.arraycopy(__arg0,__arg1.toInt,__arg2,__arg3.toInt,__arg4.toInt)
   def array_update[T:Manifest](__arg0: Rep[ForgeArray[T]],__arg1: Rep[Long],__arg2: Rep[T])(implicit __imp0: SourceContext): Rep[Unit]
-    = __arg0(__arg1.asInstanceOf[Int]) = __arg2
+    = __arg0(__arg1.toInt) = __arg2
   def array_apply[T:Manifest](__arg0: Rep[ForgeArray[T]],__arg1: Rep[Long])(implicit __imp0: SourceContext): Rep[T]
-    = __arg0(__arg1.asInstanceOf[Int])
+    = __arg0(__arg1.toInt)
   def array_length[T:Manifest](__arg0: Rep[ForgeArray[T]])(implicit __imp0: SourceContext): Rep[Long]
     = __arg0.length
   def array_clone[T:Manifest](__arg0: Rep[ForgeArray[T]])(implicit __imp0: SourceContext): Rep[ForgeArray[T]]
     = __arg0.clone
   def array_take[T:Manifest](__arg0: Rep[ForgeArray[T]],__arg1: Rep[Long]): Rep[ForgeArray[T]]
-    = __arg0.take(__arg1.asInstanceOf[Int])
+    = __arg0.take(__arg1.toInt)
   def array_map[T:Manifest,R:Manifest](__arg0: Rep[ForgeArray[T]], __arg1: Rep[T] => Rep[R])(implicit __imp0: SourceContext): Rep[ForgeArray[R]]
     = __arg0.map(__arg1)
   //def array_flatmap[T:Manifest,R:Manifest](__arg0: Rep[ForgeArray[T]], __arg1: Rep[T] => Rep[ForgeArray[R]])(implicit __imp0: SourceContext): Rep[ForgeArray[R]]
@@ -53,9 +53,9 @@ trait ForgeArrayWrapper extends HUMAN_DSL_NAMEBase {
     d
   }
   def array_sortIndices[R:Manifest:Ordering](__arg0: Rep[Long], __arg1: (Rep[Long] => Rep[R]))(implicit __imp0: SourceContext): Rep[ForgeArray[Long]]
-    = Array.tabulate[Long](__arg0.asInstanceOf[Int])(i => i.toLong).sortBy(__arg1)
+    = Array.tabulate[Long](__arg0.toInt)(i => i.toLong).sortBy(__arg1)
   def array_fromfunction[T:Manifest](__arg0: Rep[Long],__arg1: Rep[Long] => Rep[T])(implicit __imp0: SourceContext): Rep[ForgeArray[T]] = {
-    Array.tabulate[T](__arg0.asInstanceOf[Int])(i => __arg1(i.toLong))
+    Array.tabulate[T](__arg0.toInt)(i => __arg1(i.toLong))
   }
   def array_fromseq[T:Manifest](__arg0: Seq[Rep[T]])(implicit __imp0: SourceContext): Rep[ForgeArray[T]]
     = __arg0.toArray
@@ -79,24 +79,24 @@ trait ForgeArrayBufferWrapper extends HUMAN_DSL_NAMEBase {
   def array_buffer_immutable[T:Manifest](__arg0: Rep[ForgeArrayBuffer[T]])(implicit __imp0: SourceContext): Rep[ForgeArrayBuffer[T]]
     = __arg0
   def array_buffer_strict_empty[T:Manifest](__arg0: Rep[Long])(implicit __imp0: SourceContext): Rep[ForgeArrayBuffer[T]]
-    = (new scala.collection.mutable.ArrayBuffer[T]()) ++ (new Array[T](__arg0.asInstanceOf[Int]))
+    = (new scala.collection.mutable.ArrayBuffer[T]()) ++ (new Array[T](__arg0.toInt))
   def array_buffer_new_imm[T:Manifest](__arg0: Rep[ForgeArray[T]])(implicit __imp0: SourceContext): Rep[ForgeArrayBuffer[T]]
     = (new scala.collection.mutable.ArrayBuffer[T]()) ++ (__arg0.toArray)
   def array_buffer_copy[T:Manifest](src: Rep[ForgeArrayBuffer[T]], srcPos: Rep[Long], dest: Rep[ForgeArrayBuffer[T]], destPos: Rep[Long], length: Rep[Long])(implicit __imp0: SourceContext): Rep[Unit] = {
-    val dp = destPos.asInstanceOf[Int]
-    val sp = srcPos.asInstanceOf[Int]
-    for (i <- 0 until length.asInstanceOf[Int]) {
+    val dp = destPos.toInt
+    val sp = srcPos.toInt
+    for (i <- 0 until length.toInt) {
       dest(dp+i) = src(sp+i)
     }
   }
   def array_buffer_update[T:Manifest](__arg0: Rep[ForgeArrayBuffer[T]],__arg1: Rep[Long],__arg2: Rep[T])(implicit __imp0: SourceContext): Rep[Unit]
-    = __arg0(__arg1.asInstanceOf[Int]) = __arg2
+    = __arg0(__arg1.toInt) = __arg2
   def array_buffer_apply[T:Manifest](__arg0: Rep[ForgeArrayBuffer[T]],__arg1: Rep[Long])(implicit __imp0: SourceContext): Rep[T]
-    = __arg0(__arg1.asInstanceOf[Int])
+    = __arg0(__arg1.toInt)
   def array_buffer_length[T:Manifest](__arg0: Rep[ForgeArrayBuffer[T]])(implicit __imp0: SourceContext): Rep[Long]
     = __arg0.length
   def array_buffer_set_length[T:Manifest](__arg0: Rep[ForgeArrayBuffer[T]],__arg1: Rep[Long])(implicit __imp0: SourceContext): Rep[Unit]
-    = __arg0.slice(0,__arg1.asInstanceOf[Int])
+    = __arg0.slice(0,__arg1.toInt)
   def array_buffer_append[T:Manifest](__arg0: Rep[ForgeArrayBuffer[T]],__arg1: Rep[T])(implicit __imp0: SourceContext): Rep[Unit]
     = { __arg0 += __arg1 }
   def array_buffer_indexof[T:Manifest](__arg0: Rep[ForgeArrayBuffer[T]],__arg1: Rep[T])(implicit __imp0: SourceContext): Rep[Long]

@@ -41,18 +41,13 @@ trait GeneApp extends OptiQLApplication {
   def main() = {
     if (args.length < 1) printUsage()
     val path = args(0)
-    /*val data = Table.fromFile[Content](path, "\t")
-    tic(data.size)
-    val q = data.Where(r => fuzzyStartsWith(r.geneSeq)).Select(r => r.geneSeq.substring(13))
-    toc(q)
-    */
 
     val data = Table.fromFile(path){ line =>
       val fields = array_string_split(line, "\\s+")
       fields(1)
     }
     tic(data.size)
-    val q = data.Where(g => fuzzyStartsWith(g)).Select(g => g.substring(13))
+    val q = data.Select(g => g.substring(13)).Where(g => fuzzyStartsWith(g))
     toc(q)
   }
 

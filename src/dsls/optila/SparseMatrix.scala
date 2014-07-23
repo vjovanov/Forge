@@ -23,27 +23,27 @@ trait SparseMatrixOps {
     val SparseMatrixBuildable = lookupTpe("SparseMatrixBuildable")
 
     // COO format
-    data(SparseMatrixBuildable, ("_numRows", MInt), ("_numCols", MInt), ("_data", MArray(T)), ("_colIndices", MArray(MInt)), ("_rowIndices", MArray(MInt)), ("_nnz", MInt))
+    data(SparseMatrixBuildable, ("_numRows", MLong), ("_numCols", MLong), ("_data", MArray(T)), ("_colIndices", MArray(MLong)), ("_rowIndices", MArray(MLong)), ("_nnz", MLong))
 
-    static (SparseMatrix) ("apply", T, (MInt, MInt) :: SparseMatrixBuildable(T), effect = mutable) implements allocates(SparseMatrixBuildable, ${$0}, ${$1}, ${array_empty[T](unit(32))}, ${array_empty[Int](unit(32))}, ${array_empty[Int](unit(32))}, ${unit(0)})
+    static (SparseMatrix) ("apply", T, (MLong, MLong) :: SparseMatrixBuildable(T), effect = mutable) implements allocates(SparseMatrixBuildable, ${$0}, ${$1}, ${array_empty[T](unit(32l))}, ${array_empty[Long](unit(32l))}, ${array_empty[Long](unit(32l))}, ${unit(0l)})
 
     val SparseMatrixBuildableOps = withTpe(SparseMatrixBuildable)
     SparseMatrixBuildableOps {
       /**
        * Accessors
        */
-      infix ("numRows") (Nil :: MInt) implements getter(0, "_numRows")
-      infix ("numCols") (Nil :: MInt) implements getter(0, "_numCols")
-      infix ("nnz") (Nil :: MInt) implements getter(0, "_nnz")
-      infix ("size") (Nil :: MInt) implements composite ${ $self.numRows*$self.numCols }
+      infix ("numRows") (Nil :: MLong) implements getter(0, "_numRows")
+      infix ("numCols") (Nil :: MLong) implements getter(0, "_numCols")
+      infix ("nnz") (Nil :: MLong) implements getter(0, "_nnz")
+      infix ("size") (Nil :: MLong) implements composite ${ $self.numRows*$self.numCols }
 
-      compiler ("sparsematrix_coo_find_offset") ((("row",MInt),("col",MInt)) :: MInt) implements single ${
+      compiler ("sparsematrix_coo_find_offset") ((("row",MLong),("col",MLong)) :: MLong) implements single ${
         val rowIndices = sparsematrix_coo_rowindices($self)
         val colIndices = sparsematrix_coo_colindices($self)
 
         // linear scan, prefer elements further to the right in the case of duplicates
-        var i = 0
-        var foundAtIndex = -1
+        var i = 0l
+        var foundAtIndex = -1l
         while (i < $self.nnz) {
           if (rowIndices(i) == row && colIndices(i) == col)
             foundAtIndex = i
@@ -53,7 +53,7 @@ trait SparseMatrixOps {
         foundAtIndex
       }
 
-      infix ("apply") ((("i",MInt),("j",MInt)) :: T) implements single ${
+      infix ("apply") ((("i",MLong),("j",MLong)) :: T) implements single ${
         println("[optila warning]: possible performance problem - reading from a sparse matrix COO representation")
 
         val data = sparsematrix_coo_data($self)
@@ -83,7 +83,7 @@ trait SparseMatrixOps {
         }
         else {
           // COO is not stored in order, so just output coordinates as a list
-          for (i <- 0 until $self.nnz-1) {
+          for (i <- 0l until $self.nnz-1) {
             if (rowIndices(i) > -1)
               s = s + "((" + rowIndices(i) + ", " + colIndices(i) + "), " + data(i).makeStr + ")\\n"
           }
@@ -122,16 +122,16 @@ trait SparseMatrixOps {
        * Data operations
        */
       compiler ("sparsematrix_coo_data") (Nil :: MArray(T)) implements getter(0, "_data")
-      compiler ("sparsematrix_coo_rowindices") (Nil :: MArray(MInt)) implements getter(0, "_rowIndices")
-      compiler ("sparsematrix_coo_colindices") (Nil :: MArray(MInt)) implements getter(0, "_colIndices")
-      compiler ("sparsematrix_coo_set_numrows") (MInt :: MUnit, effect = write(0)) implements setter(0, "_numRows", ${$1})
-      compiler ("sparsematrix_coo_set_numcols") (MInt :: MUnit, effect = write(0)) implements setter(0, "_numCols", ${$1})
+      compiler ("sparsematrix_coo_rowindices") (Nil :: MArray(MLong)) implements getter(0, "_rowIndices")
+      compiler ("sparsematrix_coo_colindices") (Nil :: MArray(MLong)) implements getter(0, "_colIndices")
+      compiler ("sparsematrix_coo_set_numrows") (MLong :: MUnit, effect = write(0)) implements setter(0, "_numRows", ${$1})
+      compiler ("sparsematrix_coo_set_numcols") (MLong :: MUnit, effect = write(0)) implements setter(0, "_numCols", ${$1})
       compiler ("sparsematrix_coo_set_data") (MArray(T) :: MUnit, effect = write(0)) implements setter(0, "_data", ${$1})
-      compiler ("sparsematrix_coo_set_rowindices") (MArray(MInt) :: MUnit, effect = write(0)) implements setter(0, "_rowIndices", ${$1})
-      compiler ("sparsematrix_coo_set_colindices") (MArray(MInt) :: MUnit, effect = write(0)) implements setter(0, "_colIndices", ${$1})
-      compiler ("sparsematrix_coo_set_nnz") (MInt :: MUnit, effect = write(0)) implements setter(0, "_nnz", ${$1})
+      compiler ("sparsematrix_coo_set_rowindices") (MArray(MLong) :: MUnit, effect = write(0)) implements setter(0, "_rowIndices", ${$1})
+      compiler ("sparsematrix_coo_set_colindices") (MArray(MLong) :: MUnit, effect = write(0)) implements setter(0, "_colIndices", ${$1})
+      compiler ("sparsematrix_coo_set_nnz") (MLong :: MUnit, effect = write(0)) implements setter(0, "_nnz", ${$1})
 
-      infix ("update") ((MInt,MInt,T) :: MUnit, effect = write(0)) implements single ${
+      infix ("update") ((MLong,MLong,T) :: MUnit, effect = write(0)) implements single ${
         // duplicates are allowed, so don't bother checking if the value already exists
         // the last value in the array (furthest to the right is the true value)
 
@@ -142,7 +142,7 @@ trait SparseMatrixOps {
         $self.append($1,$2,$3,true)
       }
 
-      infix ("append") (MethodSignature(List(("i",MInt),("j",MInt),("y",T),("alwaysWrite",MBoolean,"unit(true)")), MUnit), effect = write(0)) implements single ${
+      infix ("append") (MethodSignature(List(("i",MLong),("j",MLong),("y",T),("alwaysWrite",MBoolean,"unit(true)")), MUnit), effect = write(0)) implements single ${
         val shouldAppend = alwaysWrite || (y != defaultValue[T])  // conditional evaluated at staging time
         if (shouldAppend) {
           sparsematrix_coo_ensureextra($self, 1)
@@ -158,21 +158,21 @@ trait SparseMatrixOps {
       infix ("<<|=") (SparseVector(T) :: MUnit, effect = write(0)) implements composite ${ $self.insertCol($self.numCols, $1) }
       // infix ("<<|=") (SparseMatrix(T) :: MUnit, effect = write(0)) implements composite ${ $self.insertAllCols($self.numCols, $1) }
 
-      infix ("insertRow") ((("pos",MInt),("y",SparseVector(T))) :: MUnit, effect=write(0)) implements single ${
+      infix ("insertRow") ((("pos",MLong),("y",SparseVector(T))) :: MUnit, effect=write(0)) implements single ${
         if ($self.size == 0) sparsematrix_coo_set_numcols($self, y.length)
         val rowIndices = sparsematrix_coo_rowindices($self)
-        for (i <- 0 until $self.nnz) {
+        for (i <- 0l until $self.nnz) {
           if (rowIndices(i) >= pos)
             array_update(rowIndices, i, rowIndices(i)+1)
         }
-        for (j <- 0 until y.nnz) {
+        for (j <- 0l until y.nnz) {
           $self.append(pos, sparsevector_raw_indices(y).apply(j), sparsevector_raw_data(y).apply(j))
         }
         sparsematrix_coo_set_numrows($self, $self.numRows+1)
       }
 
       // TODO
-      // infix ("insertAllRows") ((("pos",MInt),("xs",SparseMatrix(T))) :: MUnit, effect=write(0)) implements single ${
+      // infix ("insertAllRows") ((("pos",MLong),("xs",SparseMatrix(T))) :: MUnit, effect=write(0)) implements single ${
       //   if ($self.size == 0) sparsematrix_coo_set_numcols($self, xs.numCols)
       //   val rowIndices = sparsematrix_coo_rowindices($self)
       //   for (i <- 0 until $self.nnz) {
@@ -188,21 +188,21 @@ trait SparseMatrixOps {
       //   sparsematrix_coo_set_numrows($self, $self.numRows+xs.numRows)
       // }
 
-      infix ("insertCol") ((("pos",MInt),("y",SparseVector(T))) :: MUnit, effect=write(0)) implements single ${
+      infix ("insertCol") ((("pos",MLong),("y",SparseVector(T))) :: MUnit, effect=write(0)) implements single ${
         if ($self.size == 0) sparsematrix_coo_set_numrows($self, y.length)
         val colIndices = sparsematrix_coo_colindices($self)
-        for (i <- 0 until $self.nnz) {
+        for (i <- 0l until $self.nnz) {
           if (colIndices(i) >= pos)
             array_update(colIndices, i, colIndices(i)+1)
         }
-        for (i <- 0 until y.nnz) {
+        for (i <- 0l until y.nnz) {
           $self.append(sparsevector_raw_indices(y).apply(i), pos, sparsevector_raw_data(y).apply(i))
         }
         sparsematrix_coo_set_numcols($self, $self.numCols+1)
       }
 
       // TODO
-      // infix ("insertAllCols") ((("pos",MInt),("xs",SparseMatrix(T))) :: MUnit, effect=write(0)) implements single ${
+      // infix ("insertAllCols") ((("pos",MLong),("xs",SparseMatrix(T))) :: MUnit, effect=write(0)) implements single ${
       //   if ($self.size == 0) sparsematrix_coo_set_numrows($self, xs.numRows)
       //   val colIndices = sparsematrix_coo_colindices($self)
       //   for (i <- 0 until $self.nnz) {
@@ -218,17 +218,17 @@ trait SparseMatrixOps {
       //   sparsematrix_coo_set_numcols($self, $self.numCols+xs.numCols)
       // }
 
-      infix ("removeRow") (("pos",MInt) :: MUnit, effect = write(0)) implements composite ${ $self.removeRows($pos, 1) }
-      infix ("removeCol") (("pos",MInt) :: MUnit, effect = write(0)) implements composite ${ $self.removeCols($pos, 1) }
+      infix ("removeRow") (("pos",MLong) :: MUnit, effect = write(0)) implements composite ${ $self.removeRows($pos, 1) }
+      infix ("removeCol") (("pos",MLong) :: MUnit, effect = write(0)) implements composite ${ $self.removeCols($pos, 1) }
 
-      infix ("removeRows") ((("pos",MInt),("num",MInt)) :: MUnit, effect=write(0)) implements single ${
+      infix ("removeRows") ((("pos",MLong),("num",MLong)) :: MUnit, effect=write(0)) implements single ${
         // FIXME: this will also leave nnz in a bad state
         val rowIndices = sparsematrix_coo_rowindices($self)
-        for (i <- 0 until $self.nnz) {
+        for (i <- 0l until $self.nnz) {
           if (rowIndices(i) >= pos && rowIndices(i) < pos+num) {
             // remove by setting it to invalid
-            array_update(rowIndices, i, -1)
-            array_update(sparsematrix_coo_colindices($self), i, -1)
+            array_update(rowIndices, i, -1l)
+            array_update(sparsematrix_coo_colindices($self), i, -1l)
             // array_update(sparsematrix_coo_data($self), i, defaultValue[T])
           }
           else if (rowIndices(i) >= pos+num)
@@ -237,14 +237,14 @@ trait SparseMatrixOps {
         sparsematrix_coo_set_numrows($self, $self.numRows-num)
       }
 
-      infix ("removeCols") ((("pos",MInt),("num",MInt)) :: MUnit, effect=write(0)) implements single ${
+      infix ("removeCols") ((("pos",MLong),("num",MLong)) :: MUnit, effect=write(0)) implements single ${
         // FIXME: this will also leave nnz in a bad state
         val colIndices = sparsematrix_coo_colindices($self)
-        for (i <- 0 until $self.nnz) {
+        for (i <- 0l until $self.nnz) {
           if (colIndices(i) >= pos && colIndices(i) < pos+num) {
             // remove by setting it to invalid
-            array_update(colIndices, i, -1)
-            array_update(sparsematrix_coo_rowindices($self), i, -1)
+            array_update(colIndices, i, -1l)
+            array_update(sparsematrix_coo_rowindices($self), i, -1l)
             // array_update(sparsematrix_coo_data($self), i, defaultValue[T])
           }
           else if (colIndices(i) >= pos+num)
@@ -253,24 +253,24 @@ trait SparseMatrixOps {
         sparsematrix_coo_set_numcols($self, $self.numCols-num)
       }
 
-      compiler ("sparsematrix_coo_ensureextra") (("extra",MInt) :: MUnit, effect = write(0)) implements single ${
+      compiler ("sparsematrix_coo_ensureextra") (("extra",MLong) :: MUnit, effect = write(0)) implements single ${
         if (array_length(sparsematrix_coo_data($self)) - $self.nnz < extra) {
           sparsematrix_coo_realloc($self, $self.nnz + extra)
         }
       }
 
-      compiler ("sparsematrix_coo_realloc") (("minLen",MInt) :: MUnit, effect = write(0)) implements single ${
+      compiler ("sparsematrix_coo_realloc") (("minLen",MLong) :: MUnit, effect = write(0)) implements single ${
         val data = sparsematrix_coo_data($self)
         val rowIndices = sparsematrix_coo_rowindices($self)
         val colIndices = sparsematrix_coo_colindices($self)
-        var n = max(4, array_length(data) * 2)
+        var n = max(4l, array_length(data) * 2)
         while (n < minLen) n = n*2
         val outData = array_empty[T](n)
-        val outRowIndices = array_empty[Int](n)
-        val outColIndices = array_empty[Int](n)
-        array_copy(data, 0, outData, 0, $self.nnz)
-        array_copy(rowIndices, 0, outRowIndices, 0, $self.nnz)
-        array_copy(colIndices, 0, outColIndices, 0, $self.nnz)
+        val outRowIndices = array_empty[Long](n)
+        val outColIndices = array_empty[Long](n)
+        array_copy(data, 0l, outData, 0l, $self.nnz)
+        array_copy(rowIndices, 0l, outRowIndices, 0l, $self.nnz)
+        array_copy(colIndices, 0l, outColIndices, 0l, $self.nnz)
         sparsematrix_coo_set_data($self, outData.unsafeImmutable)
         sparsematrix_coo_set_rowindices($self, outRowIndices.unsafeImmutable)
         sparsematrix_coo_set_colindices($self, outColIndices.unsafeImmutable)
@@ -289,10 +289,10 @@ trait SparseMatrixOps {
           coo_to_csr_unordered($self)
       }
 
-      compiler ("coo_ordered") ((("nnz",MInt),("rowIndices",MArray(MInt)),("colIndices",MArray(MInt))) :: MBoolean) implements single ${
-        var i = 0
-        var lastRow = 0
-        var lastCol = 0
+      compiler ("coo_ordered") ((("nnz",MLong),("rowIndices",MArray(MLong)),("colIndices",MArray(MLong))) :: MBoolean) implements single ${
+        var i = 0l
+        var lastRow = 0l
+        var lastCol = 0l
         var outOfOrder = false
         while (i < nnz && !outOfOrder) {
           if (rowIndices(i) < lastRow)
@@ -312,10 +312,10 @@ trait SparseMatrixOps {
         val colIndices = sparsematrix_coo_colindices($self)
 
         val outData = array_empty[T]($self.nnz)
-        val outColIndices = array_empty[Int]($self.nnz)
-        val outRowPtr = array_empty[Int]($self.numRows+1)
+        val outColIndices = array_empty[Long]($self.nnz)
+        val outRowPtr = array_empty[Long]($self.numRows+1)
 
-        var i = 0
+        var i = 0l
         while (i < $self.nnz) {
           array_update(outColIndices, i, colIndices(i))
           array_update(outData, i, data(i))
@@ -337,7 +337,7 @@ trait SparseMatrixOps {
         val elems = SHashMap[Long,T]()
 
         // remove duplicates by preferring elements further to the right in the array
-        var i = 0
+        var i = 0l
         while (i < $self.nnz) {
           if (rowIndices(i) >= 0) {  // removed elements are represented by a negative index
             val key = (rowIndices(i).toLong << 32) + colIndices(i).toLong
@@ -347,18 +347,18 @@ trait SparseMatrixOps {
         }
         val indices = array_sort(elems.keys)
         val outData = array_empty[T](array_length(indices))
-        val outColIndices = array_empty[Int](array_length(indices))
-        val outRowPtr = array_empty[Int]($self.numRows+1)
+        val outColIndices = array_empty[Long](array_length(indices))
+        val outRowPtr = array_empty[Long]($self.numRows+1)
 
         // write to output in sorted order without duplicates
         // left-to-right, top-to-bottom
-        i = 0
+        i = 0l
         while (i < array_length(indices)) {
-          val colIdx = (indices(i) & unit(0x00000000ffffffffL)).toInt
+          val colIdx = (indices(i) & unit(0x00000000ffffffffL))
           array_update(outColIndices, i, colIdx)
           array_update(outData, i, elems(indices(i)))
 
-          val rowIdx = (indices(i) >>> 32).toInt
+          val rowIdx = (indices(i) >>> 32)
           array_update(outRowPtr, rowIdx+1, outRowPtr(rowIdx+1)+1)
           i += 1
         }
@@ -366,10 +366,10 @@ trait SparseMatrixOps {
         coo_to_csr_finalize($self,outData,outColIndices,outRowPtr)
       }
 
-      compiler ("coo_to_csr_finalize") ((("outData",MArray(T)),("outColIndices",MArray(MInt)),("outRowPtr",MArray(MInt))) :: SparseMatrix(T)) implements single ${
+      compiler ("coo_to_csr_finalize") ((("outData",MArray(T)),("outColIndices",MArray(MLong)),("outRowPtr",MArray(MLong))) :: SparseMatrix(T)) implements single ${
         // finalize rowPtr
-        var i = 0
-        var acc = 0
+        var i = 0l
+        var acc = 0l
         while (i < $self.numRows) {
           acc += outRowPtr(i)
           array_update(outRowPtr, i, acc)
@@ -410,37 +410,37 @@ trait SparseMatrixOps {
     val SparseMatrixBuildable = lookupTpe("SparseMatrixBuildable")
 
     // data fields
-    data(SparseMatrix, ("_numRows", MInt), ("_numCols", MInt), ("_data", MArray(T)), ("_colIndices",MArray(MInt)), ("_rowPtr",MArray(MInt)), ("_nnz",MInt))
+    data(SparseMatrix, ("_numRows", MLong), ("_numCols", MLong), ("_data", MArray(T)), ("_colIndices",MArray(MLong)), ("_rowPtr",MArray(MLong)), ("_nnz",MLong))
 
     // static methods
-    static (SparseMatrix) ("diag", T withBound TArith, (MInt, SparseVector(T)) :: SparseMatrix(T)) implements single ${
+    static (SparseMatrix) ("diag", T withBound TArith, (MLong, SparseVector(T)) :: SparseMatrix(T)) implements single ${
       val out = SparseMatrix[T]($0,$0)
       // updates append, and must be sequential
-      for (i <- 0 until $0) {
+      for (i <- 0l until $0) {
         out(i,i) = $1(i)
       }
       out.finish
     }
 
-    static (SparseMatrix) ("identity", Nil, (MInt,MInt) :: SparseMatrix(MDouble)) implements single ${
+    static (SparseMatrix) ("identity", Nil, (MLong,MLong) :: SparseMatrix(MDouble)) implements single ${
       val out = SparseMatrix[Double]($0,$0)
-      for (i <- 0 until $0) {
+      for (i <- 0l until $0) {
         out(i,i) = 1.0
       }
       out.finish
     }
 
-    static (SparseMatrix) ("identity", Nil, MInt :: SparseMatrix(MDouble)) implements redirect ${ SparseMatrix.identity($0,$0) }
+    static (SparseMatrix) ("identity", Nil, MLong :: SparseMatrix(MDouble)) implements redirect ${ SparseMatrix.identity($0,$0) }
 
     // helper
-    compiler (SparseMatrix) ("sparsematrix_csr_alloc_raw", T, MethodSignature(List(MInt, MInt, MArray(T), MArray(MInt), MArray(MInt), MInt), SparseMatrix(T))) implements allocates(SparseMatrix, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5})
+    compiler (SparseMatrix) ("sparsematrix_csr_alloc_raw", T, MethodSignature(List(MLong, MLong, MArray(T), MArray(MLong), MArray(MLong), MLong), SparseMatrix(T))) implements allocates(SparseMatrix, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5})
 
     // this is a Forge quirk -- we cannot allocate an instantiated generic type using "allocates"; instead we have to use redirect or composite
-    // static (SparseMatrix) ("zeros", Nil, (MInt,MInt) :: SparseMatrix(MDouble)) implements allocates (SparseMatrix(MDouble), ${$0}, ${$1}, ${array_empty[Double](unit(0))}, ${array_empty[Int](unit(0))}, ${array_empty[Int](unit(0))}, ${unit(0)})
-    static (SparseMatrix) ("zeros", Nil, (MInt,MInt) :: SparseMatrix(MDouble)) implements composite ${ sparsematrix_csr_alloc_raw($0, $1, array_empty[Double](unit(0)), array_empty[Int](unit(0)), array_empty[Int]($0+unit(1)), unit(0)) }
-    static (SparseMatrix) ("zerosf", Nil, (MInt,MInt) :: SparseMatrix(MFloat)) implements composite ${ sparsematrix_csr_alloc_raw($0, $1, array_empty[Float](unit(0)), array_empty[Int](unit(0)), array_empty[Int]($0+unit(1)), unit(0)) }
+    // static (SparseMatrix) ("zeros", Nil, (MLong,MLong) :: SparseMatrix(MDouble)) implements allocates (SparseMatrix(MDouble), ${$0}, ${$1}, ${array_empty[Double](unit(0))}, ${array_empty[Long](unit(0))}, ${array_empty[Long](unit(0))}, ${unit(0)})
+    static (SparseMatrix) ("zeros", Nil, (MLong,MLong) :: SparseMatrix(MDouble)) implements composite ${ sparsematrix_csr_alloc_raw($0, $1, array_empty[Double](unit(0l)), array_empty[Long](unit(0l)), array_empty[Long]($0+unit(1l)), unit(0l)) }
+    static (SparseMatrix) ("zerosf", Nil, (MLong,MLong) :: SparseMatrix(MFloat)) implements composite ${ sparsematrix_csr_alloc_raw($0, $1, array_empty[Float](unit(0l)), array_empty[Long](unit(0l)), array_empty[Long]($0+unit(1l)), unit(0l)) }
 
-    compiler (SparseMatrix) ("sparsematrix_rand", T, (("numRows",MInt),("numCols",MInt),("sparsity",MDouble),("gen",MInt ==> T)) :: SparseMatrix(T)) implements single ${
+    compiler (SparseMatrix) ("sparsematrix_rand", T, (("numRows",MLong),("numCols",MLong),("sparsity",MDouble),("gen",MLong ==> T)) :: SparseMatrix(T)) implements single ${
       val density = 1.0 - sparsity
       val size = numRows*numCols
       val nnz = floor(density*size)
@@ -450,18 +450,18 @@ trait SparseMatrixOps {
       for (i <- indices) {
         // FIXME: weird scalac errors (not found: value rowIndex) or (erroneous or inaccessible type) if we don't explicitly specify types here
         // val (rowIndex, colIndex) = unpack(matrix_shapeindex(i,numCols))
-        val t: Rep[Tup2[Int,Int]] = matrix_shapeindex(i,numCols)
-        val rowIndex: Rep[Int] = t._1
-        val colIndex: Rep[Int] = t._2
+        val t: Rep[Tup2[Long,Long]] = matrix_shapeindex(i,numCols)
+        val rowIndex: Rep[Long] = t._1
+        val colIndex: Rep[Long] = t._2
         out(rowIndex,colIndex) = gen(i)
       }
       out.finish
     }
 
-    static (SparseMatrix) ("rand", Nil, (MInt,MInt,MDouble) :: SparseMatrix(MDouble)) implements composite ${ sparsematrix_rand[Double]($0, $1, $2, i => random[Double]) }
-    static (SparseMatrix) ("randf", Nil, (MInt,MInt,MDouble) :: SparseMatrix(MFloat)) implements composite ${ sparsematrix_rand[Float]($0, $1, $2, i => random[Float]) }
-    static (SparseMatrix) ("randn", Nil, (MInt,MInt,MDouble) :: SparseMatrix(MDouble)) implements composite ${ sparsematrix_rand[Double]($0, $1, $2, i => randomGaussian) }
-    static (SparseMatrix) ("randnf", Nil, (MInt,MInt,MDouble) :: SparseMatrix(MFloat)) implements composite ${ sparsematrix_rand[Float]($0, $1, $2, i => randomGaussian.toFloat) }
+    static (SparseMatrix) ("rand", Nil, (MLong,MLong,MDouble) :: SparseMatrix(MDouble)) implements composite ${ sparsematrix_rand[Double]($0, $1, $2, i => random[Double]) }
+    static (SparseMatrix) ("randf", Nil, (MLong,MLong,MDouble) :: SparseMatrix(MFloat)) implements composite ${ sparsematrix_rand[Float]($0, $1, $2, i => random[Float]) }
+    static (SparseMatrix) ("randn", Nil, (MLong,MLong,MDouble) :: SparseMatrix(MDouble)) implements composite ${ sparsematrix_rand[Double]($0, $1, $2, i => randomGaussian) }
+    static (SparseMatrix) ("randnf", Nil, (MLong,MLong,MDouble) :: SparseMatrix(MFloat)) implements composite ${ sparsematrix_rand[Float]($0, $1, $2, i => randomGaussian.toFloat) }
 
     // these are provided for convenience for MATLAB-ians
     // direct (SparseMatrix) ("diag", T, SparseMatrix(T) :: SparseVector(T)) implements redirect ${ $0.diag }
@@ -473,27 +473,27 @@ trait SparseMatrixOps {
       /**
        * Accessors
        */
-      infix ("numRows") (Nil :: MInt) implements getter(0, "_numRows")
-      infix ("numCols") (Nil :: MInt) implements getter(0, "_numCols")
-      infix ("size") (Nil :: MInt) implements composite ${ $self.numRows*$self.numCols }
-      infix ("nnz") (Nil :: MInt) implements getter(0, "_nnz")
+      infix ("numRows") (Nil :: MLong) implements getter(0, "_numRows")
+      infix ("numCols") (Nil :: MLong) implements getter(0, "_numCols")
+      infix ("size") (Nil :: MLong) implements composite ${ $self.numRows*$self.numCols }
+      infix ("nnz") (Nil :: MLong) implements getter(0, "_nnz")
 
       infix ("nz") (MethodSignature(List(("asRow",MBoolean,"unit(true)")), DenseVector(T))) implements composite ${ densevector_alloc_raw($self.nnz, $1, sparsematrix_csr_data($self)) }
 
-      compiler ("sparsematrix_csr_find_offset") ((("row",MInt),("col",MInt)) :: MInt) implements single ${
+      compiler ("sparsematrix_csr_find_offset") ((("row",MLong),("col",MLong)) :: MLong) implements single ${
         val rowPtr = sparsematrix_csr_rowptr($self)
         val colIndices = sparsematrix_csr_colindices($self)
         // colIndices will be sorted between [rowPtr(row), rowPtr(row+1))
         bsearch(colIndices, rowPtr(row), rowPtr(row+1)-1, col)
       }
 
-      infix ("apply") ((MInt,MInt) :: T) implements composite ${
+      infix ("apply") ((MLong,MLong) :: T) implements composite ${
         val data = sparsematrix_csr_data($self)
         val offRaw = sparsematrix_csr_find_offset($self, $1, $2)
         if (offRaw > -1) data(offRaw) else defaultValue[T]
       }
 
-      infix ("apply") (MInt :: SparseVector(T)) implements redirect ${ $self.getRow($1) }
+      infix ("apply") (MLong :: SparseVector(T)) implements redirect ${ $self.getRow($1) }
 
       // orientation of IndexVector in apply does not matter - use getCols or 2d apply to slice cols. This is so we can use n::m syntax
       // to slice rows, while still retaining our convention of row vectors being the default (e.g. for matrix construction)
@@ -503,10 +503,10 @@ trait SparseMatrixOps {
       infix ("apply") ((("rows", IndexVector), ("cols", IndexVector)) :: SparseMatrix(T)) implements composite ${
         // could avoid the logical access and COO <-> CSR conversion here by slicing the underlying CSR array directly
         val out = SparseMatrix[T](rows.length, cols.length)
-        for (i <- 0 until rows.length) {
+        for (i <- 0l until rows.length) {
           // FIXME: weird scalac errors (not found: value row) if we don't explicitly specify type here
           val row: Rep[SparseVectorView[T]] = $self(rows(i))
-          for (j <- 0 until cols.length) {
+          for (j <- 0l until cols.length) {
             val col = cols(j)
             if (row(col) != defaultValue[T]) {
               out(i,j) = row(col)
@@ -529,8 +529,8 @@ trait SparseMatrixOps {
 
         val rowPtr = sparsematrix_csr_rowptr($self)
         val nnz = rowPtr(array_length(rowPtr)-1)
-        val rows = array_empty[Int](nnz)
-        var i = 0
+        val rows = array_empty[Long](nnz)
+        var i = 0l
         var oldRow = rowPtr(0)
         while (i < array_length(rowPtr)) {
           val nextRow = rowPtr(i)
@@ -555,47 +555,47 @@ trait SparseMatrixOps {
 
       // vview is a "contains" because the view points-to the matrix; dereferencing the view returns the matrix.
       // it is not "extracts", because it is not returning any matrix elements.
-      compiler ("sparsematrix_vview") ((MInt, MInt, MInt, MBoolean) :: SparseVectorView(T), aliasHint = contains(0)) implements single ${ SparseVectorView[T]($self, $1, $2, $3, $4) } // read-only right now
-      infix ("getRow") (MInt :: SparseVectorView(T)) implements composite ${ sparsematrix_vview($self, $1*$self.numCols, 1, $self.numCols, true) }
+      compiler ("sparsematrix_vview") ((MLong, MLong, MLong, MBoolean) :: SparseVectorView(T), aliasHint = contains(0)) implements single ${ SparseVectorView[T]($self, $1, $2, $3, $4) } // read-only right now
+      infix ("getRow") (MLong :: SparseVectorView(T)) implements composite ${ sparsematrix_vview($self, $1*$self.numCols, 1, $self.numCols, true) }
 
       infix ("getRows") (IndexVector :: SparseMatrix(T)) implements single ${
         // could avoid the COO <-> CSR conversion here by slicing the underlying CSR array directly
         val out = SparseMatrix[T]($1.length, $self.numCols)
-        for (i <- 0 until $1.length) {
+        for (i <- 0l until $1.length) {
           // FIXME: weird scalac errors (not found: value row) if we don't explicitly specify type here
           val row: Rep[SparseVectorView[T]] = $self($1(i))
           val rowData = row.nz
           val rowIndices = row.indices
-          for (j <- 0 until rowData.length) {
+          for (j <- 0l until rowData.length) {
             out(i,rowIndices(j)) = rowData(j)
           }
         }
         out.finish
       }
 
-      infix ("getCol") (MInt :: SparseVectorView(T)) implements composite ${ sparsematrix_vview($self, $1, $self.numCols, $self.numRows, false) }
+      infix ("getCol") (MLong :: SparseVectorView(T)) implements composite ${ sparsematrix_vview($self, $1, $self.numCols, $self.numRows, false) }
 
       infix ("getCols") (IndexVector :: SparseMatrix(T)) implements composite ${
         // could avoid the OO <-> CSR conversion here by slicing the underlying CSR array directly
         val out = SparseMatrix[T]($self.numRows, $1.length)
-        for (j <- 0 until $1.length) {
+        for (j <- 0l until $1.length) {
           val col = $self.getCol($1(j))
           val colData = col.nz
           val colIndices = col.indices
-          for (i <- 0 until colData.length) {
+          for (i <- 0l until colData.length) {
             out(colIndices(i),j) = colData(i)
           }
         }
         out.finish
       }
 
-      infix ("slice") ((("startRow",MInt),("endRow",MInt),("startCol",MInt),("endCol",MInt)) :: SparseMatrix(T)) implements redirect ${ $self(startRow::endRow, startCol::endCol) }
-      infix ("sliceRows") ((("start",MInt),("end",MInt)) :: SparseMatrix(T)) implements redirect ${ $self.getRows(start::end) }
-      infix ("sliceCols") ((("start",MInt),("end",MInt)) :: SparseMatrix(T)) implements redirect ${ $self.getCols(start::end) }
+      infix ("slice") ((("startRow",MLong),("endRow",MLong),("startCol",MLong),("endCol",MLong)) :: SparseMatrix(T)) implements redirect ${ $self(startRow::endRow, startCol::endCol) }
+      infix ("sliceRows") ((("start",MLong),("end",MLong)) :: SparseMatrix(T)) implements redirect ${ $self.getRows(start::end) }
+      infix ("sliceCols") ((("start",MLong),("end",MLong)) :: SparseMatrix(T)) implements redirect ${ $self.getCols(start::end) }
 
       // TODO
       // TODO: generalize the following (and the static diag above) to kth diagonal
-      // infix ("diag") (MethodSignature(List(("x",SparseMatrix(T)),("k",MInt,"unit(0)")), SparseVector(T)) implements composite ${
+      // infix ("diag") (MethodSignature(List(("x",SparseMatrix(T)),("k",MLong,"unit(0)")), SparseVector(T)) implements composite ${
       // infix ("diag") (Nil :: SparseVector(T)) implements composite ${
       //   val indices = (0::$self.numRows) { i => i + i*$self.numCols }
       //   indices.t map { i => sparsematrix_raw_apply($self,i) }
@@ -709,7 +709,7 @@ trait SparseMatrixOps {
           s = "[ ]"
         }
         else {
-          for (i <- 0 until $self.numRows) {
+          for (i <- 0l until $self.numRows) {
             val nnz = rowPtr(i+1) - rowPtr(i)
             if (nnz > 0) {
               s = s + "(" + i + "): "
@@ -729,19 +729,19 @@ trait SparseMatrixOps {
        * Data operations
        */
       compiler ("sparsematrix_csr_data") (Nil :: MArray(T)) implements getter(0, "_data")
-      compiler ("sparsematrix_csr_rowptr") (Nil :: MArray(MInt)) implements getter(0, "_rowPtr")
-      compiler ("sparsematrix_csr_colindices") (Nil :: MArray(MInt)) implements getter(0, "_colIndices")
-      compiler ("sparsematrix_csr_set_numrows") (MInt :: MUnit, effect = write(0)) implements setter(0, "_numRows", ${$1})
-      compiler ("sparsematrix_csr_set_numcols") (MInt :: MUnit, effect = write(0)) implements setter(0, "_numCols", ${$1})
+      compiler ("sparsematrix_csr_rowptr") (Nil :: MArray(MLong)) implements getter(0, "_rowPtr")
+      compiler ("sparsematrix_csr_colindices") (Nil :: MArray(MLong)) implements getter(0, "_colIndices")
+      compiler ("sparsematrix_csr_set_numrows") (MLong :: MUnit, effect = write(0)) implements setter(0, "_numRows", ${$1})
+      compiler ("sparsematrix_csr_set_numcols") (MLong :: MUnit, effect = write(0)) implements setter(0, "_numCols", ${$1})
       compiler ("sparsematrix_csr_set_data") (MArray(T) :: MUnit, effect = write(0)) implements setter(0, "_data", ${$1})
-      compiler ("sparsematrix_csr_set_rowptr") (MArray(MInt) :: MUnit, effect = write(0)) implements setter(0, "_rowPtr", ${$1})
-      compiler ("sparsematrix_csr_set_colindices") (MArray(MInt) :: MUnit, effect = write(0)) implements setter(0, "_colIndices", ${$1})
-      compiler ("sparsematrix_csr_set_nnz") (MInt :: MUnit, effect = write(0)) implements setter(0, "_nnz", ${$1})
+      compiler ("sparsematrix_csr_set_rowptr") (MArray(MLong) :: MUnit, effect = write(0)) implements setter(0, "_rowPtr", ${$1})
+      compiler ("sparsematrix_csr_set_colindices") (MArray(MLong) :: MUnit, effect = write(0)) implements setter(0, "_colIndices", ${$1})
+      compiler ("sparsematrix_csr_set_nnz") (MLong :: MUnit, effect = write(0)) implements setter(0, "_nnz", ${$1})
 
       // -- in case we want to allow mutation in the future
 
-      // infix ("update") ((("i",MInt), ("j",MInt), ("y",T)) :: MUnit, effect = write(0)) implements single ${
-      compiler ("sparematrix_csr_update") ((("i",MInt), ("j",MInt), ("y",T)) :: MUnit, effect = write(0)) implements single ${
+      // infix ("update") ((("i",MLong), ("j",MLong), ("y",T)) :: MUnit, effect = write(0)) implements single ${
+      compiler ("sparematrix_csr_update") ((("i",MLong), ("j",MLong), ("y",T)) :: MUnit, effect = write(0)) implements single ${
         if (Settings.verbose > 0) println("(performance warning): writing to a sparse matrix CSR representation")
 
         val offRaw = sparsematrix_csr_find_offset($self,i,j)
@@ -761,26 +761,26 @@ trait SparseMatrixOps {
         }
       }
 
-      compiler ("sparsematrix_csr_ensureextra") (("extra",MInt) :: MUnit, effect = write(0)) implements single ${
+      compiler ("sparsematrix_csr_ensureextra") (("extra",MLong) :: MUnit, effect = write(0)) implements single ${
         if (array_length(sparsematrix_csr_data($self)) - $self.nnz < extra) {
           sparsematrix_csr_realloc($self,$self.nnz + extra)
         }
       }
 
-      compiler ("sparsematrix_csr_realloc") (("minLen",MInt) :: MUnit, effect = write(0)) implements single ${
+      compiler ("sparsematrix_csr_realloc") (("minLen",MLong) :: MUnit, effect = write(0)) implements single ${
         val data = sparsematrix_csr_data($self)
         val colIndices = sparsematrix_csr_colindices($self)
-        var n = max(4, array_length(data) * 2)
+        var n = max(4l, array_length(data) * 2)
         while (n < minLen) n = n*2
         val outData = array_empty[T](n)
-        val outColIndices = array_empty[Int](n)
-        array_copy(data, 0, outData, 0, $self.nnz)
-        array_copy(colIndices, 0, outColIndices, 0, $self.nnz)
+        val outColIndices = array_empty[Long](n)
+        array_copy(data, 0l, outData, 0l, $self.nnz)
+        array_copy(colIndices, 0l, outColIndices, 0l, $self.nnz)
         sparsematrix_csr_set_data($self, outData.unsafeImmutable)
         sparsematrix_csr_set_colindices($self, outColIndices.unsafeImmutable)
       }
 
-      compiler ("sparsematrix_csr_insertspace") ((("pos",MInt), ("len", MInt)) :: MUnit, effect = write(0)) implements single ${
+      compiler ("sparsematrix_csr_insertspace") ((("pos",MLong), ("len", MLong)) :: MUnit, effect = write(0)) implements single ${
         sparsematrix_csr_ensureextra($self,len)
         val data = sparsematrix_csr_data($self)
         val colIndices = sparsematrix_csr_colindices($self)
@@ -806,14 +806,14 @@ trait SparseMatrixOps {
         val bColIndices = sparsematrix_csr_colindices($1)
         val bRowPtr = sparsematrix_csr_rowptr($1)
 
-        val outRowPtr = array_empty[Int]($self.numRows+1)
-        val outColIndices = array_empty[Int]($self.nnz + $1.nnz) // upper bound
+        val outRowPtr = array_empty[Long]($self.numRows+1)
+        val outColIndices = array_empty[Long]($self.nnz + $1.nnz) // upper bound
         val outData = array_empty[R]($self.nnz + $1.nnz)
 
         var aOldRow = aRowPtr(0)
         var bOldRow = bRowPtr(0)
-        var nnz = 0
-        var i = 0
+        var nnz = 0l
+        var i = 0l
 
         while (i < $self.numRows+1) {
           // union of colIndicesA and colIndicesB at row i
@@ -837,14 +837,14 @@ trait SparseMatrixOps {
         val bColIndices = sparsematrix_csr_colindices($1)
         val bRowPtr = sparsematrix_csr_rowptr($1)
 
-        val outRowPtr = array_empty[Int]($self.numRows+1)
-        val outColIndices = array_empty[Int]($self.nnz + $1.nnz) // upper bound
+        val outRowPtr = array_empty[Long]($self.numRows+1)
+        val outColIndices = array_empty[Long]($self.nnz + $1.nnz) // upper bound
         val outData = array_empty[R]($self.nnz + $1.nnz)
 
         var aOldRow = aRowPtr(0)
         var bOldRow = bRowPtr(0)
-        var nnz = 0
-        var i = 0
+        var nnz = 0l
+        var i = 0l
 
         while (i < $self.numRows+1) {
           // union of colIndicesA and colIndicesB at row i
@@ -954,7 +954,7 @@ trait SparseMatrixOps {
 
       infix ("foreachnz") ((T ==> MUnit) :: MUnit) implements composite ${ $self.nz.foreach($1) }
 
-      infix ("countnz") ((T ==> MBoolean) :: MInt) implements composite ${ $self.nz.count($1) }
+      infix ("countnz") ((T ==> MBoolean) :: MLong) implements composite ${ $self.nz.count($1) }
 
       infix ("mapRowsToVector") ((SparseVectorView(T) ==> R) :: SparseVector(R), addTpePars = R) implements single ${
         sparsevector_fromfunc($self.numRows, false, $self.nzRows, i => $1($self(i)))

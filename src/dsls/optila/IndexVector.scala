@@ -17,7 +17,7 @@ trait IndexVectorOps {
     // static methods
     static (IndexVector) ("apply", Nil, (MLong,MLong) :: IndexVector) implements redirect ${ IndexVector($0,$1,unit(true)) }
     static (IndexVector) ("apply", Nil, (MLong,MLong,MBoolean) :: IndexVector) implements
-      allocates(IndexVector, ${ array_empty_imm[Int](unit(0)) }, quotedArg(0), quotedArg(1), quotedArg(2), ${ unit(true) })
+      allocates(IndexVector, ${ array_empty_imm[Long](unit(0l)) }, quotedArg(0), quotedArg(1), quotedArg(2), ${ unit(true) })
 
     static (IndexVector) ("apply", Nil, DenseVector(MLong) :: IndexVector) implements redirect ${ IndexVector($0,$0.isRow) }
     static (IndexVector) ("apply", Nil, (DenseVector(MLong), MBoolean) :: IndexVector) implements
@@ -27,7 +27,7 @@ trait IndexVectorOps {
       allocates(IndexVector, quotedArg(0), ${ unit(0) }, ${ unit(0) }, quotedArg(1), ${ unit(false) })
 
     compiler (IndexVector) ("indexvector_copyarray", Nil, DenseVector(MLong) :: MArray(MLong)) implements composite ${
-      val d = array_empty[Int]($0.length)
+      val d = array_empty[Long]($0.length)
       $0.indices foreach { i => d(i) = $0(i) }
       d.unsafeImmutable
     }
@@ -46,7 +46,7 @@ trait IndexVectorOps {
 
       // unroll during staging to specialize for each arity
       val d = (2 to arity).map(k => "dims._" + k)
-      val s1 = d.scanRight("1")((a,b) => a + "*" + b)
+      val s1 = d.scanRight("1l")((a,b) => a + "*" + b)
 
       val s2 = s1.zipWithIndex.map(t => "inds._"+(t._2+1) + "*" + t._1)
       val retFlat = s2.mkString(" + ")
@@ -129,11 +129,11 @@ trait IndexVectorOps {
 
       // naming is by convention here, a little brittle. would it be better to put this in extern?
       val grpName = if (Config.fastCompile) "$Flat" else "DenseVector"
-      fimplicit ("chainIndexToDenseOps") (Nil :: ephemeralTpe(grpName+"DenseVectorOpsCls[Int]", stage = now)) implements composite ${
+      fimplicit ("chainIndexToDenseOps") (Nil :: ephemeralTpe(grpName+"DenseVectorOpsCls[Long]", stage = now)) implements composite ${
         repTo\${grpName}DenseVectorOpsCls(indexToDense($self))
       }
-      fimplicit ("chainIndexToDenseIntOps") (Nil :: ephemeralTpe(grpName+"DenseVectorIntOpsCls", stage = now)) implements composite ${
-        repTo\${grpName}DenseVectorIntOpsCls(indexToDense($self))
+      fimplicit ("chainIndexToDenseLongOps") (Nil :: ephemeralTpe(grpName+"DenseVectorLongOpsCls", stage = now)) implements composite ${
+        repTo\${grpName}DenseVectorLongOpsCls(indexToDense($self))
       }
 
       compiler ("indexvector_illegalalloc") (MLong :: MNothing) implements composite ${ fatal("IndexVectors cannot be allocated from a parallel op") }

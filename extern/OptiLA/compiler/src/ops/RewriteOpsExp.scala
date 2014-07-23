@@ -165,17 +165,17 @@ trait RewriteOpsExp extends RewriteOps with Primitive2OpsExp with DenseVectorOps
     case _ => super.densevectorview_isrow(x)  
   }
   
-  def dense_vectorview_optimize_apply[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Int])(implicit ctx: SourceContext): Option[Exp[A]] = x match {
+  def dense_vectorview_optimize_apply[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Long])(implicit ctx: SourceContext): Option[Exp[A]] = x match {
     case Def(DenseMatrix_Vview(m, start, stride, l, r)) => Some(densematrix_raw_apply(m,start + n*stride))
     case Def(s@Reflect(DenseMatrix_Vview(m, start, stride, l, r), u, es)) if context.contains(s) => Some(densematrix_raw_apply(m,start + n*stride))
     case _ => None
   }
   
-  override def densevectorview_apply[A:Manifest](x: Exp[DenseVectorView[A]], n: Exp[Int])(implicit ctx: SourceContext) = { 
+  override def densevectorview_apply[A:Manifest](x: Exp[DenseVectorView[A]], n: Exp[Long])(implicit ctx: SourceContext) = { 
     dense_vectorview_optimize_apply(x.asInstanceOf[Exp[DeliteCollection[A]]],n) getOrElse super.densevectorview_apply(x,n)
   }
   
-  override def dc_apply[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Int])(implicit ctx: SourceContext) = { 
+  override def dc_apply[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Long])(implicit ctx: SourceContext) = { 
     dense_vectorview_optimize_apply(x,n) getOrElse super.dc_apply(x,n)
   }
 

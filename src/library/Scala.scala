@@ -69,15 +69,19 @@ trait ScalaOps {
     impl (toLong) (codegen($cala, ${ $0.toLong }))
 
     for (g <- List(cuda, cpp)) {
-      impl (toInt) (codegen(g, ${ (int) $0 }))
+      impl (toInt) (codegen(g, ${ (int32_t) $0 }))
       impl (toFloat) (codegen(g, ${ (float) $0 }))
       impl (toDouble) (codegen(g, ${ (double) $0 }))
-      impl (toLong) (codegen(g, ${ (long) $0 }))
+      impl (toLong) (codegen(g, ${ (int64_t) $0 }))
     }
 
     fimplicit (Prim) ("repInt2ToRepDouble", Nil, MInt :: MDouble) implements composite ${ $0.toDouble }
     fimplicit (Prim) ("repInt2ToRepFloat", Nil, MInt :: MFloat) implements composite ${ $0.toFloat }
+    fimplicit (Prim) ("repInt2ToRepLong", Nil, MInt :: MLong) implements composite ${ $0.toLong }
+    fimplicit (Prim) ("repLong2ToRepDouble", Nil, MLong :: MDouble) implements composite ${ $0.toDouble }
+    fimplicit (Prim) ("repLong2ToRepFloat", Nil, MLong :: MFloat) implements composite ${ $0.toFloat }
     fimplicit (Prim) ("repFloat2ToRepDouble", Nil, MFloat :: MDouble) implements composite ${ $0.toDouble }
+    fimplicit (Prim) ("chainIntToRepLong", Nil, CInt :: MLong, ("conv", CInt ==> CLong)) implements redirect ${ unit(conv($0)) }
 
     // specialized versions for primitives
     // the forge_ prefix is to avoid conflicting with LMS primitive ops
@@ -108,17 +112,15 @@ trait ScalaOps {
     val long_minus = direct (Prim) ("forge_long_minus", Nil, (MLong, MLong) :: MLong)
     val long_times = direct (Prim) ("forge_long_times", Nil, (MLong,MLong) :: MLong)
     val long_divide = direct (Prim) ("forge_long_divide", Nil, (MLong,MLong) :: MLong)
-    val long_divide_double = direct (Prim) ("forge_long_divide_double", Nil, (MLong,MDouble) :: MDouble)
     val long_binary_and = direct (Prim) ("forge_long_and", Nil, (MLong,MLong) :: MLong)
     val long_binary_or = direct (Prim) ("forge_long_or", Nil, (MLong,MLong) :: MLong)
     val long_binary_xor = direct (Prim) ("forge_long_xor", Nil, (MLong,MLong) :: MLong)
     val long_shift_right_unsigned = direct (Prim) ("forge_long_shift_right_unsigned", Nil, (MLong,MInt) :: MLong)
     val long_shift_right = direct (Prim) ("forge_long_shift_right", Nil, (MLong,MInt) :: MLong)
     val long_shift_left = direct (Prim) ("forge_long_shift_left", Nil, (MLong,MInt) :: MLong)
+    val long_mod = infix (Prim) ("%", Nil, (MLong,MLong) :: MLong)
     val long_bitwise_not = infix (Prim) ("unary_~", Nil, MLong :: MLong)
     impl (long_shift_right_unsigned) (codegen($cala, ${ $0 >>> $1 }))
-    impl (long_shift_right) (codegen($cala, ${ $0 >> $1 }))
-    impl (long_shift_left) (codegen($cala, ${ $0 << $1 }))
 
     for (g <- List($cala, cuda, cpp)) {
       impl (int_plus) (codegen(g, ${$0 + $1}))
@@ -146,135 +148,156 @@ trait ScalaOps {
       impl (long_minus) (codegen(g, ${$0 - $1}))
       impl (long_times) (codegen(g, ${$0 * $1}))
       impl (long_divide) (codegen(g, ${$0 / $1}))
-      impl (long_divide_double) (codegen(g, ${$0 / $1}))
       impl (long_binary_and) (codegen(g, ${$0 & $1}))
       impl (long_binary_or) (codegen(g, ${$0 | $1}))
       impl (long_binary_xor) (codegen(g, ${$0 ^ $1}))
+      impl (long_shift_left) (codegen(g, ${ $0 << $1 }))
+      impl (long_shift_right) (codegen(g, ${ $0 >> $1 }))
+      impl (long_mod) (codegen(g, ${$0 % $1}))
       impl (long_bitwise_not) (codegen(g, ${~$0}))
     }
 
     // infix (Prim) ("+", Nil, enumerate(CInt,MInt,CFloat,MFloat,CDouble,MDouble)) implements codegen($cala, quotedArg(0) + " + " + quotedArg(1))
-    infix (Prim) ("+", Nil, (CInt,MInt) :: MInt) implements redirect ${ forge_int_plus(unit($0),$1) }
-    infix (Prim) ("+", Nil, (CInt,MFloat) :: MFloat) implements redirect ${ forge_float_plus(unit($0.toFloat),$1) }
-    infix (Prim) ("+", Nil, (CInt,MDouble) :: MDouble) implements redirect ${ forge_double_plus(unit($0.toDouble),$1) }
-    infix (Prim) ("+", Nil, (CFloat,MInt) :: MFloat) implements redirect ${ forge_float_plus(unit($0),$1.toFloat) }
+    infix (Prim) ("+", Nil, (CLong,MLong) :: MLong) implements redirect ${ forge_long_plus(unit($0),$1) }
+    infix (Prim) ("+", Nil, (CLong,MFloat) :: MFloat) implements redirect ${ forge_float_plus(unit($0.toFloat),$1) }
+    infix (Prim) ("+", Nil, (CLong,MDouble) :: MDouble) implements redirect ${ forge_double_plus(unit($0.toDouble),$1) }
+    infix (Prim) ("+", Nil, (CFloat,MLong) :: MFloat) implements redirect ${ forge_float_plus(unit($0),$1.toFloat) }
     infix (Prim) ("+", Nil, (CFloat,MFloat) :: MFloat) implements redirect ${ forge_float_plus(unit($0),$1) }
     infix (Prim) ("+", Nil, (CFloat,MDouble) :: MDouble) implements redirect ${ forge_double_plus(unit($0.toDouble),$1) }
-    infix (Prim) ("+", Nil, (CDouble,MInt) :: MDouble) implements redirect ${ forge_double_plus(unit($0),$1.toDouble) }
+    infix (Prim) ("+", Nil, (CDouble,MLong) :: MDouble) implements redirect ${ forge_double_plus(unit($0),$1.toDouble) }
     infix (Prim) ("+", Nil, (CDouble,MFloat) :: MDouble) implements redirect ${ forge_double_plus(unit($0),$1.toDouble) }
     infix (Prim) ("+", Nil, (CDouble,MDouble) :: MDouble) implements redirect ${ forge_double_plus(unit($0),$1) }
-    infix (Prim) ("+", Nil, (MInt,CInt) :: MInt) implements redirect ${ forge_int_plus($0,unit($1)) }
-    infix (Prim) ("+", Nil, (MInt,CFloat) :: MFloat) implements redirect ${ forge_float_plus($0.toFloat,unit($1)) }
-    infix (Prim) ("+", Nil, (MInt,CDouble) :: MDouble) implements redirect ${ forge_double_plus($0.toDouble,unit($1)) }
-    infix (Prim) ("+", Nil, (MFloat,CInt) :: MFloat) implements redirect ${ forge_float_plus($0,unit($1.toFloat)) }
+    infix (Prim) ("+", Nil, (MLong,CLong) :: MLong) implements redirect ${ forge_long_plus($0,unit($1)) }
+    infix (Prim) ("+", Nil, (MLong,CFloat) :: MFloat) implements redirect ${ forge_float_plus($0.toFloat,unit($1)) }
+    infix (Prim) ("+", Nil, (MLong,CDouble) :: MDouble) implements redirect ${ forge_double_plus($0.toDouble,unit($1)) }
+    infix (Prim) ("+", Nil, (MFloat,CLong) :: MFloat) implements redirect ${ forge_float_plus($0,unit($1.toFloat)) }
     infix (Prim) ("+", Nil, (MFloat,CFloat) :: MFloat) implements redirect ${ forge_float_plus($0,unit($1)) }
     infix (Prim) ("+", Nil, (MFloat,CDouble) :: MDouble) implements redirect ${ forge_double_plus($0.toDouble,unit($1)) }
-    infix (Prim) ("+", Nil, (MDouble,CInt) :: MDouble) implements redirect ${ forge_double_plus($0,unit($1.toDouble)) }
+    infix (Prim) ("+", Nil, (MDouble,CLong) :: MDouble) implements redirect ${ forge_double_plus($0,unit($1.toDouble)) }
     infix (Prim) ("+", Nil, (MDouble,CFloat) :: MDouble) implements redirect ${ forge_double_plus($0.toDouble,unit($1)) }
     infix (Prim) ("+", Nil, (MDouble,CDouble) :: MDouble) implements redirect ${ forge_double_plus($0,unit($1)) }
-    infix (Prim) ("+", Nil, (MInt,MInt) :: MInt) implements redirect ${ forge_int_plus($0,$1) }
-    infix (Prim) ("+", Nil, (MInt,MFloat) :: MFloat) implements redirect ${ forge_float_plus($0.toFloat,$1) }
-    infix (Prim) ("+", Nil, (MInt,MDouble) :: MDouble) implements redirect ${ forge_double_plus($0.toDouble,$1) }
-    infix (Prim) ("+", Nil, (MFloat,MInt) :: MFloat) implements redirect ${ forge_float_plus($0,$1.toFloat) }
+    infix (Prim) ("+", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_plus($0,$1) }
+    infix (Prim) ("+", Nil, (MLong,MFloat) :: MFloat) implements redirect ${ forge_float_plus($0.toFloat,$1) }
+    infix (Prim) ("+", Nil, (MLong,MDouble) :: MDouble) implements redirect ${ forge_double_plus($0.toDouble,$1) }
+    infix (Prim) ("+", Nil, (MFloat,MLong) :: MFloat) implements redirect ${ forge_float_plus($0,$1.toFloat) }
     infix (Prim) ("+", Nil, (MFloat,MFloat) :: MFloat) implements redirect ${ forge_float_plus($0,$1) }
     infix (Prim) ("+", Nil, (MFloat,MDouble) :: MDouble) implements redirect ${ forge_double_plus($0.toDouble,$1) }
-    infix (Prim) ("+", Nil, (MDouble,MInt) :: MDouble) implements redirect ${ forge_double_plus($0,$1.toDouble) }
+    infix (Prim) ("+", Nil, (MDouble,MLong) :: MDouble) implements redirect ${ forge_double_plus($0,$1.toDouble) }
     infix (Prim) ("+", Nil, (MDouble,MFloat) :: MDouble) implements redirect ${ forge_double_plus($0,$1.toDouble) }
     infix (Prim) ("+", Nil, (MDouble,MDouble) :: MDouble) implements redirect ${ forge_double_plus($0,$1) }
 
-    infix (Prim) ("-", Nil, (CInt,MInt) :: MInt) implements redirect ${ forge_int_minus(unit($0),$1) }
-    infix (Prim) ("-", Nil, (CInt,MFloat) :: MFloat) implements redirect ${ forge_float_minus(unit($0.toFloat),$1) }
-    infix (Prim) ("-", Nil, (CInt,MDouble) :: MDouble) implements redirect ${ forge_double_minus(unit($0.toDouble),$1) }
-    infix (Prim) ("-", Nil, (CFloat,MInt) :: MFloat) implements redirect ${ forge_float_minus(unit($0),$1.toFloat) }
+    infix (Prim) ("-", Nil, (CLong,MLong) :: MLong) implements redirect ${ forge_long_minus(unit($0),$1) }
+    infix (Prim) ("-", Nil, (CLong,MFloat) :: MFloat) implements redirect ${ forge_float_minus(unit($0.toFloat),$1) }
+    infix (Prim) ("-", Nil, (CLong,MDouble) :: MDouble) implements redirect ${ forge_double_minus(unit($0.toDouble),$1) }
+    infix (Prim) ("-", Nil, (CFloat,MLong) :: MFloat) implements redirect ${ forge_float_minus(unit($0),$1.toFloat) }
     infix (Prim) ("-", Nil, (CFloat,MFloat) :: MFloat) implements redirect ${ forge_float_minus(unit($0),$1) }
     infix (Prim) ("-", Nil, (CFloat,MDouble) :: MDouble) implements redirect ${ forge_double_minus(unit($0.toDouble),$1) }
-    infix (Prim) ("-", Nil, (CDouble,MInt) :: MDouble) implements redirect ${ forge_double_minus(unit($0),$1.toDouble) }
+    infix (Prim) ("-", Nil, (CDouble,MLong) :: MDouble) implements redirect ${ forge_double_minus(unit($0),$1.toDouble) }
     infix (Prim) ("-", Nil, (CDouble,MFloat) :: MDouble) implements redirect ${ forge_double_minus(unit($0),$1.toDouble) }
     infix (Prim) ("-", Nil, (CDouble,MDouble) :: MDouble) implements redirect ${ forge_double_minus(unit($0),$1) }
-    infix (Prim) ("-", Nil, (MInt,CInt) :: MInt) implements redirect ${ forge_int_minus($0,unit($1)) }
-    infix (Prim) ("-", Nil, (MInt,CFloat) :: MFloat) implements redirect ${ forge_float_minus($0.toFloat,unit($1)) }
-    infix (Prim) ("-", Nil, (MInt,CDouble) :: MDouble) implements redirect ${ forge_double_minus($0.toDouble,unit($1)) }
-    infix (Prim) ("-", Nil, (MFloat,CInt) :: MFloat) implements redirect ${ forge_float_minus($0,unit($1.toFloat)) }
+    infix (Prim) ("-", Nil, (MLong,CLong) :: MLong) implements redirect ${ forge_long_minus($0,unit($1)) }
+    infix (Prim) ("-", Nil, (MLong,CFloat) :: MFloat) implements redirect ${ forge_float_minus($0.toFloat,unit($1)) }
+    infix (Prim) ("-", Nil, (MLong,CDouble) :: MDouble) implements redirect ${ forge_double_minus($0.toDouble,unit($1)) }
+    infix (Prim) ("-", Nil, (MFloat,CLong) :: MFloat) implements redirect ${ forge_float_minus($0,unit($1.toFloat)) }
     infix (Prim) ("-", Nil, (MFloat,CFloat) :: MFloat) implements redirect ${ forge_float_minus($0,unit($1)) }
     infix (Prim) ("-", Nil, (MFloat,CDouble) :: MDouble) implements redirect ${ forge_double_minus($0.toDouble,unit($1)) }
-    infix (Prim) ("-", Nil, (MDouble,CInt) :: MDouble) implements redirect ${ forge_double_minus($0,unit($1.toDouble)) }
+    infix (Prim) ("-", Nil, (MDouble,CLong) :: MDouble) implements redirect ${ forge_double_minus($0,unit($1.toDouble)) }
     infix (Prim) ("-", Nil, (MDouble,CFloat) :: MDouble) implements redirect ${ forge_double_minus($0.toDouble,unit($1)) }
     infix (Prim) ("-", Nil, (MDouble,CDouble) :: MDouble) implements redirect ${ forge_double_minus($0,unit($1)) }
-    infix (Prim) ("-", Nil, (MInt,MInt) :: MInt) implements redirect ${ forge_int_minus($0,$1) }
-    infix (Prim) ("-", Nil, (MInt,MFloat) :: MFloat) implements redirect ${ forge_float_minus($0.toFloat,$1) }
-    infix (Prim) ("-", Nil, (MInt,MDouble) :: MDouble) implements redirect ${ forge_double_minus($0.toDouble,$1) }
-    infix (Prim) ("-", Nil, (MFloat,MInt) :: MFloat) implements redirect ${ forge_float_minus($0,$1.toFloat) }
+    infix (Prim) ("-", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_minus($0,$1) }
+    infix (Prim) ("-", Nil, (MLong,MFloat) :: MFloat) implements redirect ${ forge_float_minus($0.toFloat,$1) }
+    infix (Prim) ("-", Nil, (MLong,MDouble) :: MDouble) implements redirect ${ forge_double_minus($0.toDouble,$1) }
+    infix (Prim) ("-", Nil, (MFloat,MLong) :: MFloat) implements redirect ${ forge_float_minus($0,$1.toFloat) }
     infix (Prim) ("-", Nil, (MFloat,MFloat) :: MFloat) implements redirect ${ forge_float_minus($0,$1) }
     infix (Prim) ("-", Nil, (MFloat,MDouble) :: MDouble) implements redirect ${ forge_double_minus($0.toDouble,$1) }
-    infix (Prim) ("-", Nil, (MDouble,MInt) :: MDouble) implements redirect ${ forge_double_minus($0,$1.toDouble) }
+    infix (Prim) ("-", Nil, (MDouble,MLong) :: MDouble) implements redirect ${ forge_double_minus($0,$1.toDouble) }
     infix (Prim) ("-", Nil, (MDouble,MFloat) :: MDouble) implements redirect ${ forge_double_minus($0,$1.toDouble) }
     infix (Prim) ("-", Nil, (MDouble,MDouble) :: MDouble) implements redirect ${ forge_double_minus($0,$1) }
 
-    infix (Prim) ("unary_-", Nil, MInt :: MInt) implements redirect ${ unit(-1)*$0 }
-    infix (Prim) ("unary_-", Nil, MLong :: MLong) implements redirect ${ unit(-1L)*$0 }
-    infix (Prim) ("unary_-", Nil, MFloat :: MFloat) implements redirect ${ unit(-1f)*$0 }
-    infix (Prim) ("unary_-", Nil, MDouble :: MDouble) implements redirect ${ unit(-1)*$0 }
-    infix (Prim) ("*", Nil, (CInt,MInt) :: MInt) implements redirect ${ forge_int_times(unit($0),$1) }
-    infix (Prim) ("*", Nil, (CInt,MFloat) :: MFloat) implements redirect ${ forge_float_times(unit($0.toFloat),$1) }
-    infix (Prim) ("*", Nil, (CInt,MDouble) :: MDouble) implements redirect ${ forge_double_times(unit($0.toDouble),$1) }
-    infix (Prim) ("*", Nil, (CFloat,MInt) :: MFloat) implements redirect ${ forge_float_times(unit($0),$1.toFloat) }
+    infix (Prim) ("unary_-", Nil, MInt :: MInt) implements redirect ${ forge_int_times(unit(-1),$0) }
+    infix (Prim) ("unary_-", Nil, MLong :: MLong) implements redirect ${ forge_long_times(unit(-1L),$0) }
+    infix (Prim) ("unary_-", Nil, MFloat :: MFloat) implements redirect ${ forge_float_times(unit(-1f),$0) }
+    infix (Prim) ("unary_-", Nil, MDouble :: MDouble) implements redirect ${ forge_double_times(unit(-1.0),$0) }
+    infix (Prim) ("*", Nil, (CLong,MLong) :: MLong) implements redirect ${ forge_long_times(unit($0),$1) }
+    infix (Prim) ("*", Nil, (CLong,MFloat) :: MFloat) implements redirect ${ forge_float_times(unit($0.toFloat),$1) }
+    infix (Prim) ("*", Nil, (CLong,MDouble) :: MDouble) implements redirect ${ forge_double_times(unit($0.toDouble),$1) }
+    infix (Prim) ("*", Nil, (CFloat,MLong) :: MFloat) implements redirect ${ forge_float_times(unit($0),$1.toFloat) }
     infix (Prim) ("*", Nil, (CFloat,MFloat) :: MFloat) implements redirect ${ forge_float_times(unit($0),$1) }
     infix (Prim) ("*", Nil, (CFloat,MDouble) :: MDouble) implements redirect ${ forge_double_times(unit($0.toDouble),$1) }
-    infix (Prim) ("*", Nil, (CDouble,MInt) :: MDouble) implements redirect ${ forge_double_times(unit($0),$1.toDouble) }
+    infix (Prim) ("*", Nil, (CDouble,MLong) :: MDouble) implements redirect ${ forge_double_times(unit($0),$1.toDouble) }
     infix (Prim) ("*", Nil, (CDouble,MFloat) :: MDouble) implements redirect ${ forge_double_times(unit($0),$1.toDouble) }
     infix (Prim) ("*", Nil, (CDouble,MDouble) :: MDouble) implements redirect ${ forge_double_times(unit($0),$1) }
-    infix (Prim) ("*", Nil, (MInt,CInt) :: MInt) implements redirect ${ forge_int_times($0,unit($1)) }
-    infix (Prim) ("*", Nil, (MInt,CFloat) :: MFloat) implements redirect ${ forge_float_times($0.toFloat,unit($1)) }
-    infix (Prim) ("*", Nil, (MInt,CDouble) :: MDouble) implements redirect ${ forge_double_times($0.toDouble,unit($1)) }
-    infix (Prim) ("*", Nil, (MFloat,CInt) :: MFloat) implements redirect ${ forge_float_times($0,unit($1.toFloat)) }
+    infix (Prim) ("*", Nil, (MLong,CLong) :: MLong) implements redirect ${ forge_long_times($0,unit($1)) }
+    infix (Prim) ("*", Nil, (MLong,CFloat) :: MFloat) implements redirect ${ forge_float_times($0.toFloat,unit($1)) }
+    infix (Prim) ("*", Nil, (MLong,CDouble) :: MDouble) implements redirect ${ forge_double_times($0.toDouble,unit($1)) }
+    infix (Prim) ("*", Nil, (MFloat,CLong) :: MFloat) implements redirect ${ forge_float_times($0,unit($1.toFloat)) }
     infix (Prim) ("*", Nil, (MFloat,CFloat) :: MFloat) implements redirect ${ forge_float_times($0,unit($1)) }
     infix (Prim) ("*", Nil, (MFloat,CDouble) :: MDouble) implements redirect ${ forge_double_times($0.toDouble,unit($1)) }
-    infix (Prim) ("*", Nil, (MDouble,CInt) :: MDouble) implements redirect ${ forge_double_times($0,unit($1.toDouble)) }
+    infix (Prim) ("*", Nil, (MDouble,CLong) :: MDouble) implements redirect ${ forge_double_times($0,unit($1.toDouble)) }
     infix (Prim) ("*", Nil, (MDouble,CFloat) :: MDouble) implements redirect ${ forge_double_times($0.toDouble,unit($1)) }
     infix (Prim) ("*", Nil, (MDouble,CDouble) :: MDouble) implements redirect ${ forge_double_times($0,unit($1)) }
-    infix (Prim) ("*", Nil, (MInt,MInt) :: MInt) implements redirect ${ forge_int_times($0,$1) }
-    infix (Prim) ("*", Nil, (MInt,MFloat) :: MFloat) implements redirect ${ forge_float_times($0.toFloat,$1) }
-    infix (Prim) ("*", Nil, (MInt,MDouble) :: MDouble) implements redirect ${ forge_double_times($0.toDouble,$1) }
-    infix (Prim) ("*", Nil, (MFloat,MInt) :: MFloat) implements redirect ${ forge_float_times($0,$1.toFloat) }
+    infix (Prim) ("*", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_times($0,$1) }
+    infix (Prim) ("*", Nil, (MLong,MFloat) :: MFloat) implements redirect ${ forge_float_times($0.toFloat,$1) }
+    infix (Prim) ("*", Nil, (MLong,MDouble) :: MDouble) implements redirect ${ forge_double_times($0.toDouble,$1) }
+    infix (Prim) ("*", Nil, (MFloat,MLong) :: MFloat) implements redirect ${ forge_float_times($0,$1.toFloat) }
     infix (Prim) ("*", Nil, (MFloat,MFloat) :: MFloat) implements redirect ${ forge_float_times($0,$1) }
     infix (Prim) ("*", Nil, (MFloat,MDouble) :: MDouble) implements redirect ${ forge_double_times($0.toDouble,$1) }
-    infix (Prim) ("*", Nil, (MDouble,MInt) :: MDouble) implements redirect ${ forge_double_times($0,$1.toDouble) }
+    infix (Prim) ("*", Nil, (MDouble,MLong) :: MDouble) implements redirect ${ forge_double_times($0,$1.toDouble) }
     infix (Prim) ("*", Nil, (MDouble,MFloat) :: MDouble) implements redirect ${ forge_double_times($0,$1.toDouble) }
     infix (Prim) ("*", Nil, (MDouble,MDouble) :: MDouble) implements redirect ${ forge_double_times($0,$1) }
 
-    infix (Prim) ("/", Nil, (CInt,MInt) :: MInt) implements redirect ${ forge_int_divide(unit($0),$1) }
-    infix (Prim) ("/", Nil, (CInt,MFloat) :: MFloat) implements redirect ${ forge_float_divide(unit($0.toFloat),$1) }
-    infix (Prim) ("/", Nil, (CInt,MDouble) :: MDouble) implements redirect ${ forge_double_divide(unit($0.toDouble),$1) }
-    infix (Prim) ("/", Nil, (CFloat,MInt) :: MFloat) implements redirect ${ forge_float_divide(unit($0),$1.toFloat) }
+    infix (Prim) ("/", Nil, (CLong,MLong) :: MLong) implements redirect ${ forge_long_divide(unit($0),$1) }
+    infix (Prim) ("/", Nil, (CLong,MFloat) :: MFloat) implements redirect ${ forge_float_divide(unit($0.toFloat),$1) }
+    infix (Prim) ("/", Nil, (CLong,MDouble) :: MDouble) implements redirect ${ forge_double_divide(unit($0.toDouble),$1) }
+    infix (Prim) ("/", Nil, (CFloat,MLong) :: MFloat) implements redirect ${ forge_float_divide(unit($0),$1.toFloat) }
     infix (Prim) ("/", Nil, (CFloat,MFloat) :: MFloat) implements redirect ${ forge_float_divide(unit($0),$1) }
     infix (Prim) ("/", Nil, (CFloat,MDouble) :: MDouble) implements redirect ${ forge_double_divide(unit($0.toDouble),$1) }
-    infix (Prim) ("/", Nil, (CDouble,MInt) :: MDouble) implements redirect ${ forge_double_divide(unit($0),$1.toDouble) }
+    infix (Prim) ("/", Nil, (CDouble,MLong) :: MDouble) implements redirect ${ forge_double_divide(unit($0),$1.toDouble) }
     infix (Prim) ("/", Nil, (CDouble,MFloat) :: MDouble) implements redirect ${ forge_double_divide(unit($0),$1.toDouble) }
     infix (Prim) ("/", Nil, (CDouble,MDouble) :: MDouble) implements redirect ${ forge_double_divide(unit($0),$1) }
-    infix (Prim) ("/", Nil, (MInt,CInt) :: MInt) implements redirect ${ forge_int_divide($0,unit($1)) }
-    infix (Prim) ("/", Nil, (MInt,CFloat) :: MFloat) implements redirect ${ forge_float_divide($0.toFloat,unit($1)) }
-    infix (Prim) ("/", Nil, (MInt,CDouble) :: MDouble) implements redirect ${ forge_double_divide($0.toDouble,unit($1)) }
-    infix (Prim) ("/", Nil, (MFloat,CInt) :: MFloat) implements redirect ${ forge_float_divide($0,unit($1.toFloat)) }
+    infix (Prim) ("/", Nil, (MLong,CLong) :: MLong) implements redirect ${ forge_long_divide($0,unit($1)) }
+    infix (Prim) ("/", Nil, (MLong,CFloat) :: MFloat) implements redirect ${ forge_float_divide($0.toFloat,unit($1)) }
+    infix (Prim) ("/", Nil, (MLong,CDouble) :: MDouble) implements redirect ${ forge_double_divide($0.toDouble,unit($1)) }
+    infix (Prim) ("/", Nil, (MFloat,CLong) :: MFloat) implements redirect ${ forge_float_divide($0,unit($1.toFloat)) }
     infix (Prim) ("/", Nil, (MFloat,CFloat) :: MFloat) implements redirect ${ forge_float_divide($0,unit($1)) }
     infix (Prim) ("/", Nil, (MFloat,CDouble) :: MDouble) implements redirect ${ forge_double_divide($0.toDouble,unit($1)) }
-    infix (Prim) ("/", Nil, (MDouble,CInt) :: MDouble) implements redirect ${ forge_double_divide($0,unit($1.toDouble)) }
+    infix (Prim) ("/", Nil, (MDouble,CLong) :: MDouble) implements redirect ${ forge_double_divide($0,unit($1.toDouble)) }
     infix (Prim) ("/", Nil, (MDouble,CFloat) :: MDouble) implements redirect ${ forge_double_divide($0.toDouble,unit($1)) }
     infix (Prim) ("/", Nil, (MDouble,CDouble) :: MDouble) implements redirect ${ forge_double_divide($0,unit($1)) }
-    infix (Prim) ("/", Nil, (MInt,MInt) :: MInt) implements redirect ${ forge_int_divide($0,$1) }
-    infix (Prim) ("/", Nil, (MInt,MFloat) :: MFloat) implements redirect ${ forge_float_divide($0.toFloat,$1) }
-    infix (Prim) ("/", Nil, (MInt,MDouble) :: MDouble) implements redirect ${ forge_double_divide($0.toDouble,$1) }
-    infix (Prim) ("/", Nil, (MFloat,MInt) :: MFloat) implements redirect ${ forge_float_divide($0,$1.toFloat) }
+    infix (Prim) ("/", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_divide($0,$1) }
+    infix (Prim) ("/", Nil, (MLong,MFloat) :: MFloat) implements redirect ${ forge_float_divide($0.toFloat,$1) }
+    infix (Prim) ("/", Nil, (MLong,MDouble) :: MDouble) implements redirect ${ forge_double_divide($0.toDouble,$1) }
+    infix (Prim) ("/", Nil, (MFloat,MLong) :: MFloat) implements redirect ${ forge_float_divide($0,$1.toFloat) }
     infix (Prim) ("/", Nil, (MFloat,MFloat) :: MFloat) implements redirect ${ forge_float_divide($0,$1) }
     infix (Prim) ("/", Nil, (MFloat,MDouble) :: MDouble) implements redirect ${ forge_double_divide($0.toDouble,$1) }
-    infix (Prim) ("/", Nil, (MDouble,MInt) :: MDouble) implements redirect ${ forge_double_divide($0,$1.toDouble) }
+    infix (Prim) ("/", Nil, (MDouble,MLong) :: MDouble) implements redirect ${ forge_double_divide($0,$1.toDouble) }
     infix (Prim) ("/", Nil, (MDouble,MFloat) :: MDouble) implements redirect ${ forge_double_divide($0,$1.toDouble) }
     infix (Prim) ("/", Nil, (MDouble,MDouble) :: MDouble) implements redirect ${ forge_double_divide($0,$1) }
 
-    infix (Prim) ("+", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_plus($0,$1) }
-    infix (Prim) ("-", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_minus($0,$1) }
-    infix (Prim) ("*", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_times($0,$1) }
-    infix (Prim) ("/", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_divide($0,$1) }
-    infix (Prim) ("/", Nil, (MLong,MDouble) :: MDouble) implements redirect ${ forge_long_divide_double($0,$1) }
+    infix (Prim) ("+", Nil, (MInt,MInt) :: MInt) implements redirect ${ forge_int_plus($0,$1) }
+    infix (Prim) ("+", Nil, (MInt,CInt) :: MInt) implements redirect ${ forge_int_plus($0,unit($1)) }
+    infix (Prim) ("+", Nil, (CInt,MInt) :: MInt) implements redirect ${ forge_int_plus(unit($0),$1) }
+    infix (Prim) ("+", Nil, (CInt,MLong) :: MLong) implements redirect ${ forge_long_plus(unit($0.toLong),$1) }
+    infix (Prim) ("+", Nil, (CInt,MDouble) :: MDouble) implements redirect ${ forge_double_plus(unit($0.toDouble),$1) }
+    infix (Prim) ("+", Nil, (MLong,CInt) :: MLong) implements redirect ${ forge_long_plus($0,unit($1.toLong)) }
+    infix (Prim) ("-", Nil, (MInt,MInt) :: MInt) implements redirect ${ forge_int_minus($0,$1) }
+    infix (Prim) ("-", Nil, (MInt,CInt) :: MInt) implements redirect ${ forge_int_minus($0,unit($1)) }
+    infix (Prim) ("-", Nil, (CInt,MInt) :: MInt) implements redirect ${ forge_int_minus(unit($0),$1) }
+    infix (Prim) ("-", Nil, (CInt,MLong) :: MLong) implements redirect ${ forge_long_minus(unit($0.toLong),$1) }
+    infix (Prim) ("-", Nil, (CInt,MDouble) :: MDouble) implements redirect ${ forge_double_minus(unit($0.toDouble),$1) }
+    infix (Prim) ("-", Nil, (MLong,CInt) :: MLong) implements redirect ${ forge_long_minus($0,unit($1.toLong)) }
+    infix (Prim) ("*", Nil, (MInt,MInt) :: MInt) implements redirect ${ forge_int_times($0,$1) }
+    infix (Prim) ("*", Nil, (MInt,CInt) :: MInt) implements redirect ${ forge_int_times($0,unit($1)) }
+    infix (Prim) ("*", Nil, (CInt,MInt) :: MInt) implements redirect ${ forge_int_times(unit($0),$1) }
+    infix (Prim) ("*", Nil, (CInt,MLong) :: MLong) implements redirect ${ forge_long_times(unit($0.toLong),$1) }
+    infix (Prim) ("*", Nil, (CInt,MDouble) :: MDouble) implements redirect ${ forge_double_times(unit($0.toDouble),$1) }
+    infix (Prim) ("*", Nil, (MLong,CInt) :: MLong) implements redirect ${ forge_long_times($0,unit($1.toLong)) }
+    infix (Prim) ("/", Nil, (MInt,MInt) :: MInt) implements redirect ${ forge_int_divide($0,$1) }
+    infix (Prim) ("/", Nil, (MInt,CInt) :: MInt) implements redirect ${ forge_int_divide($0,unit($1)) }
+    infix (Prim) ("/", Nil, (CInt,MInt) :: MInt) implements redirect ${ forge_int_divide(unit($0),$1) }
+    infix (Prim) ("/", Nil, (CInt,MLong) :: MLong) implements redirect ${ forge_long_divide(unit($0.toLong),$1) }
+    infix (Prim) ("/", Nil, (CInt,MDouble) :: MDouble) implements redirect ${ forge_double_divide(unit($0.toDouble),$1) }
+    infix (Prim) ("/", Nil, (MLong,CInt) :: MLong) implements redirect ${ forge_long_divide($0,unit($1.toLong)) }
     
     infix (Prim) ("<<",Nil, (MInt,MInt) :: MInt) implements redirect ${ forge_int_shift_left($0,$1) }
     infix (Prim) (">>",Nil, (MInt,MInt) :: MInt) implements redirect ${ forge_int_shift_right($0,$1) }
@@ -542,8 +565,8 @@ trait ScalaOps {
 
     impl (inf) (codegen($cala, "Double.PositiveInfinity"))
     impl (ninf) (codegen($cala, "Double.NegativeInfinity"))
-    impl (inf) (codegen(cpp, "std::numeric_limits<double>::max()"))
-    impl (ninf) (codegen(cpp, "std::numeric_limits<double>::min()"))
+    impl (inf) (codegen(cpp, "std::numeric_limits<double>::infinity()"))
+    impl (ninf) (codegen(cpp, "-std::numeric_limits<double>::infinity()"))
     impl (inf) (codegen(cuda, "__longlong_as_double(0x7ff0000000000000ULL)"))
     impl (ninf) (codegen(cuda, "__longlong_as_double(0xfff0000000000000ULL)"))
 
@@ -602,7 +625,7 @@ trait ScalaOps {
       impl (sqrt) (codegen(g, "sqrt(" + quotedArg(0) + ")"))
       impl (ceil) (codegen(g, "ceil(" + quotedArg(0) + ")"))
       impl (floor) (codegen(g, "floor(" + quotedArg(0) + ")"))
-      impl (round) (codegen(g, "(long) round(" + quotedArg(0) + ")"))
+      impl (round) (codegen(g, "(int64_t) round(" + quotedArg(0) + ")"))
       impl (sin) (codegen(g, "sin(" + quotedArg(0) + ")"))
       impl (sinh) (codegen(g, "sinh(" + quotedArg(0) + ")"))
       impl (asin) (codegen(g, "asin(" + quotedArg(0) + ")"))
@@ -697,7 +720,7 @@ trait ScalaOps {
     direct (HashMapOps) ("CHashMap", (K,V), Nil :: CHashMap(K,V), effect = mutable) implements codegen($cala, ${ new java.util.concurrent.ConcurrentHashMap[$t[K],$t[V]]() })
     compiler (HashMapOps) ("chashmap_from_arrays", (K,V), (MArray(K),MArray(V)) :: CHashMap(K,V), effect = mutable) implements codegen($cala, ${
       val map = new java.util.concurrent.ConcurrentHashMap[$t[K],$t[V]]()
-      for (i <- 0 until $0.length) {
+      for (i:Int <- scala.Range(0, $0.length)) {
         map.put($0(i),$1(i))
       }
       map
