@@ -38,81 +38,15 @@ trait Gibbs extends OptiMLApplication {
 
     val (positiveValues, negativeValues) = (allValues.map(_._1), allValues.map(_._2))
 
-    // def tailContains(v: Rep[DenseVector[FactorVariable]], f: Rep[FactorVariable] => Rep[Double], x: Rep[Double]) = {
-    //   var i = 1
-    //   var found = false
-    //   while (i < v.length && !found) {
-    //     if (f(v(i)) == x) found = true
-    //     i += 1
-    //   }
-    //   found
-    // }
-
-    // def posImplyFactor(v: Rep[FactorVariable]): Rep[Double] = {
-    //   if (v.id == variableId && v.isPositive) 1.0
-    //   else if (v.id == variableId && !v.isPositive) 0.0
-    //   else graph.getVariableValue(v.id, v.isPositive)
-    // }
-
-    // def negImplyFactor(v: Rep[FactorVariable]): Rep[Double] = {
-    //   if (v.id == variableId && !v.isPositive) 1.0
-    //   else if (v.id == variableId && v.isPositive) 0.0
-    //   else graph.getVariableValue(v.id, v.isPositive)
-    // }
-
-    // BOO: this doesn't actually help at all
-    // avoid instantiating posCases by inlining factor.evaluate(..) for the special case of ImplyFactorFunction (TESTING)
-
-    // val positiveValuesSum = sum(0, variableFactors.length) { i =>
-    //   val factor = variableFactors(i)
-    //   val posValue = {
-    //     if (factor.vars.length == 1) {
-    //       posImplyFactor(factor.vars.first)
-    //     }
-    //     else if (tailContains(factor.vars, posImplyFactor, 0.0)) {
-    //       1.0
-    //     }
-    //     else if (posImplyFactor(factor.vars.first) == 0.0) {
-    //       0.0
-    //     }
-    //     else {
-    //       1.0
-    //     }
-    //   }
-    //   val factorWeightValue = graph.getWeightValue(factor.weightId)
-    //   posValue * factorWeightValue
-    // }
-
-    // val negativeValuesSum = sum(0, variableFactors.length) { i =>
-    //   val factor = variableFactors(i)
-    //   val negValue = {
-    //     if (factor.vars.length == 1) {
-    //       negImplyFactor(factor.vars.first)
-    //     }
-    //     else if (tailContains(factor.vars, negImplyFactor, 0.0)) {
-    //       1.0
-    //     }
-    //     else if (negImplyFactor(factor.vars.first) == 0.0) {
-    //       0.0
-    //     }
-    //     else {
-    //       1.0
-    //     }
-    //   }
-    //   val factorWeightValue = graph.getWeightValue(factor.weightId)
-    //   negValue * factorWeightValue
-    // }
-
     val newValue = if ((random[Double] * (1.0 + exp(negativeValues.sum - positiveValues.sum))) <= 1.0) 1.0 else 0.0
     graph.updateVariableValue(variableId, newValue)
   }
 
   /* Samples multiple variables and updates the variable values in the graph */
   def sampleVariables(graph: Rep[FactorGraph[FunctionFactor]], variableIds: Rep[DenseVector[Int]], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
-    val shuffledIds = shuffle(variableIds)
 
     val start = time()
-    val z = for (v <- shuffledIds) {
+    val z = for (v <- variableIds) {
       sampleVariable(graph, v)
     }
     val end = time(z)
@@ -307,7 +241,7 @@ trait Gibbs extends OptiMLApplication {
     val times2 = DenseVector[Tup2[Int,Long]](0, true)
 
     tic("learnWeights", G)
-    learnWeights(G, 5000, 1, 0.01, 0.01, 0.99, times1)
+    learnWeights(G, 300, 1, 0.01, 0.1, 0.95, times1)
     toc("learnWeights", G)
     writeVector(G.weights.map(w => w.id + "\t" + G.getWeightValue(w.id)), "weights.out")
 
@@ -315,7 +249,7 @@ trait Gibbs extends OptiMLApplication {
     // G.weights.apply(0::10).map(w => pack(w.id, w.value, w.isFixed)).pprint
 
     tic("calculateMarginals", G)
-    val marginals = calculateMarginals(G, 1000, G.variables, times2)
+    val marginals = calculateMarginals(G, 500, G.variables, times2)
     toc("calculateMarginals", marginals)
     writeVector(marginals.map(t => t._1 + "\t" + t._4.toInt + "\t" + t._2), "marginals.out")
 

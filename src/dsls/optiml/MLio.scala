@@ -41,10 +41,6 @@ trait MLIOOps {
         fixes += isFixed
         inivalues += initialValue
       }
-      // println("readWeights")
-      // println("weights: " + weights)
-      // println("fixes: " + fixes)
-      // println("inivalues: " + inivalues)
       dis.close()
       val out : Array[Array[Any]] = Array(weights.toArray, inivalues.toArray, fixes.toArray)
       out
@@ -69,11 +65,6 @@ trait MLIOOps {
         inivalues += initialValue
         queries += isQuery
       }
-      // println("readVariables")
-      // println("variables: " + variables)
-      // println("evidences: " + evidences)
-      // println("inivalues: " + inivalues)
-      // println("queries: " + queries)
       dis.close()
       val out : Array[Array[Any]] = Array(variables.toArray, inivalues.toArray, evidences.toArray, queries.toArray)
       out
@@ -97,10 +88,6 @@ trait MLIOOps {
         positives += isPositive
         positions += position
       }
-      // println("readEdges")
-      // println("variables: " + variables)
-      // println("factors: " + factors)
-      // println("positives: " + positives)
       dis.close()
       val out : Array[Array[Any]] = Array(variables.toArray, factors.toArray, positives.toArray, positions.toArray)
       out
@@ -121,10 +108,6 @@ trait MLIOOps {
         weights += weightId
         funcs += factorFunction
       }
-      // println("readFactors")
-      // println("factors: " + factors)
-      // println("weights: " + weights)
-      // println("funcs: " + funcs)
       dis.close()
       val out : Array[Array[Any]] = Array(factors.toArray, weights.toArray, funcs.toArray)
       out
@@ -137,8 +120,6 @@ trait MLIOOps {
       val c = farray_from_sarray(weight(2))
       val weight_tuple = (0::array_length(a)) { i => Weight(a(i).AsInstanceOf[Int], b(i).AsInstanceOf[Double], c(i).AsInstanceOf[Boolean]) }
       val weights = weight_tuple.sortBy(w => w.id)
-      // val weights = densevector_raw_data(weight_tuple)
-      // val weightsMap = fhashmap_from_arrays(weights.map(w => w.id), weights)
       val variable = readVariables($variablesPath)
       val d = farray_from_sarray(variable(0))
       val e = farray_from_sarray(variable(1))
@@ -146,7 +127,6 @@ trait MLIOOps {
       val g = farray_from_sarray(variable(3))
       val variable_tuple = (0::array_length(d)) { i => pack((d(i).AsInstanceOf[Int], e(i).AsInstanceOf[Double], f(i).AsInstanceOf[Boolean], g(i).AsInstanceOf[Boolean])) }
       val variables = variable_tuple.map(r => RandomVariable(r._1, DenseVector(0.0, 1.0), r._2, r._3, r._4)).distinct.sortBy(r => r.id)
-      // val variablesMap = array_groupByReduce[RandomVariable,Int,RandomVariable](variables, v => v.id, v => v, (a,b) => a)
       val edge = readEdges($edgesPath)
       val l = farray_from_sarray(edge(0))
       val m = farray_from_sarray(edge(1))
