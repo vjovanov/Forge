@@ -78,9 +78,9 @@ trait DirectedGraphOps{
       //Input node ids
       infix ("hasEdge") ((MLong,MLong) :: MBoolean) implements composite ${$self.hasEdge(Node($1),Node($2))}
       infix ("hasEdge") ((Node,Node) :: MBoolean) implements composite ${
-        val inNbrs = NodeData($self.inNbrs($1).getRawArray).groupByReduce[Int,Int](e => e, e => e, (a,b) => a)
-        val outNbrs = NodeData($self.outNbrs($1).getRawArray).groupByReduce[Int,Int](e => e, e => e, (a,b) => a)
-        if(fhashmap_contains[Int,Int](inNbrs,$2.id) || fhashmap_contains[Int,Int](outNbrs,$2.id)) true 
+        val inNbrs = NodeData($self.inNbrs($1).getRawArray).groupByReduce[Long,Long](e => e, e => e, (a,b) => a)
+        val outNbrs = NodeData($self.outNbrs($1).getRawArray).groupByReduce[Long,Long](e => e, e => e, (a,b) => a)
+        if(fhashmap_contains[Long,Long](inNbrs,$2.id) || fhashmap_contains[Long,Long](outNbrs,$2.id)) true 
         else false
       }
       //Out Node Accessors

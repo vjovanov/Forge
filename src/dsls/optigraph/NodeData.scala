@@ -42,14 +42,14 @@ trait NodeDataOps {
       infix("resize")(MLong :: MUnit, effect = write(0)) implements composite ${
         val data = nd_raw_data($self)
         val d = array_buffer_empty[T]($1)
-        array_buffer_copy(data, 0, d, 0, $1)
+        array_buffer_copy(data, 0l, d, 0l, $1)
         nd_set_raw_data($self, d.unsafeImmutable)
         nd_set_length($self,$1)
       }
       infix("concat")(NodeData(T) :: NodeData(T)) implements composite ${
         val result = array_empty[T]($0.length+$1.length)
-        array_copy($0.getRawArray,0,result,0,$0.length)
-        array_copy($1.getRawArray,0,result,$0.length,$1.length)
+        array_copy($0.getRawArray,0l,result,0l,$0.length)
+        array_copy($1.getRawArray,0l,result,$0.length,$1.length)
         NodeData(result)
       }
       //infix("sort")(Nil :: NodeData(T),TNumeric(T)) implements composite ${NodeData(array_sort($self.getRawArray))}
@@ -81,14 +81,14 @@ trait NodeDataOps {
         array_buffer_forIndices($self.getRawArrayBuffer,$1)
       }
       infix ("forloop") ((T ==> MUnit) :: MUnit, effect = simple) implements composite ${
-        var i = 0
+        var i = 0l
         while(i<$self.length){
           $1($self(i))
           i = i+1
         }
       }
       infix ("print") (Nil :: MUnit, effect = simple) implements composite ${
-        var i = 0
+        var i = 0l
         while(i<$self.length){
           println("NodeData -- Index: " + i + " Data: " + $self(i))
           i = i+1

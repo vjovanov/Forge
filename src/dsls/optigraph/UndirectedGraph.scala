@@ -67,7 +67,7 @@ trait UndirectedGraphOps{
       infix ("numSelfLoops") (MLong :: MDouble) implements composite ${
         ///it seems like a perf hit to do it this way.
         var degree = 0d
-        var i = 0
+        var i = 0l
         val start = node_apply($self,$1)
         val nbrs = $self.neighbors($1)
         while(i < nbrs.length){

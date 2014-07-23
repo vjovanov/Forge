@@ -35,7 +35,7 @@ trait NodeIdViewOps {
       
       //Debug
       infix ("serialForeach") ((MLong ==> MUnit) :: MUnit, effect = simple) implements single ${
-        var i = 0
+        var i = 0l
         while(i < $self.length){
           $1($self(i))
           i += 1

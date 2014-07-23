@@ -48,18 +48,18 @@ trait IOGraphOps {
         ForgeFileReader.readLinesFlattened($0)({line =>
           val fields = line.fsplit(" ")
           array_fromfunction(((array_length(fields)-1)*2),{n =>
-            if(n==0) pack(fields(0).toInt,fields(1).toInt)
-            else pack(fields(1).toInt,fields(0).toInt)
+            if(n==0) pack(fields(0).toLong,fields(1).toLong)
+            else pack(fields(1).toLong,fields(0).toLong)
           })
         })
-       NodeData[Tup2[Int,Int]](input_edges).distinct
+       NodeData[Tup2[Long,Long]](input_edges).distinct
     }
     direct (IO) ("loadDirectedEdgeList", Nil, MString :: NodeData(Tuple2(MLong,MLong))) implements composite ${
       val input_edges = ForgeFileReader.readLines($0)({line =>
           val fields = line.fsplit(" ")
-          pack(fields(0).toInt,fields(1).toInt) 
+          pack(fields(0).toLong,fields(1).toLong) 
       })
-      NodeData[Tup2[Int,Int]](input_edges).distinct
+      NodeData[Tup2[Long,Long]](input_edges).distinct
     }
     direct (IO) ("createMeshEdgeList", Nil, MLong :: NodeData(Tuple2(MLong,MLong))) implements composite ${
       val meshSize = $0
@@ -83,7 +83,7 @@ trait IOGraphOps {
 
       val numNodes = ids.length
       val idView = NodeData(array_fromfunction(numNodes,{n => n}))
-      val idHashMap = idView.groupByReduce[Int,Int](n => ids(n), n => n, (a,b) => a)
+      val idHashMap = idView.groupByReduce[Long,Long](n => ids(n), n => n, (a,b) => a)
       
       val serial_out = assignUndirectedIndicies(numNodes,edge_data.length,ids,idHashMap,src_groups)
 
@@ -123,20 +123,20 @@ trait IOGraphOps {
       val src_ids = NodeData(fhashmap_keys(src_groups))
       val dst_ids = NodeData(fhashmap_keys(dst_groups))
       val concat = NodeData(array_fromfunction(2,{n=>n})).flatMap[Long](e => if(e==0) src_ids else dst_ids)
-      val distinct_ids = NodeData(fhashmap_keys(concat.groupBy[Int,Int](e => e, e => e)))
+      val distinct_ids = NodeData(fhashmap_keys(concat.groupBy[Long,Long](e => e, e => e)))
 
       //set up the ID hash map
       val numNodes = distinct_ids.length
       val idView = NodeData(array_fromfunction(numNodes,{n => n}))
-      val idHashMap = idView.groupByReduce[Int,Int](n => distinct_ids(n), n => n, (a,b) => a)
+      val idHashMap = idView.groupByReduce[Long,Long](n => distinct_ids(n), n => n, (a,b) => a)
 
       //must filter down the ids we want to flat map to just the distinct src ids we want
       //gets tricky because order of flatmap must match our internal id order other wise
       //the edge array gets screwed up
-      val src_ids_ordered = NodeData(array_sort(array_map[Int,Int](src_ids.getRawArray,e => fhashmap_get(idHashMap,e))))
+      val src_ids_ordered = NodeData(array_sort(array_map[Long,Long](src_ids.getRawArray,e => fhashmap_get(idHashMap,e))))
       val src_edge_array = src_ids_ordered.flatMap{e => NodeData(src_groups(distinct_ids(e))).map(n => fhashmap_get(idHashMap,n))}
 
-      val dst_ids_ordered = NodeData(array_sort(array_map[Int,Int](dst_ids.getRawArray,e => fhashmap_get(idHashMap,e))))
+      val dst_ids_ordered = NodeData(array_sort(array_map[Long,Long](dst_ids.getRawArray,e => fhashmap_get(idHashMap,e))))
       val dst_edge_array = dst_ids_ordered.flatMap(e => NodeData(dst_groups(distinct_ids(e))).map{n => fhashmap_get(idHashMap,n)})
 
       val serial_out = assignIndiciesSerialDirected(numNodes,distinct_ids,src_groups,src_ids_ordered,dst_groups,dst_ids_ordered)

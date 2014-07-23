@@ -39,15 +39,15 @@ trait NeighborViewOps {
       infix ("pprint") (Nil :: MUnit, effect = simple) implements foreach(T, 0, ${a => println(a)})
       infix ("getRawArray") (Nil :: MArray(T)) implements composite ${
         val d = array_empty[T]($self.length)
-        array_copy(NeighborView_data($self),NeighborView_start($self),d,0,$self.length)
+        array_copy(NeighborView_data($self),NeighborView_start($self),d,0l,$self.length)
         d
       }
       infix ("intersect") (NeighborView(T) :: MLong, TNumeric(T)) implements single ${
         val nbrs = $self
         val nbrsOfNbrs = $1
         if(nbrs.length == 0 || nbrsOfNbrs.length == 0) 0l
-        else if(nbrs(0) > nbrsOfNbrs(nbrsOfNbrs.length-1) || 
-          nbrsOfNbrs(0) > nbrs(nbrs.length-1)){
+        else if(nbrs(0l) > nbrsOfNbrs(nbrsOfNbrs.length-1) || 
+          nbrsOfNbrs(0l) > nbrs(nbrs.length-1)){
           0l
         }
         else{
@@ -87,13 +87,13 @@ trait NeighborViewOps {
       infix ("intersectInRange") ((("nbrsOfNbrs",NeighborView(T)),("nbrsMax",T)) :: MLong, TNumeric(T)) implements single ${
         val nbrs = $self
 
-        if(nbrs.length < 2 || nbrsOfNbrs.length < 2 ) 0l
-        else if(nbrsMax <= nbrsOfNbrs(0) ||
-          nbrsMax <= nbrs(0)){
+        if(nbrs.length < 2l || nbrsOfNbrs.length < 2l ) 0l
+        else if(nbrsMax <= nbrsOfNbrs(0l) ||
+          nbrsMax <= nbrs(0l)){
           0l
         }
-        else if(nbrs(0) > nbrsOfNbrs(nbrsOfNbrs.length-1) || 
-          nbrsOfNbrs(0) > nbrs(nbrs.length-1)){
+        else if(nbrs(0l) > nbrsOfNbrs(nbrsOfNbrs.length-1) || 
+          nbrsOfNbrs(0l) > nbrs(nbrs.length-1)){
           0l
         }
         else{

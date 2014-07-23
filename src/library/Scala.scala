@@ -81,7 +81,6 @@ trait ScalaOps {
     fimplicit (Prim) ("repLong2ToRepDouble", Nil, MLong :: MDouble) implements composite ${ $0.toDouble }
     fimplicit (Prim) ("repLong2ToRepFloat", Nil, MLong :: MFloat) implements composite ${ $0.toFloat }
     fimplicit (Prim) ("repFloat2ToRepDouble", Nil, MFloat :: MDouble) implements composite ${ $0.toDouble }
-    fimplicit (Prim) ("chainIntToRepLong", Nil, CInt :: MLong, ("conv", CInt ==> CLong)) implements redirect ${ unit(conv($0)) }
 
     // specialized versions for primitives
     // the forge_ prefix is to avoid conflicting with LMS primitive ops
@@ -115,9 +114,9 @@ trait ScalaOps {
     val long_binary_and = direct (Prim) ("forge_long_and", Nil, (MLong,MLong) :: MLong)
     val long_binary_or = direct (Prim) ("forge_long_or", Nil, (MLong,MLong) :: MLong)
     val long_binary_xor = direct (Prim) ("forge_long_xor", Nil, (MLong,MLong) :: MLong)
-    val long_shift_right_unsigned = direct (Prim) ("forge_long_shift_right_unsigned", Nil, (MLong,MInt) :: MLong)
-    val long_shift_right = direct (Prim) ("forge_long_shift_right", Nil, (MLong,MInt) :: MLong)
-    val long_shift_left = direct (Prim) ("forge_long_shift_left", Nil, (MLong,MInt) :: MLong)
+    val long_shift_right_unsigned = direct (Prim) ("forge_long_shift_right_unsigned", Nil, (MLong,MLong) :: MLong)
+    val long_shift_right = direct (Prim) ("forge_long_shift_right", Nil, (MLong,MLong) :: MLong)
+    val long_shift_left = direct (Prim) ("forge_long_shift_left", Nil, (MLong,MLong) :: MLong)
     val long_mod = infix (Prim) ("%", Nil, (MLong,MLong) :: MLong)
     val long_bitwise_not = infix (Prim) ("unary_~", Nil, MLong :: MLong)
     impl (long_shift_right_unsigned) (codegen($cala, ${ $0 >>> $1 }))
@@ -307,9 +306,9 @@ trait ScalaOps {
     infix (Prim) ("&", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_and($0,$1) }
     infix (Prim) ("|", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_or($0,$1) }
     infix (Prim) ("^", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_xor($0,$1) }
-    infix (Prim) (">>>", Nil, (MLong,MInt) :: MLong) implements redirect ${ forge_long_shift_right_unsigned($0,$1) }
-    infix (Prim) ("<<", Nil, (MLong,MInt) :: MLong) implements redirect ${ forge_long_shift_left($0,$1) }
-    infix (Prim) (">>", Nil, (MLong,MInt) :: MLong) implements redirect ${ forge_long_shift_right($0,$1) }
+    infix (Prim) (">>>", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_shift_right_unsigned($0,$1) }
+    infix (Prim) ("<<", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_shift_left($0,$1) }
+    infix (Prim) (">>", Nil, (MLong,MLong) :: MLong) implements redirect ${ forge_long_shift_right($0,$1) }
   }
 
   def importMisc() = {

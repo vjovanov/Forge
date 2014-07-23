@@ -25,11 +25,11 @@ trait BC extends OptiGraphApplication {
     tic(g)
   
     val bc = sum( g.mapNodes( { n =>
-      g.inBFOrder(n){ (bfsNode:Rep[Node],sigma:Rep[NodeData[Double]],levelArray:Rep[NodeData[Int]]) =>
+      g.inBFOrder(n){ (bfsNode:Rep[Node],sigma:Rep[NodeData[Double]],levelArray:Rep[NodeData[Long]]) =>
         if(bfsNode.id==n.id){1.0}
         else{g.sumUpNbrs(bfsNode,levelArray){w => sigma(w)}}
       }
-      {(rbfsNode:Rep[Node],sigma:Rep[NodeData[Double]],delta:Rep[NodeData[Double]],levelArray:Rep[NodeData[Int]]) => 
+      {(rbfsNode:Rep[Node],sigma:Rep[NodeData[Double]],delta:Rep[NodeData[Double]],levelArray:Rep[NodeData[Long]]) => 
         if(levelArray(rbfsNode.id)!=1){ g.sumDownNbrs(rbfsNode,levelArray){w => 
           (sigma(rbfsNode.id)/ sigma(w))*(1.0+delta(w))}
         }

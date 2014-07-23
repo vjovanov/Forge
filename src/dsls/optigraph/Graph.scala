@@ -40,7 +40,7 @@ trait GraphOps{
       //given an ID return a node
       infix("getNodeFromID")(MLong :: Node) implements composite ${
         val result = NodeIdView($self.numNodes).mapreduce[Long]( i => i, (a,b) => a+b, i => $self.getExternalID(i)==$1)
-        if(result >= $self.numNodes() || result < 0) fatal("ERROR. ID: " + $1 + " does not exist in this UndirectedGraph!")
+        if(result >= $self.numNodes() || result < 0l) fatal("ERROR. ID: " + $1 + " does not exist in this UndirectedGraph!")
         Node(result)
       }
       infix ("foreachNode") ((Node ==> MUnit) :: MUnit, effect = simple) implements composite ${
@@ -57,19 +57,19 @@ trait GraphOps{
       //perform BF traversal
       infix ("inBFOrder") ( CurriedMethodSignature(List(Node,((Node,NodeData(R),NodeData(MLong)) ==> R),((Node,NodeData(R),NodeData(R),NodeData(MLong)) ==> R)),NodeData(R)), TFractional(R), addTpePars=R, effect=simple) implements composite ${
         val levelArray = NodeData[Long]($self.numNodes)
-        val bitMap = AtomicIntArray($self.numNodes)
+        val bitMap = AtomicLongArray($self.numNodes)
         val nodes = NodeIdView($self.numNodes) 
         val forwardComp = NodeData[R]($self.numNodes)
         val reverseComp = NodeData[R]($self.numNodes)
 
-        levelArray($1.id) = 1
+        levelArray($1.id) = 1l
         set(bitMap,$1.id,1)
         
         //error: illegal sharing of mutable objects Sym(2472 at Sym(2473)=Reflect(NewVar(Sym(2472)),Summary(false,false,false,false,true,false,List(Sym(2472)),List(Sym(2472)),List(),List()),List(Sym(2472)))
         //var finished = AtomicBoolean(false)
         var finished = false
 
-        var level = 1
+        var level = 1l
  
         while(!finished){//!getAndSet(finished,true)){
           finished = true

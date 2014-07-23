@@ -30,7 +30,7 @@ trait CommDetection extends OptiGraphApplication {
 
     println(array_length(result._1))
   }
-  def CommunityDetection(nodes:Rep[ForgeArray[Int]], edges:Rep[ForgeArray[Int]], k:Rep[Double]) : Rep[Tup2[ForgeArray[Int],ForgeArray[Int]]] = {
+  def CommunityDetection(nodes:Rep[ForgeArray[Long]], edges:Rep[ForgeArray[Long]], k:Rep[Double]) : Rep[Tup2[ForgeArray[Long],ForgeArray[Long]]] = {
     var g = undirectedGraphFromCSR(nodes,edges)
 
     println("performing Community Detection")

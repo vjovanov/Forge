@@ -28,7 +28,7 @@ trait CommunityOps {
     val SHashMap = tpe("scala.collection.mutable.HashMap", (K,V))
 
     data(Community,("_size",MLong),("_precision",MDouble),("_modularity",MDouble),("_canImprove",MBoolean),("_totalWeight",MDouble),("_graph",UndirectedGraph),("_n2c",MArray(MLong)),("_tot",MArray(MDouble)),("_in",MArray(MDouble)))
-    static(Community)("apply", Nil, (("g",UndirectedGraph),("precision",MDouble)) :: Community) implements allocates(Community,${alloc_size(g)},${precision},${unit(0d)},${unit(true)},${alloc_total_weight($0)},${$0},${alloc_ints(alloc_size(g),{e => e})},${alloc_weights(g)},${alloc_selfs(g)})
+    static(Community)("apply", Nil, (("g",UndirectedGraph),("precision",MDouble)) :: Community) implements allocates(Community,${alloc_size(g)},${precision},${unit(0d)},${unit(true)},${alloc_total_weight($0)},${$0},${alloc_longs(alloc_size(g),{e => e})},${alloc_weights(g)},${alloc_selfs(g)})
     static(Community)("apply", Nil, MethodSignature(List(("size",MLong),("precision",MDouble),("modularity",MDouble),("canImprove",MBoolean),("totalWeight",MDouble),("g",UndirectedGraph),("n2c",MArray(MLong)),("tot",MArray(MDouble)),("in",MArray(MDouble))),Community)) implements allocates(Community,${size},${precision},${modularity},${canImprove},${totalWeight},${g},${n2c},${tot},${in})
 
     /*
@@ -97,7 +97,7 @@ trait CommunityOps {
         val newComms = NodeData.fromFunction(newSize,i => i)
         val oldComms = NodeData(fhashmap_keys(groupedComms))
         
-        val old2newHash = fhashmap_from_arrays[Int,Int](oldComms.getRawArray,newComms.getRawArray)
+        val old2newHash = fhashmap_from_arrays[Long,Long](oldComms.getRawArray,newComms.getRawArray)
 
         //For each edge
           //find src and dst comm (use n2c)
@@ -110,7 +110,7 @@ trait CommunityOps {
         val newGraph = newComms.map({ src =>
           //println("src: " + src)
           val oldComm = oldComms(src)
-          val nodeHash = SHashMap[Int,Double]()
+          val nodeHash = SHashMap[Long,Double]()
 
           val nodesInComm = NodeData(fhashmap_get(groupedComms,oldComm))
           nodesInComm.foreach({ n => 
@@ -170,7 +170,7 @@ trait CommunityOps {
 
         //If you don't use a mutable hash map you will get killed on performance.
         val g = $self.graph
-        val commWeights = SHashMap[Int,Double]()
+        val commWeights = SHashMap[Long,Double]()
         commWeights.update(n2c(n.id),0d) //Add current nodes community with a weight of 0
         val (nbrs,nbrWeights) = unpack(g.getNeighborsAndWeights(n))
         var i = 0l
@@ -289,8 +289,8 @@ trait CommunityOps {
         array_update(tot,old_comm,tot(old_comm)-$self.graph.weightedDegree(node))
         array_update(tot,comm,tot(comm)+$self.graph.weightedDegree(node))
 
-        array_update(in,old_comm,in(old_comm)-(2*olddnodecomm+$self.graph.numSelfLoops(node)))
-        array_update(in,comm,in(comm)+(2*dnodecomm+$self.graph.numSelfLoops(node)))
+        array_update(in,old_comm,in(old_comm)-(2l*olddnodecomm+$self.graph.numSelfLoops(node)))
+        array_update(in,comm,in(comm)+(2l*dnodecomm+$self.graph.numSelfLoops(node)))
 
         array_update(n2c,node,comm)
       }
@@ -323,7 +323,7 @@ trait CommunityOps {
     compiler (Community) ("alloc_total_weight", Nil, UndirectedGraph :: MDouble) implements single ${$0.totalWeight}
     compiler (Community) ("alloc_size", Nil, UndirectedGraph :: MLong) implements single ${$0.numNodes}
     compiler (Community) ("alloc_doubles", Nil, (MLong,(MLong ==> MDouble)) :: MArray(MDouble)) implements single ${array_fromfunction[Double]($0,$1)}
-    compiler (Community) ("alloc_ints", Nil, (MLong,(MLong ==> MInt)) :: MArray(MInt)) implements single ${array_fromfunction[Int]($0,$1)}
+    compiler (Community) ("alloc_longs", Nil, (MLong,(MLong ==> MLong)) :: MArray(MLong)) implements single ${array_fromfunction[Long]($0,$1)}
     compiler (Community) ("alloc_weights", Nil, UndirectedGraph :: MArray(MDouble)) implements single ${array_fromfunction[Double](alloc_size($0),{n => $0.weightedDegree(n)})}
     compiler (Community) ("alloc_selfs", Nil, UndirectedGraph :: MArray(MDouble)) implements single ${array_fromfunction[Double](alloc_size($0),{n => $0.numSelfLoops(n)})}
   } 
