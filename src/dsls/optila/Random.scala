@@ -34,6 +34,10 @@ trait RandomOps {
       Global.randRef.nextInt($0)
     })
 
+    direct (Rand) ("randomLong", Nil, MLong :: MLong, effect = simple) implements codegen($cala, ${
+      Global.randRef.nextInt($0.toInt).toLong
+    })
+
     direct (Rand) ("randomGaussian", Nil, Nil :: MDouble, effect = simple) implements codegen($cala, ${
       Global.randRef.nextGaussian()
     })

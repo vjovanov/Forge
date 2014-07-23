@@ -28,6 +28,9 @@ trait BaseGenLifts extends ForgeCodeGenBase {
       }
       stream.println("(x: " + quote(tpe) + ") = unit(x)")
     }
+    if (grp.name == "Primitive2") { //FIXME: should be able to add additional implicits to Lift traits generically
+      stream.println("  implicit def Primitive2ChainIntToRepLong(__arg0: Int)(implicit conv: Int => Rep[Int]): Rep[Long] = repInt2ToRepLong(conv(__arg0))")
+    }
     stream.println("}")
   }
 }
