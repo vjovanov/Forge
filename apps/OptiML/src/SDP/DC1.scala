@@ -24,29 +24,44 @@ trait DC1 extends OptiMLApplication {
     println("alpha: " + alpha)
     println("kmax:  " + kmax)
 
+    val err_init = (a * y0) - ((y0 *:* y0) * y0)
+    println("err_init: " + sqrt(err_init *:* err_init))
+
     tic()
 
-    // implicit def diffPDIP(t1: Rep[Tup2[DenseVector[Double],Int]],
-    //                       t2: Rep[Tup2[DenseVector[Double],Int]]) = {
-    //   dist(t1._1, t2._1)
-    // }
+    implicit def diffPDIP(t1: Rep[Tup2[DenseVector[Double],Int]],
+                          t2: Rep[Tup2[DenseVector[Double],Int]]) = {
+      dist(t1._1, t2._1)
+    }
 
-    // val soln = untilconverged(pack(y0, unit(0)), maxIter = kmax) { cur =>
-    //   val (y, k) = unpack(cur)
+    val soln = untilconverged(pack(y0, unit(0)), maxIter = kmax) { cur =>
+      val (y, k) = unpack(cur)
 
-    //   val ak = alpha / (k + 1)
+      //val ak = alpha / (k + 1)
 
-      val y = y0
-      val ak = alpha
-      val y_next = y * (1.0 - ak) + a * y * (ak)
-    //  val y_next =  + a * y
+      val n2y: Rep[Double] = y *:* y
+      val dy = ((1.0 / n2y) * (a * y)) - y
 
-    //   pack(y_next, k + 1)
-    // }
-    // val (y_soln, k_soln) = unpack(soln)
+      val p1 = -4.0 * (y *:* (a * dy)) + 4.0 * ((y *:* y) * (y *:* dy))
+      val p2 = -2.0 * (dy *:* (a * dy)) + 2.0 * ((y *:* y) * (dy *:* dy)) + 4.0 * ((y *:* dy) * (y *:* dy))
+      val p3 = 4.0 * ((y *:* dy) * (dy *:* dy))
+      val p4 = (dy *:* dy) * (dy *:* dy)
 
-    toc(y_next)
-    println("y:")
-    y_next.pprint
+      // make a few iterations of newton's method
+      var ak: Rep[Double] = 0.0
+      ak = ak - (p1 + 2.0 * p2 * ak + 3.0 * p3 * ak * ak + 4.0 * p4 * ak * ak * ak) / (2.0 * p2 + 6.0 * p3 * ak + 12.0 * p4 * ak * ak)
+      ak = ak - (p1 + 2.0 * p2 * ak + 3.0 * p3 * ak * ak + 4.0 * p4 * ak * ak * ak) / (2.0 * p2 + 6.0 * p3 * ak + 12.0 * p4 * ak * ak)
+      ak = ak - (p1 + 2.0 * p2 * ak + 3.0 * p3 * ak * ak + 4.0 * p4 * ak * ak * ak) / (2.0 * p2 + 6.0 * p3 * ak + 12.0 * p4 * ak * ak)
+
+      val y_next = y + ak * dy
+
+      pack(y_next, k + 1)
+    }
+    val (y_soln, k_soln) = unpack(soln)
+
+    toc(soln)
+    
+    val err = (a * y_soln) - ((y_soln *:* y_soln) * y_soln)
+    println("err: " + sqrt(err *:* err))
   }
 }
