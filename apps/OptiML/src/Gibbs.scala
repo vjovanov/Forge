@@ -259,5 +259,8 @@ trait Gibbs extends OptiMLApplication {
     val totalNumSamples2 = times2.map(_._1).sum
     val totalMillis2 = times2.map(_._2).sum
     println("Sampler: samples_per_sec= " + (totalNumSamples2 / (totalMillis2/1000.0)))
+    val totalNumSamples = totalNumSamples1 + totalNumSamples2
+    val totalMillis = totalMillis1 + totalMillis2
+    println("Total: samples_per_sec= " + (totalNumSamples / (totalMillis/1000.0)))
   }
 }
