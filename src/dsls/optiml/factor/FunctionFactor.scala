@@ -12,13 +12,13 @@ trait FunctionFactorOps {
     val FVariable = lookupTpe("FactorVariable")
     val FunctionFactor = tpe("FunctionFactor")
 
-    data(FunctionFactor, ("_id", MInt), ("_vars", DenseVector(FVariable)), ("_weightId", MInt), ("_funcId", MInt))
+    data(FunctionFactor, ("_id", MInt), ("_vars", DenseVector(FVariable)), ("_weightId", MInt), ("_funcId", MInt), ("_nVariables", MInt), ("_iStart", MInt))
 
-    static (FunctionFactor) ("apply", Nil, (("id", MInt), ("vars", DenseVector(FVariable)), ("weightId", MInt), ("func", MInt)) :: FunctionFactor) implements
-      composite ${ function_factor_alloc_helper($0, $1, $2, $3) }
+    static (FunctionFactor) ("apply", Nil, MethodSignature(List(("id", MInt), ("vars", DenseVector(FVariable)), ("weightId", MInt), ("func", MInt), ("nVariables", MInt), ("iStart", MInt)), FunctionFactor)) implements
+      composite ${ function_factor_alloc_helper($0, $1, $2, $3, $4, $5) }
 
-    compiler (FunctionFactor) ("function_factor_alloc_helper", Nil, (("id", MInt), ("vars", DenseVector(FVariable)), ("weightId", MInt), ("funcId", MInt)) :: FunctionFactor) implements
-      allocates(FunctionFactor, ${$0}, ${$1}, ${$2}, ${$3})
+    compiler (FunctionFactor) ("function_factor_alloc_helper", Nil, MethodSignature(List(("id", MInt), ("vars", DenseVector(FVariable)), ("weightId", MInt), ("funcId", MInt), ("nVariables", MInt), ("iStart", MInt)), FunctionFactor)) implements
+      allocates(FunctionFactor, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5})
 
     // some useful factor functions
     // maps from an assignment of the variable values to an output value
@@ -102,6 +102,8 @@ trait FunctionFactorOps {
       infix ("weightId") (Nil :: MInt) implements getter(0, "_weightId")
       infix ("funcId") (Nil :: MInt) implements getter(0, "_funcId")
       infix ("evaluate") (DenseVector(MDouble) :: MDouble) implements composite ${ evaluate_factor_func($self.funcId, $1) }
+      infix ("nVariables") (Nil :: MInt) implements getter(0, "_nVariables")
+      infix ("iStart") (Nil :: MInt) implements getter(0, "_iStart")
     }
   }
 }

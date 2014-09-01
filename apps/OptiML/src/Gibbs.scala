@@ -8,20 +8,24 @@ object GibbsInterpreter extends OptiMLApplicationInterpreter with Gibbs
 trait Gibbs extends OptiMLApplication {
 
   def print_usage = {
-    println("Usage: Gibbs <factors file> <variables file> <weights file> <edges file>")
+    println("Usage: Gibbs <meta file> <factors file> <variables file> <weights file> <edges file>")
     exit(-1)
   }
 
   /* Samples a variable and updates its value in the graph */
   def sampleVariable(graph: Rep[FactorGraph[FunctionFactor]], variableId: Rep[Int]) = {
     // all factors that connect to the variable
-    val variableFactors = graph.variablesToFactors.apply(variableId).map(fid => graph.factors.apply(fid))
+    val variable = graph.variables.apply(variableId)
+    val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
+    val variableFactors = graph.variablesToFactors.apply(variableIStart::variableIEnd)
 
     // TODO: be domain-independent
 
     val allValues = variableFactors.map { factor =>
       // consider positive and negative cases
-      val cases = factor.vars.map { v =>
+      val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
+      val vars = graph.factorsToVariables.apply(factorIStart::facotrIEnd)
+      val cases = vars.map { v =>
         if (v.id == variableId && v.isPositive) pack(unit(1.0), unit(0.0))
         else if (v.id == variableId && !v.isPositive) pack(unit(0.0), unit(1.0))
         else {
@@ -80,12 +84,16 @@ trait Gibbs extends OptiMLApplication {
   def learnWeights(graph: Rep[FactorGraph[FunctionFactor]], numIterations: Rep[Int], numSamples: Rep[Int], learningRate: Rep[Double], regularizationConstant: Rep[Double], diminishRate: Rep[Double], times: Rep[DenseVector[Tup2[Int,Long]]]): Rep[Unit] = {
     tic("initLearnWeights")
     val allVariables = graph.variables.map(_.id)
-    val queryVariables = graph.variables.filter(_.isQuery).map(_.id)
+    val queryVariables = graph.variables.filter(!_.isEvidence).map(_.id)
     val evidenceVariables = graph.variables.filter(_.isEvidence).map(_.id)
     val evidenceValues = evidenceVariables.map(id => graph.getVariableValue(id))
 
     // we only learn weights for factors that are connected to evidence
-    val queryFactorIds = evidenceVariables.flatMap(vid => graph.variablesToFactors.apply(vid)).distinct
+    val queryFactorIds = evidenceVariables.flatMap { vid =>
+      val iStart = graph.variables.apply(vid).iStart
+      val queryFactorindices = (0::graph.variables.apply(vid).nFactors) {e => e + iStart}
+      queryFactorindices.map(i => graph.variablesToFactors.apply(i).id)
+    }.distinct
     val factorWeightIds = queryFactorIds.map(fid => graph.factors.apply(fid).weightId).distinct
     val queryWeightIds = factorWeightIds.filter(wid => !graph.weights.apply(wid).isFixed)
     val weightFactorIdsMap = queryFactorIds.map(fid => graph.factors.apply(fid)).groupBy(f => f.weightId, f => f.id)
@@ -219,14 +227,14 @@ trait Gibbs extends OptiMLApplication {
   }
 
   def main() = {
-    if (args.length < 3) print_usage
+    if (args.length < 5) print_usage
 
     tic("io")
-    val G = readFactorGraph(args(0), args(1), args(2), args(3))
+    val G = readFactorGraph(args(0), args(1), args(2), args(3), args(4), ",")
     toc("io", G)
 
-    println("finished reading factor graph")
-    println("read " + G.factors.length + " factors, " + G.variables.length + " variables, " + G.weights.length + " weights")
+    //println("finished reading factor graph")
+    //println("read " + G.factors.length + " factors, " + G.variables.length + " variables, " + G.weights.length + " weights")
 
     // println("first 10 factors: ")
     // G.factors.apply(0::10).map(f => pack(f.id, f.vars.map(_.id), f.weightId, f.funcId)).pprint
