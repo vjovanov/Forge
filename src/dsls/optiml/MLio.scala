@@ -273,6 +273,7 @@ trait MLIOOps {
       //     tempVariablesToFactors.update(vId, curVec << factorIds(i))
       //   }
       // }
+      val variablesToFactors = DenseVector[VariableFactor](variables.map(v => v.nFactors).sum, true) 
       var count = 0
       var i = 0
       while (i < variables.length){

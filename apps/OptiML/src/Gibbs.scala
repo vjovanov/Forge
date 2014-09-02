@@ -14,36 +14,75 @@ trait Gibbs extends OptiMLApplication {
 
   /* Samples a variable and updates its value in the graph */
   def sampleVariable(graph: Rep[FactorGraph[FunctionFactor]], variableId: Rep[Int]) = {
-    // all factors that connect to the variable
     val variable = graph.variables.apply(variableId)
     val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
-    val variableFactors = graph.variablesToFactors.apply(variableIStart::variableIEnd)
-
-    // TODO: be domain-independent
-
-    val allValues = variableFactors.map { factor =>
-      // consider positive and negative cases
+    var positiveSum = 0.0
+    var negativeSum = 0.0
+    var i = variableIStart
+    while (i < variableIEnd) {
+      val factor = graph.variablesToFactors.apply(i)
       val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
-      val vars = graph.factorsToVariables.apply(factorIStart::facotrIEnd)
-      val cases = vars.map { v =>
-        if (v.id == variableId && v.isPositive) pack(unit(1.0), unit(0.0))
-        else if (v.id == variableId && !v.isPositive) pack(unit(0.0), unit(1.0))
+      val positive = DenseVector[Double](factor.nVariables, true)
+      val negative = DenseVector[Double](factor.nVariables, true)
+      var j = factorIStart
+      var l = 0
+      while (j < facotrIEnd) {
+        val v = graph.factorsToVariables.apply(j)
+        if (v.id == variableId && v.isPositive) {
+          positive(l) = unit(1.0)
+          negative(l) = unit(0.0)
+        }
+        else if (v.id == variableId && !v.isPositive) {
+          positive(l) = unit(0.0)
+          negative(l) = unit(1.0)
+        }
         else {
           val value = graph.getVariableValue(v.id, v.isPositive)
-          pack(value,value)
+          positive(l) = value
+          negative(l) = value
         }
+        l += 1
+        j += 1
       }
-
       val factorWeightValue = graph.getWeightValue(factor.weightId)
-      pack(factor.evaluate(cases.map(_._1)) * factorWeightValue,
-           factor.evaluate(cases.map(_._2)) * factorWeightValue)
-
+      positiveSum += factor.evaluate(positive) * factorWeightValue
+      negativeSum += factor.evaluate(negative) * factorWeightValue
+      i += 1
     }
-
-    val (positiveValues, negativeValues) = (allValues.map(_._1), allValues.map(_._2))
-
-    val newValue = if ((random[Double] * (1.0 + exp(negativeValues.sum - positiveValues.sum))) <= 1.0) 1.0 else 0.0
+    val newValue = if ((random[Double] * (1.0 + exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
     graph.updateVariableValue(variableId, newValue)
+
+
+    // // all factors that connect to the variable
+    // val variable = graph.variables.apply(variableId)
+    // val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
+    // val variableFactors = graph.variablesToFactors.apply(variableIStart::variableIEnd)
+
+    // // TODO: be domain-independent
+
+    // val allValues = variableFactors.map { factor =>
+    //   // consider positive and negative cases
+    //   val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
+    //   val vars = graph.factorsToVariables.apply(factorIStart::facotrIEnd)
+    //   val cases = vars.map { v =>
+    //     if (v.id == variableId && v.isPositive) pack(unit(1.0), unit(0.0))
+    //     else if (v.id == variableId && !v.isPositive) pack(unit(0.0), unit(1.0))
+    //     else {
+    //       val value = graph.getVariableValue(v.id, v.isPositive)
+    //       pack(value,value)
+    //     }
+    //   }
+
+    //   val factorWeightValue = graph.getWeightValue(factor.weightId)
+    //   pack(factor.evaluate(cases.map(_._1)) * factorWeightValue,
+    //        factor.evaluate(cases.map(_._2)) * factorWeightValue)
+
+    // }
+
+    // val (positiveValues, negativeValues) = (allValues.map(_._1), allValues.map(_._2))
+
+    // val newValue = if ((random[Double] * (1.0 + exp(negativeValues.sum - positiveValues.sum))) <= 1.0) 1.0 else 0.0
+    // graph.updateVariableValue(variableId, newValue)
   }
 
   /* Samples multiple variables and updates the variable values in the graph */
@@ -75,6 +114,11 @@ trait Gibbs extends OptiMLApplication {
       i += 1
     }
     val res = acc / numSamples
+    factorIds.indices.groupByReduce[Int,Double](i => factorIds(i), i => res(i), (a,b) => a)
+  }
+
+  def sampleFactorsConditioned(graph: Rep[FactorGraph[FunctionFactor]], factorIds: Rep[DenseVector[Int]]) = {
+    val res = factorIds.map(fid => evaluateFactor(graph, fid))
     factorIds.indices.groupByReduce[Int,Double](i => factorIds(i), i => res(i), (a,b) => a)
   }
 
@@ -112,6 +156,7 @@ trait Gibbs extends OptiMLApplication {
       println("no query weights, nothing to learn!")
     }
     else {
+      val conditionedEx = sampleFactorsConditioned(graph, queryFactorIds)
       untilconverged(0, minIter = numIterations, maxIter = numIterations) { i =>
         val iterLearningRate = pow(diminishRate, i) * learningRate
 
@@ -119,9 +164,8 @@ trait Gibbs extends OptiMLApplication {
 
         tic("sampleFactors")
         // compute the expectation for all factors sampling only query variables
-        val conditionedEx = sampleFactors(graph, queryVariables, queryFactorIds, numSamples, times)
         // compute the expectation for all factors sampling all variables
-        val unconditionedEx = sampleFactors(graph, allVariables, queryFactorIds, numSamples, times)
+        val unconditionedEx = sampleFactors(graph, evidenceVariables, queryFactorIds, numSamples, times)
         toc("sampleFactors", conditionedEx, unconditionedEx)
 
         // compute new weights
@@ -143,10 +187,10 @@ trait Gibbs extends OptiMLApplication {
         println("gradient_norm="+gradientNorm+" max_gradient="+maxGradient)
 
         // reset the evidence variables to their evidence values (we changed their values by sampling them above)
-        graph.updateVariableValues(evidenceVariables, evidenceValues)
 
         i + 1
       }
+      graph.updateVariableValues(evidenceVariables, evidenceValues)
       ()
     }
 
