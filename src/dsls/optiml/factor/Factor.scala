@@ -40,18 +40,18 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
     static (VFactor) ("apply", Nil, (("id", MInt), ("funcId", MInt), ("nVariables", MInt), ("iStart", MInt), ("weightId", MInt)) :: VFactor) implements allocates(VFactor, ${$0}, ${$1}, ${$2}, ${$3}, ${$4})
 
     compiler (VFactor) ("or_factor", Nil, DenseVector(MDouble) :: MDouble) implements composite ${
-      if ($0.length == 0 || $0.filter(_ == 1.0).length > 0) 1.0 else 0.0
+      if ($0.length == 0 || $0.sum > 0.0) 1.0 else 0.0
     }
 
     compiler (VFactor) ("and_factor", Nil, DenseVector(MDouble) :: MDouble) implements composite ${
-      if ($0.length == 0 || $0.filter(_ == 1.0).length == $0.length) 1.0 else 0.0
+      if ($0.length == 0 || $0.sum == $0.length * 1.0) 1.0 else 0.0
     }
 
     compiler (VFactor) ("imply_factor", Nil, DenseVector(MDouble) :: MDouble) implements composite ${
       if ($0.length == 1) {
         $0(0)
       }
-      else if ($0.take($0.length - 1).contains(0.0)) {
+      else if (($0.sum - $0.last) < ($0.length - 1) * 1.0) {
         1.0
       }
       else if ($0.last == 0.0) {
