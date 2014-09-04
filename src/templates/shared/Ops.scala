@@ -289,7 +289,7 @@ trait BaseGenOps extends ForgeCodeGenBase {
     val addRet = withReturnTpe.getOrElse(Config.fastCompile)
     val ret = if (addRet || isRedirect(o)) ": " + repifySome(o.retTpe) else ""
     val curriedArgs = o.curriedArgs.map(a => makeArgsWithNowType(a)).mkString("")
-    prefix + o.name + makeTpeParsWithBounds(o.tpePars) + makeArgsWithNowType(o.firstArgs, o.effect != pure) + curriedArgs + makeOpImplicitArgsWithOverloadWithType(o) + ret + " = " + makeOpMethodNameWithFutureArgs(o)
+    prefix + o.name + makeTpeParsWithBounds(o.tpePars) + makeArgsWithNowType(o.firstArgs, o.effect != pure || o.name == "apply") + curriedArgs + makeOpImplicitArgsWithOverloadWithType(o) + ret + " = " + makeOpMethodNameWithFutureArgs(o)
   }
 
   def makeOpImplMethodName(o: Rep[DSLOp]) = makeOpMethodName(o) + "_impl" + nameClashId(o)
@@ -415,15 +415,16 @@ trait BaseGenOps extends ForgeCodeGenBase {
 
   // certain ops (e.g. "apply" cannot be expressed with infix notation right now), so we use implicits as a workaround
   def noInfix(o: Rep[DSLOp]) = {
-    if (Config.fastCompile) {
-      // default implicit mode (appears empirically slightly faster than infix)
-      (!mustInfixList.contains(o.name)) && o.args.length > 0
-    }
-    else {
+    // FIXME: we get scalac internal crashes when using the default-implicit mode now
+    // if (Config.fastCompile) {
+    //   // default implicit mode (appears empirically slightly faster than infix)      
+    //   (!mustInfixList.contains(o.name)) && o.args.length > 0 && !o.args.exists(hasDefaultValue)
+    // }
+    // else {
       // default infix mode (slightly easier to understand what's happening, also fails to apply less than implicits)
       // blacklist or curried args or function args (in the latter two cases, infix doesn't always resolve correctly)
       noInfixList.contains(o.name) || o.curriedArgs.length > 0 || hasFuncArgs(o)
-    }
+    // }
   }
 
   def emitOpSyntax(opsGrp: DSLOps, stream: PrintWriter) {
@@ -516,13 +517,12 @@ trait BaseGenOps extends ForgeCodeGenBase {
         stream.println("  class " + opsClsName + makeTpeParsWithBounds(tpePars) + "(val self: " + repify(tpe) + ")(implicit __pos: SourceContext) {")
 
         for (o <- ops if quote(o.args.apply(0).tpe) == quote(tpe)) {
-          val otherArgs = makeArgsWithNowType(o.firstArgs.drop(1))
+          val otherArgs = makeArgsWithNowType(o.firstArgs.drop(1), o.effect != pure || o.name == "apply")
           val curriedArgs = o.curriedArgs.map(a => makeArgsWithNowType(a)).mkString("")
-          val hkTpePars = if (isTpePar(tpe)) tpePars else getHkTpe(tpe).tpePars
-          val otherTpePars = o.tpePars.filterNot(p => hkTpePars.map(_.name).contains(p.name))
+          val otherTpePars = o.tpePars.filterNot(p => tpePars.map(_.name).contains(p.name))
           val ret = if (Config.fastCompile) ": " + repifySome(o.retTpe) else ""
           stream.println("    def " + o.name + makeTpeParsWithBounds(otherTpePars) + otherArgs + curriedArgs
-            + (makeImplicitArgsWithCtxBoundsWithType(implicitArgsWithOverload(o), o.tpePars diff otherTpePars, without = hkTpePars)) + ret + " = " + makeOpMethodNameWithFutureArgs(o, a => if (a.name ==  o.args.apply(0).name) "self" else simpleArgName(a)))
+            + (makeImplicitArgsWithCtxBoundsWithType(implicitArgsWithOverload(o), o.tpePars diff otherTpePars, without = tpePars)) + ret + " = " + makeOpMethodNameWithFutureArgs(o, a => if (a.name ==  o.args.apply(0).name) "self" else simpleArgName(a)))
         }
         stream.println("  }")
         stream.println()

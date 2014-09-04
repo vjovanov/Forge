@@ -8,38 +8,100 @@ object GibbsInterpreter extends OptiMLApplicationInterpreter with Gibbs
 trait Gibbs extends OptiMLApplication {
 
   def print_usage = {
-    println("Usage: Gibbs <factors file> <variables file> <weights file> <edges file>")
+    println("Usage: Gibbs <meta file> <factors file> <variables file> <weights file> <edges file>")
     exit(-1)
   }
 
   /* Samples a variable and updates its value in the graph */
   def sampleVariable(graph: Rep[FactorGraph[FunctionFactor]], variableId: Rep[Int]) = {
-    // all factors that connect to the variable
-    val variableFactors = graph.variablesToFactors.apply(variableId).map(fid => graph.factors.apply(fid))
-
-    // TODO: be domain-independent
-
-    val allValues = variableFactors.map { factor =>
-      // consider positive and negative cases
-      val cases = factor.vars.map { v =>
-        if (v.id == variableId && v.isPositive) pack(unit(1.0), unit(0.0))
-        else if (v.id == variableId && !v.isPositive) pack(unit(0.0), unit(1.0))
-        else {
-          val value = graph.getVariableValue(v.id, v.isPositive)
-          pack(value,value)
-        }
-      }
-
+    val variable = graph.variables.apply(variableId)
+    val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
+    var positiveSum = 0.0
+    var negativeSum = 0.0
+    var i = variableIStart
+    while (i < variableIEnd) {
+      val factor = graph.variablesToFactors.apply(i)
+      val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
+      val factorsToVariables = graph.factorsToVariables
+      val values = graph.variableValues
+      val positive = factor.evaluate(values, factorsToVariables, variableId, 1.0)
+      val negative = factor.evaluate(values, factorsToVariables, variableId, 0.0)
       val factorWeightValue = graph.getWeightValue(factor.weightId)
-      pack(factor.evaluate(cases.map(_._1)) * factorWeightValue,
-           factor.evaluate(cases.map(_._2)) * factorWeightValue)
-
+      positiveSum += positive * factorWeightValue
+      negativeSum += negative * factorWeightValue
+      i += 1
     }
-
-    val (positiveValues, negativeValues) = (allValues.map(_._1), allValues.map(_._2))
-
-    val newValue = if ((random[Double] * (1.0 + exp(negativeValues.sum - positiveValues.sum))) <= 1.0) 1.0 else 0.0
+    val newValue = if ((random[Double] * (1.0 + exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
     graph.updateVariableValue(variableId, newValue)
+    // val variable = graph.variables.apply(variableId)
+    // val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
+    // var positiveSum = 0.0
+    // var negativeSum = 0.0
+    // var i = variableIStart
+    // while (i < variableIEnd) {
+    //   val factor = graph.variablesToFactors.apply(i)
+    //   val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
+    //   //val positive = DenseVector[Double](factor.nVariables, true)
+    //   //val negative = DenseVector[Double](factor.nVariables, true)
+    //   var j = factorIStart
+    //   var l = 0
+    //   while (j < facotrIEnd) {
+    //     val v = graph.factorsToVariables.apply(j)
+    //     if (v.id == variableId && v.isPositive) {
+    //       positive(l) = unit(1.0)
+    //       negative(l) = unit(0.0)
+    //     }
+    //     else if (v.id == variableId && !v.isPositive) {
+    //       positive(l) = unit(0.0)
+    //       negative(l) = unit(1.0)
+    //     }
+    //     else {
+    //       val value = graph.getVariableValue(v.id, v.isPositive)
+    //       positive(l) = value
+    //       negative(l) = value
+    //     }
+    //     l += 1
+    //     j += 1
+    //   }
+    //   val factorWeightValue = graph.getWeightValue(factor.weightId)
+    //   positiveSum += factor.evaluate(positive) * factorWeightValue
+    //   negativeSum += factor.evaluate(negative) * factorWeightValue
+    //   i += 1
+    // }
+    // val newValue = if ((random[Double] * (1.0 + exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
+    // graph.updateVariableValue(variableId, newValue)
+
+
+    // // all factors that connect to the variable
+    // val variable = graph.variables.apply(variableId)
+    // val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
+    // val variableFactors = graph.variablesToFactors.apply(variableIStart::variableIEnd)
+
+    // // TODO: be domain-independent
+
+    // val allValues = variableFactors.map { factor =>
+    //   // consider positive and negative cases
+    //   val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
+    //   val vars = graph.factorsToVariables.apply(factorIStart::facotrIEnd)
+    //   val cases = vars.map { v =>
+    //     if (v.id == variableId && v.isPositive) pack(unit(1.0), unit(0.0))
+    //     else if (v.id == variableId && !v.isPositive) pack(unit(0.0), unit(1.0))
+    //     else {
+    //       val value = graph.getVariableValue(v.id, v.isPositive)
+    //       pack(value,value)
+    //     }
+    //   }
+
+    //   val factorWeightValue = graph.getWeightValue(factor.weightId)
+    //   pack(factor.evaluate(cases.map(_._1)) * factorWeightValue,
+    //        factor.evaluate(cases.map(_._2)) * factorWeightValue)
+
+    // }
+
+    // val (positiveValues, negativeValues) = (allValues.map(_._1), allValues.map(_._2))
+
+    // val newValue = if ((random[Double] * (1.0 + exp(negativeValues.sum - positiveValues.sum))) <= 1.0) 1.0 else 0.0
+    // graph.updateVariableValue(variableId, newValue)
   }
 
   /* Samples multiple variables and updates the variable values in the graph */
@@ -74,18 +136,27 @@ trait Gibbs extends OptiMLApplication {
     factorIds.indices.groupByReduce[Int,Double](i => factorIds(i), i => res(i), (a,b) => a)
   }
 
+  def sampleFactorsConditioned(graph: Rep[FactorGraph[FunctionFactor]], factorIds: Rep[DenseVector[Int]]) = {
+    val res = factorIds.map(fid => evaluateFactor(graph, fid))
+    factorIds.indices.groupByReduce[Int,Double](i => factorIds(i), i => res(i), (a,b) => a)
+  }
+
   // TIME BREAKDOWN: sequential total is ~53s
   // sampling factors takes ~.5s per iteration --> 50s overall
   // sampleVariables is ~.17s per call * 2x per iteration --> 34s overall
   def learnWeights(graph: Rep[FactorGraph[FunctionFactor]], numIterations: Rep[Int], numSamples: Rep[Int], learningRate: Rep[Double], regularizationConstant: Rep[Double], diminishRate: Rep[Double], times: Rep[DenseVector[Tup2[Int,Long]]]): Rep[Unit] = {
     tic("initLearnWeights")
     val allVariables = graph.variables.map(_.id)
-    val queryVariables = graph.variables.filter(_.isQuery).map(_.id)
+    val queryVariables = graph.variables.filter(!_.isEvidence).map(_.id)
     val evidenceVariables = graph.variables.filter(_.isEvidence).map(_.id)
     val evidenceValues = evidenceVariables.map(id => graph.getVariableValue(id))
 
     // we only learn weights for factors that are connected to evidence
-    val queryFactorIds = evidenceVariables.flatMap(vid => graph.variablesToFactors.apply(vid)).distinct
+    val queryFactorIds = evidenceVariables.flatMap { vid =>
+      val iStart = graph.variables.apply(vid).iStart
+      val queryFactorindices = (0::graph.variables.apply(vid).nFactors) {e => e + iStart}
+      queryFactorindices.map(i => graph.variablesToFactors.apply(i).id)
+    }.distinct
     val factorWeightIds = queryFactorIds.map(fid => graph.factors.apply(fid).weightId).distinct
     val queryWeightIds = factorWeightIds.filter(wid => !graph.weights.apply(wid).isFixed)
     val weightFactorIdsMap = queryFactorIds.map(fid => graph.factors.apply(fid)).groupBy(f => f.weightId, f => f.id)
@@ -104,6 +175,7 @@ trait Gibbs extends OptiMLApplication {
       println("no query weights, nothing to learn!")
     }
     else {
+      val conditionedEx = sampleFactorsConditioned(graph, queryFactorIds)
       untilconverged(0, minIter = numIterations, maxIter = numIterations) { i =>
         val iterLearningRate = pow(diminishRate, i) * learningRate
 
@@ -111,9 +183,8 @@ trait Gibbs extends OptiMLApplication {
 
         tic("sampleFactors")
         // compute the expectation for all factors sampling only query variables
-        val conditionedEx = sampleFactors(graph, queryVariables, queryFactorIds, numSamples, times)
         // compute the expectation for all factors sampling all variables
-        val unconditionedEx = sampleFactors(graph, allVariables, queryFactorIds, numSamples, times)
+        val unconditionedEx = sampleFactors(graph, evidenceVariables, queryFactorIds, numSamples, times)
         toc("sampleFactors", conditionedEx, unconditionedEx)
 
         // compute new weights
@@ -135,10 +206,10 @@ trait Gibbs extends OptiMLApplication {
         println("gradient_norm="+gradientNorm+" max_gradient="+maxGradient)
 
         // reset the evidence variables to their evidence values (we changed their values by sampling them above)
-        graph.updateVariableValues(evidenceVariables, evidenceValues)
 
         i + 1
       }
+      graph.updateVariableValues(evidenceVariables, evidenceValues)
       ()
     }
 
@@ -219,14 +290,14 @@ trait Gibbs extends OptiMLApplication {
   }
 
   def main() = {
-    if (args.length < 3) print_usage
+    if (args.length < 5) print_usage
 
     tic("io")
-    val G = readFactorGraphNew(args(0), args(1), args(2), args(3))
+    val G = readFactorGraph(args(0), args(1), args(2), args(3), args(4), ",")
     toc("io", G)
 
-    println("finished reading factor graph")
-    println("read " + G.factors.length + " factors, " + G.variables.length + " variables, " + G.weights.length + " weights")
+    //println("finished reading factor graph")
+    //println("read " + G.factors.length + " factors, " + G.variables.length + " variables, " + G.weights.length + " weights")
 
     // println("first 10 factors: ")
     // G.factors.apply(0::10).map(f => pack(f.id, f.vars.map(_.id), f.weightId, f.funcId)).pprint
@@ -259,5 +330,8 @@ trait Gibbs extends OptiMLApplication {
     val totalNumSamples2 = times2.map(_._1).sum
     val totalMillis2 = times2.map(_._2).sum
     println("Sampler: samples_per_sec= " + (totalNumSamples2 / (totalMillis2/1000.0)))
+    val totalNumSamples = totalNumSamples1 + totalNumSamples2
+    val totalMillis = totalMillis1 + totalMillis2
+    println("Total: samples_per_sec= " + (totalNumSamples / (totalMillis/1000.0)))
   }
 }

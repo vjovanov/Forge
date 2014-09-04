@@ -6,6 +6,8 @@ import scala.virtualization.lms.common._
 
 // Front-end
 trait ForgeHashMapOps extends Base {
+  this: ForgeArrayOps =>
+
   type ForgeHashMap[K,V]
   type ForgeArray[K]
   implicit def forgeMapManifest[K:Manifest,V:Manifest]: Manifest[ForgeHashMap[K,V]]

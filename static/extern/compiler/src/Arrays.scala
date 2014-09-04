@@ -61,6 +61,18 @@ trait ForgeArrayOpsExp extends DeliteArrayFatExp {
   }
   def array_string_split(__arg0: Rep[String],__arg1: Rep[String],__arg2: Rep[Int] = unit(0))(implicit __imp0: SourceContext): Rep[ForgeArray[String]]
     = reflectPure(ArrayStringSplit(__arg0, __arg1, __arg2))
+  def array_sortIndices[R:Manifest:Ordering](__arg0: Rep[Int], __arg1: (Rep[Int] => Rep[R]))(implicit __imp0: SourceContext): Rep[ForgeArray[Int]]
+    = darray_sortIndices(__arg0,{(a,b) => 
+        val aV = __arg1(a)
+        val bV = __arg1(b)
+        
+        //You have to have 3 conditions and then a default. 
+        //Otherwise you will violate the JAVA runtime comparator contract.
+        if(aV < bV) unit(-1)
+        else if(aV == bV) unit(0)
+        else if(aV > bV) unit(1)
+        else unit(0)
+      })
 
   // avoid mixing in LMS Array ops due to conflicts. alternatively, we could refactor LMS array ops to
   // put ArrayApply and ArrayLength in an isolated trait that we can use.
@@ -117,7 +129,7 @@ trait CGenForgeArrayOps extends CGenDeliteArrayOps with CGenObjectOps {
     case ArrayApply(x,n) => emitValDef(sym, quote(x) + "->apply(" + quote(n) + ")")
     case ArrayLength(x) => emitValDef(sym, quote(x) + "->length")
     //TODO: enable ArrayStringSplit in cluster mode
-    case ArrayStringSplit(a,b,Const(0)) if (!Config.generateSerializable) => emitValDef(sym, "string_split(" + quote(a) + "," + quote(b) + ")")
+    case ArrayStringSplit(a,b,l) if (!Config.generateSerializable) => emitValDef(sym, "string_split(resourceInfo," + quote(a) + "," + quote(b) + "," + quote(l) + ")")
     case _ => super.emitNode(sym, rhs)
   }
 }
@@ -153,6 +165,8 @@ trait ForgeArrayBufferOpsExp extends DeliteArrayBufferOpsExp {
     = throw new UnsupportedOperationException("DeliteArrayBuffer indexOf not implemented yet")
   def array_buffer_result[T:Manifest](__arg0: Rep[ForgeArrayBuffer[T]])(implicit __imp0: SourceContext): Rep[ForgeArray[T]]
     = darray_buffer_result(__arg0)
+  def array_buffer_unsafe_result[T:Manifest](__arg0: Rep[ForgeArrayBuffer[T]])(implicit __imp0: SourceContext): Rep[ForgeArray[T]]
+    = darray_buffer_unsafe_result(__arg0)
   def array_buffer_map[T:Manifest,R:Manifest](__arg0: Rep[ForgeArrayBuffer[T]], __arg1: Rep[T] => Rep[R])(implicit __imp0: SourceContext): Rep[ForgeArrayBuffer[R]]
     = darray_buffer_map(__arg0,__arg1)
   def array_buffer_flatmap[T:Manifest,R:Manifest](__arg0: Rep[ForgeArrayBuffer[T]], __arg1: Rep[T] => Rep[ForgeArrayBuffer[R]])(implicit __imp0: SourceContext): Rep[ForgeArrayBuffer[R]]

@@ -21,7 +21,7 @@ trait GraphOps{
     val Node = lookupTpe("Node")
     val Edge = lookupTpe("Edge")
     val NodeData = lookupTpe("NodeData")
-    val NodeDataView = lookupTpe("NodeDataView")
+    val NeighborView = lookupTpe("NeighborView")
     val NodeIdView = lookupTpe("NodeIdView")
 
     //Actual Graph declaration
@@ -33,32 +33,16 @@ trait GraphOps{
     val Graph = g
     val GraphCommonOps = withTpe(Graph)
     GraphCommonOps{
-      infix ("getHeavyNodeHash") (Nil :: SHashMap(MInt,MInt)) implements getter(0, "_heavyNodes")
-      infix("mapLoadBalancedNodes")( (Node==>R) :: NodeData(R), TNumeric(R), addTpePars=R) implements composite ${
-        //parallel on from function 
-        val heavy = $self.getHeavyNodeHash
-        val data = array_buffer_strict_empty[R]($self.numNodes) 
-        array_buffer_forIndices(data,{n => 
-          if(!heavy.contains(n)) array_buffer_update(data,n,$1(Node(n)))
-          else array_buffer_update(data,n,numeric_zero[R])
-        })
-
-        //parallel on function passed in
-        val keys = heavy.keys
-        var i = 0
-        while(i < array_length(keys)){
-          array_buffer_update(data,array_apply(keys,i),$1(Node(array_apply(keys,i))))
-          i+=1
-        }
-        NodeData(data)
+      infix ("numNodes")(Nil :: MInt) implements getter(0,"_numNodes")
+      infix("sumOverNodes")  ( (Node ==> R) :: R, TNumeric(R), addTpePars=R) implements composite ${
+        NodeIdView($self.numNodes).mapreduce[R]({n => $1(Node(n))},{(a,b) => a+b},{n => true})
       }
       //given an ID return a node
       infix("getNodeFromID")(MInt :: Node) implements composite ${
-        val result = NodeIdView($self.getExternalIDs,$self.numNodes).mapreduce[Int]( i => i, (a,b) => a+b, i => $self.getExternalID(i)==$1)
+        val result = NodeIdView($self.numNodes).mapreduce[Int]( i => i, (a,b) => a+b, i => $self.getExternalID(i)==$1)
         if(result >= $self.numNodes() || result < 0) fatal("ERROR. ID: " + $1 + " does not exist in this UndirectedGraph!")
         Node(result)
       }
-      infix ("numNodes")(Nil :: MInt) implements getter(0,"_numNodes")
       infix ("foreachNode") ((Node ==> MUnit) :: MUnit, effect = simple) implements composite ${
         NodeData(array_fromfunction($self.numNodes,{n => n})).foreach{ i =>
           $1(Node(i))
@@ -74,7 +58,7 @@ trait GraphOps{
       infix ("inBFOrder") ( CurriedMethodSignature(List(Node,((Node,NodeData(R),NodeData(MInt)) ==> R),((Node,NodeData(R),NodeData(R),NodeData(MInt)) ==> R)),NodeData(R)), TFractional(R), addTpePars=R, effect=simple) implements composite ${
         val levelArray = NodeData[Int]($self.numNodes)
         val bitMap = AtomicIntArray($self.numNodes)
-        val nodes = NodeIdView($self.getExternalIDs,$self.numNodes) 
+        val nodes = NodeIdView($self.numNodes) 
         val forwardComp = NodeData[R]($self.numNodes)
         val reverseComp = NodeData[R]($self.numNodes)
 
@@ -123,7 +107,7 @@ trait GraphOps{
     val Node = lookupTpe("Node")
     val Edge = lookupTpe("Edge")
     val NodeData = lookupTpe("NodeData")
-    val NodeDataView = lookupTpe("NodeDataView")
+    val NeighborView = lookupTpe("NeighborView")
     val NodeIdView = lookupTpe("NodeIdView")
 
     //Actual Graph declaration
@@ -137,12 +121,10 @@ trait GraphOps{
     direct(Graph) ("abs", Nil, NodeData(MFloat) :: NodeData(MFloat)) implements composite ${$0.map(e => abs(e))}
 
     //a couple of sum methods
-    direct(Graph) ("sum", R, NodeData(R) :: R, TNumeric(R)) implements composite ${$0.reduce((a,b) => a+b)}
-    direct(Graph) ("sum", R, CurriedMethodSignature(List(("nd_view",NodeDataView(MInt)), ("data",MInt==>R) ,("cond",MInt==>MBoolean)),R), TNumeric(R)) implements composite ${nd_view.mapreduce[R]( e => data(e), (a,b) => a+b, cond)}
-    direct(Graph) ("sum", R, NodeData(NodeData(R)) :: NodeData(R), TFractional(R)) implements composite ${$0.reduceNested( ((a,b) => a+b),NodeData[R]($0.length))}
+    direct(Graph) ("sum", R, CurriedMethodSignature(List(("nd_view",NeighborView(MInt)), ("data",MInt==>R) ,("cond",MInt==>MBoolean)),R), TNumeric(R)) implements composite ${nd_view.mapreduce[R]( e => data(e), (a,b) => a+b, cond)}
     
     // "block" should not mutate the input, but always produce a new copy. in this version, block can change the structure of the input across iterations (e.g. increase its size)
-    direct (Graph) ("untilconverged", T, CurriedMethodSignature(List(List(("x", T), ("tol", MDouble, ".0001"), ("minIter", MInt, "1"), ("maxIter", MInt, "100")), ("block", T ==> T), ("diff", (T,T) ==> MDouble)), T)) implements composite ${
+    direct (Graph) ("untilconverged", T, CurriedMethodSignature(List(List(("x", T), ("tol", MDouble, "unit(.0001)"), ("minIter", MInt, "unit(1)"), ("maxIter", MInt, "unit(100)")), ("block", T ==> T), ("diff", (T,T) ==> MDouble)), T)) implements composite ${
       var delta = scala.Double.MaxValue
       var cur = x
       var iter = 0
