@@ -84,7 +84,8 @@ trait FactorGraphOps {
       infix ("weights") (Nil :: DenseVector(Weight)) implements getter(0, "_weights")
       infix ("variablesToFactors") (Nil :: DenseVector(VariableFactor)) implements getter(0, "_variablesToFactors")
       infix ("factorsToVariables") (Nil :: DenseVector(FactorVariable)) implements getter(0, "_factorsToVariables")
-      compiler ("infix_variableValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_variableValues")
+      infix ("variableValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_variableValues")
+      //compiler ("infix_variableValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_variableValues")
       compiler ("infix_weightsValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_weightValues")
 
       infix ("getVariableValue") (MethodSignature(List(("id",MInt), ("isPositive",MBoolean,"unit(true)")), MDouble)) implements composite ${

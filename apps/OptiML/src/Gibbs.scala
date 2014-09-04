@@ -22,35 +22,66 @@ trait Gibbs extends OptiMLApplication {
     while (i < variableIEnd) {
       val factor = graph.variablesToFactors.apply(i)
       val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
-      val positive = DenseVector[Double](factor.nVariables, true)
-      val negative = DenseVector[Double](factor.nVariables, true)
-      var j = factorIStart
-      var l = 0
-      while (j < facotrIEnd) {
-        val v = graph.factorsToVariables.apply(j)
-        if (v.id == variableId && v.isPositive) {
-          positive(l) = unit(1.0)
-          negative(l) = unit(0.0)
-        }
-        else if (v.id == variableId && !v.isPositive) {
-          positive(l) = unit(0.0)
-          negative(l) = unit(1.0)
-        }
-        else {
-          val value = graph.getVariableValue(v.id, v.isPositive)
-          positive(l) = value
-          negative(l) = value
-        }
-        l += 1
-        j += 1
-      }
+      // val positive = DenseVector[Double](factor.nVariables, true)
+      // val negative = DenseVector[Double](factor.nVariables, true)
+      
+      val factorsToVariables = graph.factorsToVariables
+      graph.updateVariableValue(variableId, 1.0)
+      val valuesP = graph.variableValues
+      val positive = factor.evaluate(valuesP, factorsToVariables, variableId)
+      graph.updateVariableValue(variableId, 0.0)
+      val valuesN = graph.variableValues
+      val negative = factor.evaluate(valuesN, factorsToVariables, variableId)
       val factorWeightValue = graph.getWeightValue(factor.weightId)
-      positiveSum += factor.evaluate(positive) * factorWeightValue
-      negativeSum += factor.evaluate(negative) * factorWeightValue
+      if (positive._2) {
+        positiveSum += positive._1 * factorWeightValue
+        negativeSum += negative._1 * factorWeightValue
+      }
+      else {
+        positiveSum += negative._1 * factorWeightValue
+        negativeSum += positive._1 * factorWeightValue
+      }
       i += 1
     }
     val newValue = if ((random[Double] * (1.0 + exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
     graph.updateVariableValue(variableId, newValue)
+    // val variable = graph.variables.apply(variableId)
+    // val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
+    // var positiveSum = 0.0
+    // var negativeSum = 0.0
+    // var i = variableIStart
+    // while (i < variableIEnd) {
+    //   val factor = graph.variablesToFactors.apply(i)
+    //   val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
+    //   //val positive = DenseVector[Double](factor.nVariables, true)
+    //   //val negative = DenseVector[Double](factor.nVariables, true)
+    //   var j = factorIStart
+    //   var l = 0
+    //   while (j < facotrIEnd) {
+    //     val v = graph.factorsToVariables.apply(j)
+    //     if (v.id == variableId && v.isPositive) {
+    //       positive(l) = unit(1.0)
+    //       negative(l) = unit(0.0)
+    //     }
+    //     else if (v.id == variableId && !v.isPositive) {
+    //       positive(l) = unit(0.0)
+    //       negative(l) = unit(1.0)
+    //     }
+    //     else {
+    //       val value = graph.getVariableValue(v.id, v.isPositive)
+    //       positive(l) = value
+    //       negative(l) = value
+    //     }
+    //     l += 1
+    //     j += 1
+    //   }
+    //   val factorWeightValue = graph.getWeightValue(factor.weightId)
+    //   positiveSum += factor.evaluate(positive) * factorWeightValue
+    //   negativeSum += factor.evaluate(negative) * factorWeightValue
+    //   i += 1
+    // }
+    // val newValue = if ((random[Double] * (1.0 + exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
+    // graph.updateVariableValue(variableId, newValue)
 
 
     // // all factors that connect to the variable
