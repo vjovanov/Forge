@@ -22,25 +22,13 @@ trait Gibbs extends OptiMLApplication {
     while (i < variableIEnd) {
       val factor = graph.variablesToFactors.apply(i)
       val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
-      // val positive = DenseVector[Double](factor.nVariables, true)
-      // val negative = DenseVector[Double](factor.nVariables, true)
-      
       val factorsToVariables = graph.factorsToVariables
-      graph.updateVariableValue(variableId, 1.0)
-      val valuesP = graph.variableValues
-      val positive = factor.evaluate(valuesP, factorsToVariables, variableId)
-      graph.updateVariableValue(variableId, 0.0)
-      val valuesN = graph.variableValues
-      val negative = factor.evaluate(valuesN, factorsToVariables, variableId)
+      val values = graph.variableValues
+      val positive = factor.evaluate(values, factorsToVariables, variableId, 1.0)
+      val negative = factor.evaluate(values, factorsToVariables, variableId, 0.0)
       val factorWeightValue = graph.getWeightValue(factor.weightId)
-      if (positive._2) {
-        positiveSum += positive._1 * factorWeightValue
-        negativeSum += negative._1 * factorWeightValue
-      }
-      else {
-        positiveSum += negative._1 * factorWeightValue
-        negativeSum += positive._1 * factorWeightValue
-      }
+      positiveSum += positive * factorWeightValue
+      negativeSum += negative * factorWeightValue
       i += 1
     }
     val newValue = if ((random[Double] * (1.0 + exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0

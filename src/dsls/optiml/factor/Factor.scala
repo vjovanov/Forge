@@ -41,120 +41,130 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
 
     static (VFactor) ("apply", Nil, (("id", MInt), ("funcId", MInt), ("nVariables", MInt), ("iStart", MInt), ("weightId", MInt)) :: VFactor) implements allocates(VFactor, ${$0}, ${$1}, ${$2}, ${$3}, ${$4})
 
-    compiler (VFactor) ("getValue", Nil, (("isPositive", MBoolean), ("value", MDouble)) :: MDouble) implements composite ${
-      if (isPositive) 
-        value
-      else 
-        1.0 - value
+    // compiler (VFactor) ("getValue", Nil, (("isPositive", MBoolean), ("value", MDouble)) :: MDouble) implements composite ${
+    //   if (isPositive) 
+    //     value
+    //   else 
+    //     1.0 - value
+    // }
+
+    // compiler (VFactor) ("trans", Nil, ("isPositive", MBoolean) :: MDouble) implements composite ${
+    //   if (isPositive) 
+    //     1.0
+    //   else 
+    //     0.0
+    // }
+
+    compiler (VFactor) ("variableSample", Nil, (("isPositive", MBoolean), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+      if (isPositive) sampleValue
+      else 1.0 - sampleValue
     }
 
-    compiler (VFactor) ("or_factor", Nil, (("nVariables", MInt), ("iStart", MInt), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt)) :: Tup2(MDouble, MBoolean)) implements composite ${
-      if (nVariables == 0) pack((unit(1.0), unit(true)))
+    compiler (VFactor) ("getValue", Nil, (("variable", FactorVariable), ("variableId", MInt), ("sampleValue", MDouble), ("originValue", MDouble)) :: MDouble) implements composite ${
+      if (variable.id == variableId) {
+        if (variable.isPositive) sampleValue
+        else 1.0 - sampleValue
+      }
+      else {
+        if (variable.isPositive) originValue
+        else 1.0 - originValue
+      }
+      
+    }
+
+    compiler (VFactor) ("or_factor", Nil, (("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+      val nVariables = factor.nVariables
+      val iStart = factor.iStart
+      if (nVariables == 0) 1.0
       else {
         var i = 0
         var flag = true
-        var isPositive = true
         while (i < nVariables && flag) {
           val variable = factorsToVariables(iStart + i)
-          flag = (getValue(variable.isPositive, vals(variable.id)) == 0.0)
-          if (variable.id == variableId) {
-            isPositive = variable.isPositive
-          }
+          flag = (getValue(variable, variableId, sampleValue, vals(variable.id)) == 0.0)
           i += 1
         }
         if (flag) {
-          pack((unit(0.0), isPositive))
+          0.0
         }
         else {
-          pack((unit(1.0), isPositive))
+          1.0
         }
       }
     }
 
-    compiler (VFactor) ("and_factor", Nil, (("nVariables", MInt), ("iStart", MInt), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt)) :: Tup2(MDouble, MBoolean)) implements composite ${
-      if (nVariables == 0) pack((unit(1.0), unit(true)))
+    compiler (VFactor) ("and_factor", Nil, (("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+      val nVariables = factor.nVariables
+      val iStart = factor.iStart
+      if (nVariables == 0) 1.0
       else {
         var i = 0
         var flag = true
-        var isPositive = true
         while (i < nVariables && flag) {
           val variable = factorsToVariables(iStart + i)
-          flag = (getValue(variable.isPositive, vals(variable.id)) != 0.0)
-          if (variable.id == variableId) {
-            isPositive = variable.isPositive
-          }
+          flag = (getValue(variable, variableId, sampleValue, vals(variable.id)) == 1.0)
           i += 1
         }
         if (flag) {
-          pack((unit(1.0), isPositive))
+          1.0
         }
         else {
-          pack((unit(0.0), isPositive))
+          0.0
         }
       }
     }
 
-    compiler (VFactor) ("imply_factor", Nil, (("nVariables", MInt), ("iStart", MInt), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt)) :: Tup2(MDouble, MBoolean)) implements composite ${
+    compiler (VFactor) ("imply_factor", Nil, (("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+      val nVariables = factor.nVariables
+      val iStart = factor.iStart
       if (nVariables == 1) {
         val variable = factorsToVariables(iStart)
         if (variable.id == variableId) {
-          pack((getValue(variable.isPositive, vals(variable.id)), variable.isPositive))
+          variableSample(variable.isPositive, sampleValue)
         }
         else fatal("cannot evaluate imply: variableId not match")
       }
       else {
         var i = 0
         var flag = true
-        var isPositive = true
         while (i < nVariables - 1 && flag) {
           val variable = factorsToVariables(iStart + i)
-          flag = (getValue(variable.isPositive, vals(variable.id)) != 0.0)
-          if (variable.id == variableId) {
-            isPositive = variable.isPositive
-          }
+          flag = (getValue(variable, variableId, sampleValue, vals(variable.id)) == 1.0)
           i += 1
         }
-        val variable = factorsToVariables(iStart + nVariables - 1)
-        if (variable.id == variableId) {
-          isPositive = variable.isPositive
-        }
         if (flag) {
-          pack((getValue(variable.isPositive, vals(variable.id)), isPositive))
+          val variable = factorsToVariables(iStart + nVariables - 1)
+          getValue(variable, variableId, sampleValue, vals(variable.id))
         }
         else {
-          pack((unit(1.0), isPositive))
+          1.0
         }
       }
     }
 
-    compiler (VFactor) ("equal_factor", Nil, (("nVariables", MInt), ("iStart", MInt), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt)) :: Tup2(MDouble, MBoolean)) implements composite ${
+    compiler (VFactor) ("equal_factor", Nil, (("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+      val nVariables = factor.nVariables
+      val iStart = factor.iStart
       if (nVariables == 2) {
         val var1 = factorsToVariables(iStart)
         val var2 = factorsToVariables(iStart + 1)
-        val value1 = getValue(var1.isPositive, vals(var1.id))
-        val value2 = getValue(var2.isPositive, vals(var2.id))
-        val isPositive = {
-          if (var1.id == variableId) {
-            var1.isPositive
-          }
-          else if (var2.id == variableId) {
-            var2.isPositive
-          }
-          else fatal("cannot evaluate equality: variableId not match")
-        }
-        if (value1 == value2) pack((unit(1.0), isPositive))
-        else pack((unit(0.0), isPositive))
+        val value1 = getValue(var1, variableId, sampleValue, vals(var1.id))
+        val value2 = getValue(var2, variableId, sampleValue, vals(var2.id))
+        if (value1 == value2) 1.0
+        else 0.0
       }
       else {
         fatal("cannot evaluate equality between more than 2 variables")
       }
     }
 
-    compiler (VFactor) ("istrue_factor", Nil, (("nVariables", MInt), ("iStart", MInt), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt)) :: Tup2(MDouble, MBoolean)) implements composite ${
+    compiler (VFactor) ("istrue_factor", Nil, (("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+      val nVariables = factor.nVariables
+      val iStart = factor.iStart
       if (nVariables == 1) {
         val variable = factorsToVariables(iStart)
         if (variable.id == variableId) {
-          pack((getValue(variable.isPositive, vals(variable.id)), variable.isPositive))
+          variableSample(variable.isPositive, sampleValue)
         }
         else fatal("cannot evaluate isTrue: variableId not match")
       }
@@ -162,23 +172,24 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
     }
 
 
-    compiler (VFactor) ("evaluate_factor", Nil, MethodSignature(List(("funcId", MInt), ("nVariables", MInt), ("iStart", MInt), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt)), Tup2(MDouble, MBoolean))) implements composite ${
+    compiler (VFactor) ("evaluate_factor", Nil, MethodSignature(List(("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)), MDouble)) implements composite ${
       // if the conditional is known at staging time, we can inline the exact function
       // and as a consequence, the back-end 'funcId' field in the factor should be DFE'd
+      val funcId = factor.funcId
       if (funcId == 0) {
-        imply_factor(nVariables, iStart, vals, factorsToVariables, variableId)
+        imply_factor(factor, vals, factorsToVariables, variableId, sampleValue)
       }
       else if (funcId == 1) {
-        or_factor(nVariables, iStart, vals, factorsToVariables, variableId)
+        or_factor(factor, vals, factorsToVariables, variableId, sampleValue)
       }
       else if (funcId == 2) {
-        and_factor(nVariables, iStart, vals, factorsToVariables, variableId)
+        and_factor(factor, vals, factorsToVariables, variableId, sampleValue)
       }
       else if (funcId == 3) {
-        equal_factor(nVariables, iStart, vals, factorsToVariables, variableId)
+        equal_factor(factor, vals, factorsToVariables, variableId, sampleValue)
       }
       else if (funcId == 4) {
-        istrue_factor(nVariables, iStart, vals, factorsToVariables, variableId)
+        istrue_factor(factor, vals, factorsToVariables, variableId, sampleValue)
       }
       else {
         fatal("no factor func with id " + funcId + " found")
@@ -193,7 +204,7 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
       infix ("nVariables") (Nil :: MInt) implements getter(0, "_nVariables")
       infix ("iStart") (Nil :: MInt) implements getter(0, "_iStart")
       infix ("weightId") (Nil :: MInt) implements getter(0, "_weightId")
-      infix ("evaluate") (MethodSignature(List(("variableValues", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt)), Tup2(MDouble, MBoolean))) implements composite ${ evaluate_factor($self.funcId, $self.nVariables, $self.iStart, variableValues, factorsToVariables, variableId) }
+      infix ("evaluate") ((("variableValues", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${ evaluate_factor($self, variableValues, factorsToVariables, variableId, sampleValue) }
     }
   }
 
