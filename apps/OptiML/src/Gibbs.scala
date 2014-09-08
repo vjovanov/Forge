@@ -14,25 +14,46 @@ trait Gibbs extends OptiMLApplication {
 
   /* Samples a variable and updates its value in the graph */
   def sampleVariable(graph: Rep[FactorGraph[FunctionFactor]], variableId: Rep[Int]) = {
+    //version 4
+
     val variable = graph.variables.apply(variableId)
-    val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
-    var positiveSum = 0.0
-    var negativeSum = 0.0
-    var i = variableIStart
-    while (i < variableIEnd) {
-      val factor = graph.variablesToFactors.apply(i)
-      val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
-      val factorsToVariables = graph.factorsToVariables
-      val values = graph.variableValues
+    val (variableIStart, nFactors) = (variable.iStart, variable.nFactors)
+    val factorsToVariables = graph.factorsToVariables
+    val values = graph.variableValues
+    val allSum = sum(0, nFactors) { i =>
+      val factor = graph.variablesToFactors.apply(i + variableIStart)
       val positive = factor.evaluate(values, factorsToVariables, variableId, 1.0)
       val negative = factor.evaluate(values, factorsToVariables, variableId, 0.0)
       val factorWeightValue = graph.getWeightValue(factor.weightId)
-      positiveSum += positive * factorWeightValue
-      negativeSum += negative * factorWeightValue
-      i += 1
+      //pack(positive * factorWeightValue, negative * factorWeightValue)
+      (negative - positive) * factorWeightValue
     }
-    val newValue = if ((random[Double] * (1.0 + exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
+    //val (positiveSum, negativeSum) = (allValues.map(_._1).sum, allValues.map(_._2).sum)
+    val newValue = if ((random[Double] * (1.0 + exp(allSum))) <= 1.0) 1.0 else 0.0
     graph.updateVariableValue(variableId, newValue)
+
+    //version 3
+
+    // val variable = graph.variables.apply(variableId)
+    // val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
+    // var allSum = 0.0
+    // var negativeSum = 0.0
+    // val factorsToVariables = graph.factorsToVariables
+    // val values = graph.variableValues
+    // var i = variableIStart
+    // while (i < variableIEnd) {
+    //   val factor = graph.variablesToFactors.apply(i)
+    //   val positive = factor.evaluate(values, factorsToVariables, variableId, 1.0)
+    //   val negative = factor.evaluate(values, factorsToVariables, variableId, 0.0)
+    //   val factorWeightValue = graph.getWeightValue(factor.weightId)
+    //   allSum += (negative - positive) * factorWeightValue
+    //   i += 1
+    // }
+    // val newValue = if ((random[Double] * (1.0 + exp(allSum))) <= 1.0) 1.0 else 0.0
+    // graph.updateVariableValue(variableId, newValue)
+
+    //version 2
+
     // val variable = graph.variables.apply(variableId)
     // val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
     // var positiveSum = 0.0
@@ -71,6 +92,7 @@ trait Gibbs extends OptiMLApplication {
     // val newValue = if ((random[Double] * (1.0 + exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
     // graph.updateVariableValue(variableId, newValue)
 
+    // version 1
 
     // // all factors that connect to the variable
     // val variable = graph.variables.apply(variableId)
