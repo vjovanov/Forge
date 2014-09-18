@@ -38,20 +38,20 @@ trait RandomOps {
     })
 
     direct (Rand) ("reseed", Nil, Nil :: MUnit, effect = simple) implements codegen($cala, ${
-      Global.randRef.setSeed(Global.INITIAL_SEED)
+      java.util.concurrent.ThreadLocalRandom.current().setSeed(Global.INITIAL_SEED)
     })
 
     compiler (Rand) ("optila_rand_double", Nil, Nil :: MDouble, effect = simple) implements codegen($cala, ${
-      Global.randRef.nextDouble()
+      java.util.concurrent.ThreadLocalRandom.current().nextDouble()
     })
     compiler (Rand) ("optila_rand_float", Nil, Nil :: MFloat, effect = simple) implements codegen($cala, ${
-      Global.randRef.nextFloat()
+      java.util.concurrent.ThreadLocalRandom.current().nextFloat()
     })
     compiler (Rand) ("optila_rand_int", Nil, Nil :: MInt, effect = simple) implements codegen($cala, ${
-      Global.randRef.nextInt()
+      java.util.concurrent.ThreadLocalRandom.current().nextInt()
     })
     compiler (Rand) ("optila_rand_boolean", Nil, Nil :: MBoolean, effect = simple) implements codegen($cala, ${
-      Global.randRef.nextBoolean()
+      java.util.concurrent.ThreadLocalRandom.current().nextBoolean()
     })
 
     direct (Rand) ("shuffle", Nil, IndexVector :: IndexVector, effect = simple) implements composite ${

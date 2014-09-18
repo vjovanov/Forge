@@ -13,13 +13,14 @@ trait Gibbs extends OptiMLApplication {
   }
 
   /* Samples a variable and updates its value in the graph */
-  def sampleVariable(graph: Rep[FactorGraph[FunctionFactor]], variableId: Rep[Int]) = {
+  def sampleVariable(graph: Rep[FactorGraph[FunctionFactor]], variableId: Rep[Int]) { //: Rep[Long] = {
     //version 4
-
+    
     val variable = graph.variables.apply(variableId)
     val (variableIStart, nFactors) = (variable.iStart, variable.nFactors)
     val factorsToVariables = graph.factorsToVariables
     val values = graph.variableValues
+    
     val allSum = sum(0, nFactors) { i =>
       val factor = graph.variablesToFactors.apply(i + variableIStart)
       val positive = factor.evaluate(values, factorsToVariables, variableId, 1.0)
@@ -28,9 +29,15 @@ trait Gibbs extends OptiMLApplication {
       //pack(positive * factorWeightValue, negative * factorWeightValue)
       (negative - positive) * factorWeightValue
     }
+    
+    //val start = time(allSum)
     //val (positiveSum, negativeSum) = (allValues.map(_._1).sum, allValues.map(_._2).sum)
     val newValue = if ((random[Double] * (1.0 + exp(allSum))) <= 1.0) 1.0 else 0.0
-    graph.updateVariableValue(variableId, newValue)
+    //val newValue = if ((0.5 * (1.0 + exp(allSum))) <= 1.0) 1.0 else 0.0
+    //val end = time(newValue)
+    val z = graph.updateVariableValue(variableId, newValue)
+    
+    //end - start
 
     //version 3
 
@@ -130,11 +137,21 @@ trait Gibbs extends OptiMLApplication {
   def sampleVariables(graph: Rep[FactorGraph[FunctionFactor]], variableIds: Rep[DenseVector[Int]], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
 
     val start = time()
-    val z = for (v <- variableIds) {
-      sampleVariable(graph, v)
+    //val timers = DenseVector[Long](variableIds.length, true)
+    //val randomVals = variableIds.map {r => random[Double]}
+    val z = for (v <- variableIds.indices) {
+      sampleVariable(graph, variableIds(v))
+      //timers(v) = sampleVariable(graph, variableIds(v), randomVals(v))
     }
+    
     val end = time(z)
-
+    //println(timers.sum)
+    // println(timers.slice(0, variableIds.length/4).sum)
+    // println(timers.slice(variableIds.length/4, variableIds.length/2).sum)
+    // println(timers.slice(variableIds.length/2, variableIds.length * 3 / 4).sum)
+    // println(timers.slice(variableIds.length * 3 / 4, variableIds.length).sum)
+    //println(end - start)
+    //println(variableIds.length)
     times <<= pack(variableIds.length, end - start)
   }
 
