@@ -66,6 +66,7 @@ trait MLIOOps {
     // -- input
 
     compiler (IO) ("fg_read_weights", Nil, (("path",MString), ("num_weights",MInt)) :: DenseVector(Weight)) implements single ${
+      val start = time()
       val dis = datainputstream_new($path)
       val out = DenseVector[Weight](num_weights, true)
       var i = 0
@@ -73,21 +74,18 @@ trait MLIOOps {
         val weightId = dis.readLong().toInt
         val isFixed = dis.readBoolean()
         val initialValue = dis.readDouble()
-        if (i < 10) {
-          println(out(i).id + " , " + out(i).value + " , " + out(i).isFixed)
-        }
         out(i) = Weight(weightId, initialValue, isFixed)
-        if (i < 10) {
-          println(out(i).id + " , " + out(i).value + " , " + out(i).isFixed)
-        }
         i += 1
       }
       dis.fclose()
-      println("read " + num_weights + " weights")
+      val z = println("read " + num_weights + " weights")
+      val end = time(z) - start
+      println("readweights time " + end)
       out.unsafeImmutable
     }
 
     compiler (IO) ("fg_read_variables", Nil, (("path",MString), ("num_variables",MInt)) :: DenseVector(Tup3(MInt,MDouble,MBoolean))) implements single ${
+      val start = time()
       val dis = datainputstream_new($path)
       val out = DenseVector[Tup3[Int, Double, Boolean]](num_variables, true)
       var i = 0
@@ -103,11 +101,14 @@ trait MLIOOps {
         i += 1
       }
       dis.fclose()
-      println("read " + num_variables + " variables")
+      val z = println("read " + num_variables + " variables")
+      val end = time(z) - start
+      println("fg_read_variables time " + end)
       out
     }
 
     compiler (IO) ("fg_read_edges", Nil, (("path",MString), ("num_edges", MInt)) :: DenseVector(Tup4(MInt,MInt,MBoolean,MInt))) implements single ${
+      val start = time()
       val dis = datainputstream_new($path)
       val out = DenseVector[Tup4[Int,Int,Boolean,Int]](num_edges, true)
       var i = 0
@@ -122,11 +123,14 @@ trait MLIOOps {
         i += 1
       }
       dis.fclose()
-      println("read " + num_edges + " edges")
+      val z = println("read " + num_edges + " edges")
+      val end = time(z) - start
+      println("fg_read_edges time " + end)
       out.unsafeImmutable
     }
 
     compiler (IO) ("fg_read_factors", Nil, (("path",MString), ("num_factors", MInt)) :: DenseVector(Tup3(MInt,MInt,MInt))) implements single ${
+      val start = time()
       val dis = datainputstream_new($path)
       val out = DenseVector[Tup3[Int,Int,Int]](num_factors, true)
       var i = 0
@@ -139,8 +143,21 @@ trait MLIOOps {
         i += 1
       }
       dis.fclose()
-      println("read " + num_factors + " factors")
+      val z = println("read " + num_factors + " factors")
+      val end = time(z) - start
+      println("fg_read_factors time " + end)
       out.unsafeImmutable
+    }
+
+    compiler(IO) ("calfactorStart", Nil, (("factorVariablesMap", MHashMap(MInt, DenseVector(MInt))), ("factorStart", DenseVector(MInt)), ("nVariables", DenseVector(MInt))) :: MUnit) implements single ${
+      var i = 0
+      var count = 0
+      val z = while (i < factorStart.length) {
+        factorStart(i) = count
+        nVariables(i) = factorVariablesMap(i).length
+        count = count + nVariables(i)
+        i += 1
+      }
     }
 
     direct (IO) ("readFactorGraph", Nil, MethodSignature(List(("metaPath", MString), ("factorsPath", MString), ("variablesPath", MString), ("weightsPath", MString), ("edgesPath", MString), ("delim",MString,"unit(\"\\t\")")), FactorGraph(FunctionFactor))) implements composite ${
@@ -149,155 +166,105 @@ trait MLIOOps {
         val (num_weights, num_variables, num_factors, num_edges) = (tokens(0).toInt, tokens(1).toInt, tokens(2).toInt, tokens(3).toInt)
         pack((num_weights, num_variables, num_factors, num_edges))
       }, true).apply(0)
-      val weights = fg_read_weights($weightsPath, meta._1).sortBy(w => w.id)      
+      val point_2 = time(meta)
+      println("point -2")
+      val weights = fg_read_weights($weightsPath, meta._1).sortBy(w => w.id)
+      val point_1 = time(weights)
+      println("point -1")
       val variableRows = fg_read_variables($variablesPath, meta._2).sortBy(r => r._1)
+      val point0 = time(variableRows)
       println("point 0")
       val factorRows = fg_read_factors($factorsPath, meta._3).sortBy(r => r._1)
+      val point1 = time(factorRows)
       println("point 1")
-      val edges = fg_read_edges($edgesPath, meta._4)
+      val edges = fg_read_edges($edgesPath, meta._4).sortBy(r => r._2)
+      val point2 = time(edges)
       println("point 2")
-      val factorVariablesMap = edges.groupBy(r => r._2, r => FactorVariable(r._1, r._3, r._4))
+      //val factorVariablesMap = edges.groupBy(r => r._2, r => FactorVariable(r._1, r._3, r._4))
+      val factorVariablesMap = edges.groupBy(r => r._2, r => r._1)
+      val point2a = time(factorVariablesMap)
+      println("point 2a")
       val factorStart = DenseVector[Int](factorRows.length, true)
-      var i = 0
-      var count = 0
-      while (i < factorRows.length) {
-        factorStart(i) = count
-        count = count + factorVariablesMap(factorRows(i)._1).length
-        i += 1
-      }
+      val nVariables = DenseVector[Int](factorRows.length, true)
+      val z = calfactorStart(factorVariablesMap, factorStart, nVariables)
+      val point3 = time(z)
       println("point 3")
       val variableFactorsMap = edges.groupBy(r => r._1, r => r._2)
+      val point3a = time(variableFactorsMap)
+      println("point 3a")
       val variableStart = DenseVector[Int](variableRows.length, true)
       val nFactors = DenseVector[Int](variableRows.length, true)
-      count = 0
-      i = 0
-      while (i < variableRows.length){
-        variableStart(i) = count
-        nFactors(i) = variableFactorsMap(variableRows(i)._1).length
-        count = count + variableFactorsMap(variableRows(i)._1).length
-        i += 1
-      }
+      val zz = calfactorStart(variableFactorsMap, variableStart, nFactors)
+      val point4 = time(zz)
       println("point 4")
       val variables = variableRows.indices.map { r => 
         val row = variableRows(r)
         RandomVariable(row._1, 0.0, 1.0, row._2, row._3, nFactors(r), variableStart(r))
       }
+      val point5 = time(variables)
       println("point 5")
       val factors = factorRows.indices.map { r =>
         val t = factorRows(r)
-        val vars = if (factorVariablesMap.contains(t._1)) factorVariablesMap(t._1).sortBy(x => x.position) else DenseVector[FactorVariable]()
-        val nVariables = vars.length
-        if (r < 50){
-          println(nVariables)
-        }
-        FunctionFactor(t._1, vars, t._2, t._3, nVariables, factorStart(r))
+        val vars = (0::nVariables(r)) { i => 
+            val x = edges(i + factorStart(r))
+            FactorVariable(x._1, x._3, x._4)
+        }.sortBy( t => t.position)
+        FunctionFactor(t._1, vars, t._2, t._3, nVariables(r), factorStart(r))
       }
+      val point6 = time(factors)
       println("point 6")
-      nFactors(0::50).pprint
       val factorsToVariables = build_factor_variables(variables, factors)
+      val point7 = time(factorsToVariables)
       println("point 7")
-      val variablesToFactors = build_variable_factors(variables, factors, variableFactorsMap)
+      val variablesToFactors = build_variable_factors(variables, factors, edges.sortBy(r=>r._1))
+      val point8 = time(variablesToFactors)
       println("point 8")
       val variableValues = variables.map(v => v.value).mutable
+      val point9 = time(variableValues)
       println("point 9")
       val weightValues = weights.map(w => w.value).mutable
+      val point10 = time(weightValues)
       println("point 10")
+      println(point_1 - point_2)
+      println(point0 - point_1)
+      println(point1 - point0)
+      println(point2 - point1)
+      println(point2a - point2)
+      println(point3 - point2)
+      println(point3a - point3)
+      println(point4 - point3a)
+      println(point5 - point4)
+      println(point6 - point5)
+      println(point7 - point6)
+      println(point8 - point7)
+      println(point9 - point8)
+      println(point10 - point9)
       FactorGraph(factors, variables, weights, variablesToFactors, factorsToVariables, variableValues, weightValues)
     }
-
-    /*
-    // old DeepDive factor graph formats
-    direct (IO) ("readFactorGraph", Nil, MethodSignature(List(("factorsPath", MString), ("variablesPath", MString), ("weightsPath", MString), ("delim",MString,"\"\\t\"")), FactorGraph(FunctionFactor))) implements composite ${
-      val weights = densevector_fromarray(ForgeFileReader.readLines($weightsPath) { line =>
-        val tokens = line.trim.fsplit(delim)
-        val (id, initialValue, isFixed) = (tokens(0).toInt, tokens(1).toDouble, tokens(2).toBoolean)
-        Weight(id, initialValue, isFixed)
-      }, true).sortBy(w => w.id)
-      
-      val variableRows = ForgeFileReader.readLines($variablesPath) { line =>
-        val tokens = line.trim.fsplit(delim)
-        val (variableId, factorId, position, isPositive, dataType, initialValue, isEvidence, isQuery) = (tokens(0).toInt, tokens(1).toInt, tokens(2).toInt, tokens(3).toBoolean, tokens(4), tokens(5).toDouble, tokens(6).toBoolean, tokens(7).toBoolean)
-        pack((variableId, factorId, position, isPositive, dataType, initialValue, isEvidence, isQuery))
-      }
-
-      // currently only supporting boolean vars
-      val variables = densevector_fromarray(variableRows, true).map(r => RandomVariable(r._1, DenseVector(0.0, 1.0), r._6, r._7, r._8)).distinct.sortBy(r => r.id)
-      
-      val factorVariablesMap = densevector_fromarray(variableRows, true).groupBy(r => r._2, r => FactorVariable(r._1, r._4, DenseVector(0.0, 1.0), r._3))
-
-      // reading factors breaks in parallel if we try to look up the hashmap inside the file reading loop, for some reason
-      val factorRows = ForgeFileReader.readLines($factorsPath) { line =>
-        val tokens = line.trim.fsplit(delim)
-        val (factorId, weightId, func) = (tokens(0).toInt, tokens(1).toInt, tokens(2).toInt)
-        // val vars = if (factorVariablesMap.contains(factorId)) factorVariablesMap(factorId) else DenseVector[FactorVariable]()
-        // FunctionFactor(factorId, vars, weightId, func)
-        pack((factorId, weightId, func))
-      }
-      val allFactors = factorRows.map { t =>
-        val vars = if (factorVariablesMap.contains(t._1)) factorVariablesMap(t._1).sortBy(r => r.position) else DenseVector[FactorVariable]()
-        FunctionFactor(t._1, vars, t._2, t._3)
-      }
-      val factors = densevector_fromarray(allFactors, true).filter(f => f.vars.length > 0).sortBy(f => f.id)
-      
-      val variablesToFactors = build_variable_factors(variables, factors)
-      val variableValues = variables.map(v => v.value).mutable
-      val weightValues = weights.map(w => w.value).mutable
-
-      FactorGraph(factors, variables, weights, variablesToFactors, variableValues, weightValues)      
-    }
-    */
-
-    // -- output
-
-
-
     // -- utility
 
     /* builds reverse mapping from variables -> factors */
-    compiler (IO) ("build_variable_factors", Nil, (("variables", DenseVector(Variable)), ("factors", DenseVector(FunctionFactor)), ("variableFactorsMap", MHashMap(MInt, DenseVector(MInt)))) :: DenseVector(VariableFactor)) implements composite ${
-      // val tempVariablesToFactors = DenseVector[DenseVector[Int]](variables.length, true) 
-      // println(variables.map(v => v.nFactors).sum)
-      // println(variables(0).nFactors)
-      // println(variables(1).nFactors)
-      // println(variables(2).nFactors)
-      // val variablesToFactors = DenseVector[VariableFactor](variables.map(v => v.nFactors).sum, true) 
-      // for (i <- 0 until tempVariablesToFactors.length) {
-      //   tempVariablesToFactors(i) = DenseVector[Int]()
-      // }
-      // val factorIds = factors.indices
-      // for (i <- 0 until factorIds.length) {
-      //   val f = factors(factorIds(i))
-      //   for (j <- 0 until f.vars.length) {
-      //     val vId = f.vars.apply(j).id
-      //     val curVec = tempVariablesToFactors(vId)
-      //     tempVariablesToFactors.update(vId, curVec << factorIds(i))
-      //   }
-      // }
+    compiler (IO) ("build_variable_factors", Nil, (("variables", DenseVector(Variable)), ("factors", DenseVector(FunctionFactor)), ("edges", DenseVector(Tup4(MInt,MInt,MBoolean,MInt)))) :: DenseVector(VariableFactor)) implements composite ${
+      val point7a = time()
       val variablesToFactors = DenseVector[VariableFactor](variables.map(v => v.nFactors).sum, true) 
+      val point7b = time(variablesToFactors)
       var count = 0
       var i = 0
-      while (i < variables.length){
-        val singleVariablefactorIds = variableFactorsMap(i)
-        for (j <- singleVariablefactorIds.indices){
-          variablesToFactors(count + j) = VariableFactor(singleVariablefactorIds(j), factors(singleVariablefactorIds(j)).funcId, factors(singleVariablefactorIds(j)).nVariables, factors(singleVariablefactorIds(j)).iStart, factors(singleVariablefactorIds(j)).weightId)
+      val point7c = time()
+      val z = variables.map { v =>
+        val iStart = v.iStart
+        (0::v.nFactors) { j => 
+          val factorId = edges(iStart + j)._2
+          val factor = factors(factorId)
+          variablesToFactors(iStart + j) = VariableFactor(factorId, factor.funcId, factor.nVariables, factor.iStart, factor.weightId)
         }
-        count = count + variableFactorsMap(i).length
-        i += 1
       }
-      // for (v <- temp.indices){
-      //   val row = temp.apply(v)
-      //   for (f <- row.indices){
-      //     val id = row.apply(f)
-      //     val position = variables(v).iStart + f
-      //     variablesToFactors(position) = VariableFactor(id, factors(id).funcId, factors(id).nVariables, factors(id).iStart)
-      //   }
-      // }
-
+      val point7d = time(z)
+      println(point7b - point7a)
+      println(point7c - point7b)
+      println(point7d - point7c)
       variablesToFactors
     }
-
-
-
 
     compiler (IO) ("build_factor_variables", Nil, (("variables", DenseVector(Variable)), ("factors", DenseVector(FunctionFactor))) :: DenseVector(FactorVariable)) implements composite ${
       val factorsToVariables = DenseVector[FactorVariable](factors.map(v => v.nVariables).sum, true) 
@@ -312,9 +279,7 @@ trait MLIOOps {
       }
       factorsToVariables
     }
-
     ()
-  
   }
 
   def importARFFOps() {
