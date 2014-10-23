@@ -13,7 +13,7 @@ trait Gibbs extends OptiMLApplication {
   }
 
   /* Samples a variable and updates its value in the graph */
-  def sampleVariable(graph: Rep[FactorGraph[FunctionFactor]], variableId: Rep[Int]) { //: Rep[Long] = {
+  def sampleVariable(graph: Rep[FactorGraph[FunctionFactor]], variableId: Rep[Int]) = { //: Rep[Long] = {
     //version 4
     
     val variable = graph.variables.apply(variableId)
@@ -36,6 +36,7 @@ trait Gibbs extends OptiMLApplication {
     //val newValue = if ((0.5 * (1.0 + exp(allSum))) <= 1.0) 1.0 else 0.0
     //val end = time(newValue)
     val z = graph.updateVariableValue(variableId, newValue)
+    newValue
     
     //end - start
 
@@ -140,7 +141,7 @@ trait Gibbs extends OptiMLApplication {
     //val timers = DenseVector[Long](variableIds.length, true)
     //val randomVals = variableIds.map {r => random[Double]}
     val z = for (v <- variableIds.indices) {
-      sampleVariable(graph, variableIds(v))
+      val value = sampleVariable(graph, variableIds(v))
       //timers(v) = sampleVariable(graph, variableIds(v), randomVals(v))
     }
     
@@ -280,61 +281,26 @@ trait Gibbs extends OptiMLApplication {
     val sampleSums = DenseVector[Double](nonEvidenceVariables.length, true)
     // Squared sample sums to calculate running standard deviation
     val sampleSums2 = DenseVector[Double](nonEvidenceVariables.length, true)
-    // We keep track of the variable values for the first 20% and last 50% of iterations.
-    // We use the data for a Z-Test
-    // val iteration20 = (numSamples * 0.2).toInt
-    // val iteration50 = (numSamples * 0.5).toInt
-    // val sampleSumsFirst20 = DenseVector[Double](nonEvidenceVariables.length, true)
-    // val sampleSumsLast50 = DenseVector[Double](nonEvidenceVariables.length, true)
-    // val sampleSums2First20 = DenseVector[Double](nonEvidenceVariables.length, true)
-    // val sampleSums2Last50 = DenseVector[Double](nonEvidenceVariables.length, true)
-
-    // TODO: Z-test for convergence
-    var i = 1
-    while (i <= numSamples) {
-      println("iteration=" + i + "/" + numSamples)
-      // samples all variables that are not evidence
-      sampleVariables(graph, nonEvidenceVariables, times)
-
-      // updated the significance statistics
-      for (k <- nonEvidenceVariables.indices) {
-        val sampleResult = graph.getVariableValue(nonEvidenceVariables(k))
-        val sampleResultSq = sampleResult*sampleResult
-        sampleSums(k) = sampleSums(k) + sampleResult
-        sampleSums2(k) = sampleSums2(k) + sampleResultSq
-        // if (i <= iteration20) {
-        //   sampleSumsFirst20(k) = sampleSumsFirst20(k) + sampleResult
-        //   sampleSums2First20(k) = sampleSums2First20(k) + sampleResultSq
-        // }
-        // if (i >= iteration50) {
-        //   sampleSumsLast50(k) = sampleSumsLast50(k) + sampleResult
-        //   sampleSums2Last50(k) = sampleSums2Last50(k) + sampleResultSq
-        // }
+    val numThreads = getNumThreads()
+    println(numThreads)
+    val range = nonEvidenceVariables.length / numThreads + 1
+    val start = time()
+    val z = for (thread <- (0::numThreads)) {
+      val start = thread * range
+      val end = if ((thread + 1) * range > nonEvidenceVariables.length) nonEvidenceVariables.length else ((thread + 1) * range)
+      var iter = 1
+      while (iter <= numSamples){
+        (start::end) { v =>
+          val sampleResult = sampleVariable(graph, nonEvidenceVariables(v))
+          val sampleResultSq = sampleResult*sampleResult
+          sampleSums(v) = sampleSums(v) + sampleResult
+          sampleSums2(v) = sampleSums2(v) + sampleResultSq
+        }
+        iter += 1
       }
-
-      i += 1
     }
-
-    // calculate significane statistics
-    // println("calculating significant statistics...")
-    // val notConverged = nonEvidenceVariables.indices.map { k =>
-    //   val meanFirst20 = sampleSumsFirst20(k) / iteration20.toDouble
-    //   val varianceFirst20 = sampleSums2First20(k)/iteration20.toDouble - (meanFirst20 * meanFirst20)
-    //   val meanLast50 = sampleSumsLast50(k) / iteration50.toDouble
-    //   val varianceLast50 = sampleSums2Last50(k)/iteration20.toDouble - (meanLast50 * meanLast50)
-
-    //   val varianceSum = max(varianceFirst20 + varianceLast50, 0.00001)
-    //   val tScore = (meanFirst20 - meanLast50)/(sqrt(varianceSum))
-
-    //   val notConverged95 = (abs(tScore) > 1.96)
-    //   val notConverged90 = (abs(tScore) > 1.65)
-    //   pack(notConverged95, notConverged90)
-    // }
-
-    // val (notConverged95, notConverged90) = (notConverged.map(_._1), notConverged.map(_._2))
-
-    // println("Not converged for p=0.95: "+notConverged95.count(_ == true)/nonEvidenceVariables.length)
-    // println("Not converged for p=0.90: "+notConverged90.count(_ == true)/nonEvidenceVariables.length)
+    val end = time(z)
+    times <<= pack(numSamples * nonEvidenceVariables.length, end - start)
 
     // generate the inference results
     nonEvidenceVariables.indices.map { k =>
@@ -353,18 +319,6 @@ trait Gibbs extends OptiMLApplication {
     val G = readFactorGraph(args(0), args(1), args(2), args(3), args(4), ",")
     toc("io", G)
 
-    //println("finished reading factor graph")
-    //println("read " + G.factors.length + " factors, " + G.variables.length + " variables, " + G.weights.length + " weights")
-
-    // println("first 10 factors: ")
-    // G.factors.apply(0::10).map(f => pack(f.id, f.vars.map(_.id), f.weightId, f.funcId)).pprint
-
-    // println("first 10 variables: ")
-    // G.variables.apply(0::10).map(v => pack(v.id, v.domain, v.value, v.isEvidence, v.isQuery)).pprint
-
-    // println("first 10 weights: ")
-    // G.weights.apply(0::10).map(w => pack(w.id, w.value, w.isFixed)).pprint
-
     val times1 = DenseVector[Tup2[Int,Long]](0, true)
     val times2 = DenseVector[Tup2[Int,Long]](0, true)
 
@@ -372,9 +326,6 @@ trait Gibbs extends OptiMLApplication {
     learnWeights(G, 300, 1, 0.01, 0.1, 0.95, times1)
     toc("learnWeights", G)
     writeVector(G.weights.map(w => w.id + "\t" + G.getWeightValue(w.id)), "weights.out")
-
-    // println("first 10 learned weights: ")
-    // G.weights.apply(0::10).map(w => pack(w.id, w.value, w.isFixed)).pprint
 
     tic("calculateMarginals", G)
     val marginals = calculateMarginals(G, 500, G.variables, times2)

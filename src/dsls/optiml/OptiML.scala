@@ -34,7 +34,29 @@ trait OptiMLDSL extends OptiLADSL
     importAllFactorGraphOps() 
     importMLIOOps()
     importStreamOps()
-    importImageOps()    
+    importImageOps()
+    importEnvOps() 
+  }
+
+  def importEnvOps() {
+
+    val Env = grp("Env")
+
+    direct (Env) ("getNumThreads", Nil, MUnit :: MInt) implements codegen ($cala, ${
+      ppl.delite.runtime.Config.numThreads
+    })
+
+    direct (Env) ("getNumCpp", Nil, MUnit :: MInt) implements codegen ($cala, ${
+      ppl.delite.runtime.Config.numThreads
+    })
+
+    direct (Env) ("getNumCuda", Nil, MUnit :: MInt) implements codegen ($cala, ${
+      ppl.delite.runtime.Config.numThreads
+    })
+
+    direct (Env) ("getNumOpenCL", Nil, MUnit :: MInt) implements codegen ($cala, ${
+      ppl.delite.runtime.Config.numThreads
+    })
   }
 
   def importUntilConverged() {
