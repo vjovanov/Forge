@@ -140,8 +140,8 @@ trait Gibbs extends OptiMLApplication {
     val start = time()
     //val timers = DenseVector[Long](variableIds.length, true)
     //val randomVals = variableIds.map {r => random[Double]}
-    val z = for (v <- variableIds.indices) {
-      val value = sampleVariable(graph, variableIds(v))
+    val z = for (v <- variableIds) {
+      val value = sampleVariable(graph, v)
       //timers(v) = sampleVariable(graph, variableIds(v), randomVals(v))
     }
     
@@ -284,23 +284,29 @@ trait Gibbs extends OptiMLApplication {
     val numThreads = getNumThreads()
     println(numThreads)
     val range = nonEvidenceVariables.length / numThreads + 1
-    val start = time()
+    val startTime = time()
     val z = for (thread <- (0::numThreads)) {
-      val start = thread * range
-      val end = if ((thread + 1) * range > nonEvidenceVariables.length) nonEvidenceVariables.length else ((thread + 1) * range)
-      var iter = 1
-      while (iter <= numSamples){
-        (start::end) { v =>
+      val localStartTime = time()
+      var iter = 0
+      var start = thread * range
+      while (iter < numSamples){
+        val end = if (start + range > nonEvidenceVariables.length) nonEvidenceVariables.length else (start + range)
+        var v = start 
+        while (v < end){
           val sampleResult = sampleVariable(graph, nonEvidenceVariables(v))
           val sampleResultSq = sampleResult*sampleResult
           sampleSums(v) = sampleSums(v) + sampleResult
           sampleSums2(v) = sampleSums2(v) + sampleResultSq
+          v += 1
         }
+        start = if (end == nonEvidenceVariables.length) 0 else end
         iter += 1
       }
+      val localEndTIme = time()
+      println("thread " + thread + " use " + (localEndTIme - localStartTime))
     }
-    val end = time(z)
-    times <<= pack(numSamples * nonEvidenceVariables.length, end - start)
+    val endTime = time(z)
+    times <<= pack(numSamples * nonEvidenceVariables.length, endTime - startTime)
 
     // generate the inference results
     nonEvidenceVariables.indices.map { k =>

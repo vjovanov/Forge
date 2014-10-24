@@ -128,12 +128,10 @@ trait MLIOOps {
       out.unsafeImmutable
     }
 
-    compiler (IO) ("fg_read_edges", Nil, (("path",MString), ("num_edges", MInt), ("nFactors", MInt), ("nVariables", MInt)) :: Tup2(DenseVector(DenseVector(FactorVariable)), DenseVector(DenseVector(MInt)))) implements single ${
+    compiler (IO) ("fg_read_edges", Nil, (("path",MString), ("num_edges", MInt)) :: DenseVector(Tup4(MInt,MInt,MBoolean,MInt))) implements single ${
       val start = time()
       val dis = datainputstream_new($path)
-      //val out = DenseVector[Tup4[Int,Int,Boolean,Int]](num_edges, true)
-      val factorVariablesMap = (0::nFactors) { e => DenseVector[FactorVariable](0, true) }
-      val variableFactorsMap = (0::nVariables) { e => DenseVector[Int](0, true) }
+      val edges = DenseVector[Tup4[Int,Int,Boolean,Int]](num_edges, true)
       var i = 0
       while (i < num_edges) {
         val variableId = dis.readLong().toInt
@@ -141,10 +139,7 @@ trait MLIOOps {
         val position = dis.readLong().toInt
         val isPositive = dis.readBoolean()
         val equalPredicate = dis.readLong().toInt
-        
-        factorVariablesMap(factorId) <<= FactorVariable(variableId, isPositive, position)
-        variableFactorsMap(variableId) <<= factorId
-        //out(i) = pack((variableId, factorId, isPositive, position))
+        edges(i) = pack((variableId, factorId, isPositive, position))
         i += 1
       }
       dis.fclose()
@@ -152,10 +147,10 @@ trait MLIOOps {
       val end = time(z) - start
       println("fg_read_edges time " + end)
       //out.unsafeImmutable
-      pack((factorVariablesMap.unsafeImmutable, variableFactorsMap.unsafeImmutable))
+      edges
     }
 
-    compiler(IO) ("calStart", T, (("factorVariablesMap", DenseVector(DenseVector(T))), ("factorStart", DenseVector(MInt)), ("nVariables", DenseVector(MInt))) :: MUnit) implements single ${
+    compiler(IO) ("calStart", T, (("factorVariablesMap", MHashMap(MInt, DenseVector(T))), ("factorStart", DenseVector(MInt)), ("nVariables", DenseVector(MInt))) :: MUnit) implements single ${
       var i = 0
       var count = 0
       val z = while (i < factorStart.length) {
@@ -188,9 +183,9 @@ trait MLIOOps {
       // val variableFactorsMap = (0::variableRows.length) { e => DenseVector[Int]().mutable } //DenseVector[DenseVector[Int]](variableRows.length, true)
       // for (r <- variableFactorsMap) { r = DenseVector[Int]()}
 
-      val edges = fg_read_edges($edgesPath, meta._4, factorRows.length, variableRows.length)//.sortBy(r => r._2)
-      val factorVariablesMap = edges._1
-      val variableFactorsMap = edges._2
+      val edges = fg_read_edges($edgesPath, meta._4)//.sortBy(r => r._2)
+      val factorVariablesMap = edges.groupBy(r => r._2, r => FactorVariable(r._1, r._3, r._4))
+      val variableFactorsMap = edges.groupBy(r => r._1, r => r._2)
       val point2 = time(edges)
       println("point 2")
       //val factorVariablesMap = edges.groupBy(r => r._2, r => FactorVariable(r._1, r._3, r._4))
@@ -227,10 +222,15 @@ trait MLIOOps {
       }
       val point6 = time(factors)
       println("point 6")
-      val factorsToVariables = build_factor_variables(variables, factors, meta._4)
+      val factorsToVariables = factors.indices.flatMap( i => factorVariablesMap(i))  //build_factor_variables(variables, factors, meta._4)
       val point7 = time(factorsToVariables)
       println("point 7")
-      val variablesToFactors = build_variable_factors(variables, factors, variableFactorsMap, meta._4)
+      val variablesToFactors = variables.indices.flatMap { i =>
+        variableFactorsMap(i).map { factorId =>
+          val factor = factors(factorId)
+          VariableFactor(factorId, factor.funcId, factor.nVariables, factor.iStart, factor.weightId)
+        }
+      } //build_variable_factors(variables, factors, variableFactorsMap, meta._4)
       val point8 = time(variablesToFactors)
       println("point 8")
       val variableValues = variables.map(v => v.value).mutable
@@ -258,7 +258,7 @@ trait MLIOOps {
     // -- utility
 
     /* builds reverse mapping from variables -> factors */
-    compiler (IO) ("build_variable_factors", Nil, (("variables", DenseVector(Variable)), ("factors", DenseVector(FunctionFactor)), ("variableFactorsMap", DenseVector(DenseVector(MInt))), ("totalLength", MInt)) :: DenseVector(VariableFactor)) implements composite ${
+    compiler (IO) ("build_variable_factors", Nil, (("variables", DenseVector(Variable)), ("factors", DenseVector(FunctionFactor)), ("variableFactorsMap", MHashMap(MInt, DenseVector(MInt))), ("totalLength", MInt)) :: DenseVector(VariableFactor)) implements composite ${
       val point7a = time()
       val variablesToFactors = DenseVector[VariableFactor](totalLength, true) 
       val point7b = time(variablesToFactors)
