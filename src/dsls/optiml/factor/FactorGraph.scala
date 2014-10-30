@@ -59,19 +59,19 @@ trait FactorGraphOps {
     val DenseVector = lookupTpe("DenseVector")
     val Variable = lookupTpe("RandomVariable")
     val Weight = lookupTpe("Weight")
-    val F = tpePar("F") withBound TFactor
-    val FactorGraph = tpe("FactorGraph", F)
+    //val F = tpePar("F") withBound TFactor
+    val FactorGraph = tpe("FactorGraph")//, F)
     val VariableFactor = lookupTpe("VariableFactor")
     val FactorVariable = lookupTpe("FactorVariable")
 
     // we require a dense id space for factors, variables, and weights (from 0 to numX) so that we can store them as vectors instead of maps
     // (deepdive input format must have changed: previously weight ids were sparse (and could even be negative), variable ids were also sparse)
 
-    data(FactorGraph, ("_factors", DenseVector(F)), ("_variables", DenseVector(Variable)), ("_weights", DenseVector(Weight)),
+    data(FactorGraph, ("_factors", DenseVector(VariableFactor)), ("_variables", DenseVector(Variable)), ("_weights", DenseVector(Weight)),
                       ("_variablesToFactors", DenseVector(VariableFactor)), ("_factorsToVariables", DenseVector(FactorVariable)), ("_variableValues", DenseVector(MDouble)), ("_weightValues", DenseVector(MDouble)))
 
     // all input vectors must be sorted by id!
-    val a = static (FactorGraph) ("apply", F, MethodSignature(List(("factors", DenseVector(F)), ("variables", DenseVector(Variable)), ("weights", DenseVector(Weight)),
+    val a = static (FactorGraph) ("apply", Nil, MethodSignature(List(("factors", DenseVector(VariableFactor)), ("variables", DenseVector(Variable)), ("weights", DenseVector(Weight)),
                                                                    ("variablesToFactors", DenseVector(VariableFactor)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableValues", DenseVector(MDouble)), ("weightValues", DenseVector(MDouble))), FactorGraph))
      // implements allocates(FactorGraph, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5})
      impl (a) (allocates(FactorGraph, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5}, ${$6}))
@@ -79,7 +79,7 @@ trait FactorGraphOps {
 
     val FactorGraphOps = withTpe(FactorGraph)
     FactorGraphOps {      
-      infix ("factors") (Nil :: DenseVector(F)) implements getter(0, "_factors")
+      infix ("factors") (Nil :: DenseVector(VariableFactor)) implements getter(0, "_factors")
       infix ("variables") (Nil :: DenseVector(Variable)) implements getter(0, "_variables")
       infix ("weights") (Nil :: DenseVector(Weight)) implements getter(0, "_weights")
       infix ("variablesToFactors") (Nil :: DenseVector(VariableFactor)) implements getter(0, "_variablesToFactors")

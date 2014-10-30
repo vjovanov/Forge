@@ -161,7 +161,7 @@ trait MLIOOps {
       }
     }
 
-    direct (IO) ("readFactorGraph", Nil, MethodSignature(List(("metaPath", MString), ("factorsPath", MString), ("variablesPath", MString), ("weightsPath", MString), ("edgesPath", MString), ("delim",MString,"unit(\"\\t\")")), FactorGraph(FunctionFactor))) implements composite ${
+    direct (IO) ("readFactorGraph", Nil, MethodSignature(List(("metaPath", MString), ("factorsPath", MString), ("variablesPath", MString), ("weightsPath", MString), ("edgesPath", MString), ("delim",MString,"unit(\"\\t\")")), FactorGraph)) implements composite ${
       val meta = densevector_fromarray(ForgeFileReader.readLines($metaPath) { line => 
         val tokens = line.trim.fsplit(delim)
         val (num_weights, num_variables, num_factors, num_edges) = (tokens(0).toInt, tokens(1).toInt, tokens(2).toInt, tokens(3).toInt)
@@ -182,53 +182,58 @@ trait MLIOOps {
       // for (r <- factorVariablesMap) { r = DenseVector[FactorVariable]()}
       // val variableFactorsMap = (0::variableRows.length) { e => DenseVector[Int]().mutable } //DenseVector[DenseVector[Int]](variableRows.length, true)
       // for (r <- variableFactorsMap) { r = DenseVector[Int]()}
-
       val edges = fg_read_edges($edgesPath, meta._4)//.sortBy(r => r._2)
-      val factorVariablesMap = edges.groupBy(r => r._2, r => FactorVariable(r._1, r._3, r._4))
       val variableFactorsMap = edges.groupBy(r => r._1, r => r._2)
-      val point2 = time(edges)
-      println("point 2")
+      val point2a = time(variableFactorsMap)
+      println(point2a)
+      val factorVariablesMap = edges.indices.groupBy(i => edges(i)._2, i => i) //r => FactorVariable(r._1, r._3, r._4))
+      val point2 = time(factorVariablesMap)
+      println(point2)
       //val factorVariablesMap = edges.groupBy(r => r._2, r => FactorVariable(r._1, r._3, r._4))
       //val factorVariablesMap = edges.groupBy(r => r._2, r => r._1)
       //val point2a = time(factorVariablesMap)
       //println("point 2a")
-      val factorStart = DenseVector[Int](factorRows.length, true)
-      val nVariables = DenseVector[Int](factorRows.length, true)
-      val z = calStart[FactorVariable](factorVariablesMap, factorStart, nVariables)
-      val point3 = time(z)
-      println("point 3")
       //val variableFactorsMap = edges.groupBy(r => r._1, r => r._2)
       //val point3a = time(variableFactorsMap)
       //println("point 3a")
       val variableStart = DenseVector[Int](variableRows.length, true)
       val nFactors = DenseVector[Int](variableRows.length, true)
       val zz = calStart[Int](variableFactorsMap, variableStart, nFactors)
-      val point4 = time(zz)
-      println("point 4")
+      val point3 = time(zz)
+      println("point 3")
       val variables = variableRows.indices.map { r => 
         val row = variableRows(r)
         RandomVariable(row._1, 0.0, 1.0, row._2, row._3, nFactors(r), variableStart(r))
       }
-      val point5 = time(variables)
+      val point4 = time(variables)
+      println("point 4")
+      val factorStart = DenseVector[Int](factorRows.length, true)
+      val nVariables = DenseVector[Int](factorRows.length, true)
+      val z = calStart[Int](factorVariablesMap, factorStart, nVariables)
+      val point5 = time(z)
       println("point 5")
       val factors = factorRows.indices.map { r =>
         val t = factorRows(r)
-        val vars = factorVariablesMap(r).sortBy(x => x.position)
+        //val vars = factorVariablesMap(r).sortBy(x => x.position)
         // val vars = (0::nVariables(r)) { i => 
         //     val x = edges(i + factorStart(r))
         //     FactorVariable(x._1, x._3, x._4)
         // }.sortBy( t => t.position)
-        FunctionFactor(t._1, vars, t._2, t._3, nVariables(r), factorStart(r))
+        VariableFactor(t._1, t._3, nVariables(r), factorStart(r), t._2)
       }
       val point6 = time(factors)
       println("point 6")
-      val factorsToVariables = factors.indices.flatMap( i => factorVariablesMap(i))  //build_factor_variables(variables, factors, meta._4)
+      val factorsToVariables = factors.indices.flatMap{ i => 
+        factorVariablesMap(i).map{ r => 
+          FactorVariable(edges(r)._1, edges(r)._3, edges(r)._4)
+        }.sortBy(x => x.position)
+      }
       val point7 = time(factorsToVariables)
       println("point 7")
       val variablesToFactors = variables.indices.flatMap { i =>
         variableFactorsMap(i).map { factorId =>
-          val factor = factors(factorId)
-          VariableFactor(factorId, factor.funcId, factor.nVariables, factor.iStart, factor.weightId)
+          factors(factorId)
+          //VariableFactor(factorId, factor.funcId, factor.nVariables, factor.iStart, factor.weightId)
         }
       } //build_variable_factors(variables, factors, variableFactorsMap, meta._4)
       val point8 = time(variablesToFactors)
@@ -243,9 +248,7 @@ trait MLIOOps {
       println(point0 - point_1)
       println(point1 - point0)
       println(point2 - point1)
-      //println(point2a - point2)
       println(point3 - point2)
-      //println(point3a - point3)
       println(point4 - point3)
       println(point5 - point4)
       println(point6 - point5)

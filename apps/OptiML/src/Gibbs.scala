@@ -13,7 +13,7 @@ trait Gibbs extends OptiMLApplication {
   }
 
   /* Samples a variable and updates its value in the graph */
-  def sampleVariable(graph: Rep[FactorGraph[FunctionFactor]], variableId: Rep[Int]) = { //: Rep[Long] = {
+  def sampleVariable(graph: Rep[FactorGraph], variableId: Rep[Int]) = { //: Rep[Long] = {
     //version 4
     
     val variable = graph.variables.apply(variableId)
@@ -135,7 +135,7 @@ trait Gibbs extends OptiMLApplication {
   }
 
   /* Samples multiple variables and updates the variable values in the graph */
-  def sampleVariables(graph: Rep[FactorGraph[FunctionFactor]], variableIds: Rep[DenseVector[Int]], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
+  def sampleVariables(graph: Rep[FactorGraph], variableIds: Rep[DenseVector[Int]], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
 
     val start = time()
     //val timers = DenseVector[Long](variableIds.length, true)
@@ -156,14 +156,18 @@ trait Gibbs extends OptiMLApplication {
     times <<= pack(variableIds.length, end - start)
   }
 
-  def evaluateFactor(graph: Rep[FactorGraph[FunctionFactor]], factorId: Rep[Int]): Rep[Double] = {
+  def evaluateFactor(graph: Rep[FactorGraph], factorId: Rep[Int]): Rep[Double] = {
     val factor = graph.factors.apply(factorId)
-    val factorVariableValues = factor.vars.map(fv => graph.getVariableValue(fv.id, fv.isPositive))
-    factor.evaluate(factorVariableValues)
+    val values = graph.variableValues
+    val factorsToVariables = graph.factorsToVariables
+    val variableId = factorsToVariables(factor.iStart).id
+    factor.evaluate(values, factorsToVariables, variableId, values(variableId))
+    // val factorVariableValues = factor.vars.map(fv => graph.getVariableValue(fv.id, fv.isPositive))
+    // factor.evaluate(factorVariableValues)
   }
 
   // computes the marginal probability that each factor is true
-  def sampleFactors(graph: Rep[FactorGraph[FunctionFactor]], variableIds: Rep[DenseVector[Int]], factorIds: Rep[DenseVector[Int]], numSamples: Rep[Int], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
+  def sampleFactors(graph: Rep[FactorGraph], variableIds: Rep[DenseVector[Int]], factorIds: Rep[DenseVector[Int]], numSamples: Rep[Int], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
     var i = 0
     val acc = DenseVector[Double](factorIds.length, true)
     while (i < numSamples) {
@@ -186,7 +190,7 @@ trait Gibbs extends OptiMLApplication {
   // TIME BREAKDOWN: sequential total is ~53s
   // sampling factors takes ~.5s per iteration --> 50s overall
   // sampleVariables is ~.17s per call * 2x per iteration --> 34s overall
-  def learnWeights(graph: Rep[FactorGraph[FunctionFactor]], numIterations: Rep[Int], numSamples: Rep[Int], learningRate: Rep[Double], regularizationConstant: Rep[Double], diminishRate: Rep[Double], times: Rep[DenseVector[Tup2[Int,Long]]]): Rep[Unit] = {
+  def learnWeights(graph: Rep[FactorGraph], numIterations: Rep[Int], numSamples: Rep[Int], learningRate: Rep[Double], regularizationConstant: Rep[Double], diminishRate: Rep[Double], times: Rep[DenseVector[Tup2[Int,Long]]]): Rep[Unit] = {
     tic("initLearnWeights")
     //val allVariables = graph.variables.map(_.id)
     val queryVariables = graph.variables.filter(!_.isEvidence).map(_.id)
@@ -273,7 +277,7 @@ trait Gibbs extends OptiMLApplication {
 
   }
 
-  def calculateMarginals(graph: Rep[FactorGraph[FunctionFactor]], numSamples: Rep[Int], variables: Rep[DenseVector[RandomVariable]], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
+  def calculateMarginals(graph: Rep[FactorGraph], numSamples: Rep[Int], variables: Rep[DenseVector[RandomVariable]], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
     println("calculating marginals for num_vars="+variables.length)
 
     val nonEvidenceVariables = variables.filter(!_.isEvidence).map(_.id)
@@ -306,7 +310,10 @@ trait Gibbs extends OptiMLApplication {
       println("thread " + thread + " use " + (localEndTIme - localStartTime))
     }
     val endTime = time(z)
-    times <<= pack(numSamples * nonEvidenceVariables.length, endTime - startTime)
+    println("inference sample/sec " + (nonEvidenceVariables.length / ((endTime - startTime) / 1000.0) * numSamples))
+    println("number of query variables " + nonEvidenceVariables.length)
+    println("inference time " + (endTime - startTime))
+    //times <<= pack(numSamples * nonEvidenceVariables.length, endTime - startTime)
 
     // generate the inference results
     nonEvidenceVariables.indices.map { k =>
@@ -341,11 +348,11 @@ trait Gibbs extends OptiMLApplication {
     val totalNumSamples1 = times1.map(_._1).sum
     val totalMillis1 = times1.map(_._2).sum
     println("Learner: samples_per_sec= " + (totalNumSamples1 / (totalMillis1/1000.0)))
-    val totalNumSamples2 = times2.map(_._1).sum
-    val totalMillis2 = times2.map(_._2).sum
-    println("Sampler: samples_per_sec= " + (totalNumSamples2 / (totalMillis2/1000.0)))
-    val totalNumSamples = totalNumSamples1 + totalNumSamples2
-    val totalMillis = totalMillis1 + totalMillis2
-    println("Total: samples_per_sec= " + (totalNumSamples / (totalMillis/1000.0)))
+    //val totalNumSamples2 = times2.map(_._1).sum
+    //val totalMillis2 = times2.map(_._2).sum
+    //println("Sampler: samples_per_sec= " + (totalNumSamples2 / (totalMillis2/1000.0)))
+    //val totalNumSamples = totalNumSamples1 + totalNumSamples2
+    //val totalMillis = totalMillis1 + totalMillis2
+    //println("Total: samples_per_sec= " + (totalNumSamples / (totalMillis/1000.0)))
   }
 }
