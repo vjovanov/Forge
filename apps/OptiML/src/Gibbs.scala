@@ -303,7 +303,7 @@ trait Gibbs extends OptiMLApplication {
           sampleSums2(v) = sampleSums2(v) + sampleResultSq
           v += 1
         }
-        start = if (end == nonEvidenceVariables.length) 0 else end
+        //start = if (end == nonEvidenceVariables.length) 0 else end
         iter += 1
       }
       val localEndTIme = time()
