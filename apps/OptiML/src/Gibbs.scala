@@ -336,12 +336,12 @@ trait Gibbs extends OptiMLApplication {
     val times2 = DenseVector[Tup2[Int,Long]](0, true)
 
     //tic("learnWeights", G)
-    learnWeights(G, 300, 1, 0.01, 0.1, 0.95, times1)
+    learnWeights(G, 30, 1, 0.01, 0.1, 0.95, times1)
     //toc("learnWeights", G)
     writeVector(G.weights.map(w => w.id + "\t" + G.getWeightValue(w.id)), "weights.out")
 
     //tic("calculateMarginals", G)
-    val marginals = calculateMarginals(G, 500, G.variables, times2)
+    val marginals = calculateMarginals(G, 50, G.variables, times2)
     //toc("calculateMarginals", marginals)
     writeVector(marginals.map(t => t._1 + "\t" + t._4.toInt + "\t" + t._2), "marginals.out")
 
