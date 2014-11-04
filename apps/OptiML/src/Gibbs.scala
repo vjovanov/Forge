@@ -285,29 +285,34 @@ trait Gibbs extends OptiMLApplication {
     val sampleSums = DenseVector[Double](nonEvidenceVariables.length, true)
     // Squared sample sums to calculate running standard deviation
     val sampleSums2 = DenseVector[Double](nonEvidenceVariables.length, true)
-    val numThreads = getNumThreads()
+    val numThreads = getNumCpp()
     println(numThreads)
     val range = nonEvidenceVariables.length / numThreads + 1
     val startTime = time()
-    val z = for (thread <- (0::numThreads)) {
-      val localStartTime = time()
-      var iter = 0
-      var start = thread * range
-      while (iter < numSamples){
-        val end = if (start + range > nonEvidenceVariables.length) nonEvidenceVariables.length else (start + range)
-        var v = start 
-        while (v < end){
-          val sampleResult = sampleVariable(graph, nonEvidenceVariables(v))
-          val sampleResultSq = sampleResult*sampleResult
-          sampleSums(v) = sampleSums(v) + sampleResult
-          sampleSums2(v) = sampleSums2(v) + sampleResultSq
-          v += 1
+    val batch = 1
+    var outIter = 0
+    while (outIter < numSamples / batch){
+      val z = for (thread <- (0::numThreads)) {
+        //val localStartTime = time()
+        var iter = 0
+        var start = thread * range
+        while (iter < batch){
+          val end = if (start + range > nonEvidenceVariables.length) nonEvidenceVariables.length else (start + range)
+          var v = start 
+          while (v < end){
+            val sampleResult = sampleVariable(graph, nonEvidenceVariables(v))
+            val sampleResultSq = sampleResult*sampleResult
+            sampleSums(v) = sampleSums(v) + sampleResult
+            sampleSums2(v) = sampleSums2(v) + sampleResultSq
+            v += 1
+          }
+          //start = if (end == nonEvidenceVariables.length) 0 else end
+          iter += 1
         }
-        //start = if (end == nonEvidenceVariables.length) 0 else end
-        iter += 1
+        //val localEndTIme = time()
+        //println("thread " + thread + " use " + (localEndTIme - localStartTime))
       }
-      val localEndTIme = time()
-      println("thread " + thread + " use " + (localEndTIme - localStartTime))
+      outIter += 1
     }
     val endTime = time()
     println("inference sample/sec " + (nonEvidenceVariables.length / ((endTime - startTime) / 1000.0) * numSamples))
@@ -341,7 +346,7 @@ trait Gibbs extends OptiMLApplication {
     writeVector(G.weights.map(w => w.id + "\t" + G.getWeightValue(w.id)), "weights.out")
 
     //tic("calculateMarginals", G)
-    val marginals = calculateMarginals(G, 50, G.variables, times2)
+    val marginals = calculateMarginals(G, 500, G.variables, times2)
     //toc("calculateMarginals", marginals)
     writeVector(marginals.map(t => t._1 + "\t" + t._4.toInt + "\t" + t._2), "marginals.out")
 

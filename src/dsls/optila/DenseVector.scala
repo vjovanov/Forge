@@ -43,7 +43,9 @@ trait DenseVectorOps {
 
     // static methods
     static (DenseVector) ("apply", T, (MInt, MBoolean) :: DenseVector(T), effect = mutable) implements allocates(DenseVector, ${$0}, ${$1}, ${array_empty[T]($0)})
+    //static (DenseVector) ("apply", T, (MBoolean, MInt) :: DenseVector(T)) implements allocates(DenseVector, ${$1}, ${$0}, ${array_numa_empty[T]($1)})
     static (DenseVector) ("apply", T, varArgs(T) :: DenseVector(T)) implements allocates(DenseVector, ${unit($0.length)}, ${unit(true)}, ${array_fromseq($0)})
+    
 
     // helper
     compiler (DenseVector) ("densevector_alloc_raw", T, (MInt, MBoolean, MArray(T)) :: DenseVector(T)) implements allocates(DenseVector, ${$0}, ${$1}, ${$2})
@@ -260,6 +262,23 @@ trait DenseVectorOps {
         val d = array_empty[T](n)
         array_copy(data, 0, d, 0, $self.length)
         densevector_set_raw_data($self, d.unsafeImmutable)
+      }
+
+      // NUMA operation
+      infix ("combineAvg") (Nil :: MUnit, effect = write(0)) implements single ${
+        array_numa_combine_average[T](densevector_raw_data($self))
+      }
+      infix ("initialSynch") (Nil :: MUnit, effect = write(0)) implements single ${
+        array_numa_initial_synch[T](densevector_raw_data($self))
+      }
+      infix ("numaReplicate") (Nil :: MUnit, effect = write(0)) implements composite ${
+        val data = densevector_raw_data($self)
+        val numaData = array_numa_empty[T]($self.length)
+        for (i <- 0 until $self.length) {
+          array_update(numaData, i, data(i))
+        }
+        array_numa_initial_synch[T](numaData)
+        densevector_set_raw_data($self, numaData.unsafeImmutable)
       }
 
 

@@ -103,7 +103,7 @@ trait MLIOOps {
       }
       dis.fclose()
       val z = println("read " + num_variables + " variables")
-      val end = time(z) - start
+      val end = time() - start
       println("fg_read_variables time " + end)
       out
     }
@@ -150,7 +150,7 @@ trait MLIOOps {
       edges
     }
 
-    compiler(IO) ("calStart", T, (("factorVariablesMap", MHashMap(MInt, DenseVector(T))), ("factorStart", DenseVector(MInt)), ("nVariables", DenseVector(MInt))) :: MUnit) implements single ${
+    compiler(IO) ("calStart", T, (("factorVariablesMap", MHashMap(MInt, DenseVector(T))), ("factorStart", DenseVector(MInt)), ("nVariables", DenseVector(MInt))) :: MUnit, effect = write(0)) implements single ${
       var i = 0
       var count = 0
       val z = while (i < factorStart.length) {
@@ -161,7 +161,7 @@ trait MLIOOps {
       }
     }
 
-    compiler(IO) ("calFactorStart", Nil, (("factorVariables", DenseVector(Tup4(MInt,MInt,MBoolean,MInt))), ("factorStart", DenseVector(MInt)), ("nVariables", DenseVector(MInt))) :: MUnit) implements single ${
+    compiler(IO) ("calFactorStart", Nil, (("factorVariables", DenseVector(Tup4(MInt,MInt,MBoolean,MInt))), ("factorStart", DenseVector(MInt)), ("nVariables", DenseVector(MInt))) :: MUnit, effect = write(0)) implements single ${
       var i = 0
       var factorId = 0
       var count = 0
@@ -224,11 +224,7 @@ trait MLIOOps {
       val factorStart = DenseVector[Int](factorRows.length, true)
       val nVariables = DenseVector[Int](factorRows.length, true)
       val z = calFactorStart(factorVariables, factorStart, nVariables)
-      for (s <- (0::10)){
-        println(factorStart(s))
-        println(nVariables(s))
-      }
-      val point4 = time(z)
+      val point4 = time()
       println("point 4")
       val factors = factorRows.indices.map { r =>
         val t = factorRows(r)
@@ -247,11 +243,7 @@ trait MLIOOps {
       val variableStart = DenseVector[Int](variableRows.length, true)
       val nFactors = DenseVector[Int](variableRows.length, true)
       val zz = calStart[Int](variableFactorsMap, variableStart, nFactors)
-      for (s <- (0::10)){
-        println(variableStart(s))
-        println(nFactors(s))
-      }
-      val point7 = time(zz)
+      val point7 = time()
       println("point 7")
       val variables = variableRows.indices.map { r => 
         val row = variableRows(r)
@@ -291,6 +283,13 @@ trait MLIOOps {
       println(point9 - point8)
       println(point10 - point9)
       println(point11 - point10)
+      factors.numaReplicate()
+      variables.numaReplicate()
+      weights.numaReplicate()
+      variablesToFactors.numaReplicate()
+      factorsToVariables.numaReplicate()
+      variableValues.numaReplicate()
+      weightValues.numaReplicate()
       FactorGraph(factors, variables, weights, variablesToFactors, factorsToVariables, variableValues, weightValues)
     }
     // -- utility

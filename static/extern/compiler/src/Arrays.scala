@@ -95,6 +95,14 @@ trait ForgeArrayOpsExp extends DeliteArrayFatExp {
     = ArrayApply(__arg0,__arg1)
   def scala_array_length[T:Manifest](__arg0: Rep[Array[T]])(implicit __imp0: SourceContext): Rep[Int]
     = ArrayLength(__arg0)
+
+  /* NUMA-aware arrays */
+  def array_numa_empty[T:Manifest](len: Rep[Int]): Rep[ForgeArray[T]]
+    = darray_numa_empty[T](len, len)
+  def array_numa_combine_average[T:Manifest](x: Rep[ForgeArray[T]]): Rep[Unit]
+    = darray_numa_combine_average[T](x)
+  def array_numa_initial_synch[T:Manifest](x: Rep[ForgeArray[T]]): Rep[Unit]
+    = darray_numa_initial_synch[T](x)
 }
 trait ScalaGenForgeArrayOps extends ScalaGenDeliteArrayOps with ScalaGenPrimitiveOps with ScalaGenObjectOps {
   val IR: ForgeArrayOpsExp with DeliteOpsExp

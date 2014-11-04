@@ -66,6 +66,14 @@ trait ForgeArrayWrapper extends HUMAN_DSL_NAMEBase {
     = array_apply(__arg0,__arg1)
   def scala_array_length[T:Manifest](__arg0: Rep[Array[T]])(implicit __imp0: SourceContext): Rep[Int]
     = array_length(__arg0)
+
+  /* NUMA-aware arrays */
+  def array_numa_empty[T:Manifest](len: Rep[Int]): Rep[ForgeArray[T]]
+    = new ForgeArray[T](len)
+  def array_numa_combine_average[T:Manifest](x: Rep[ForgeArray[T]]): Rep[Unit]
+    = {}
+  def array_numa_initial_synch[T:Manifest](x: Rep[ForgeArray[T]]): Rep[Unit]
+    = {}
 }
 
 trait ForgeArrayBufferWrapper extends HUMAN_DSL_NAMEBase {

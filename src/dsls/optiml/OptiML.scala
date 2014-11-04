@@ -47,15 +47,15 @@ trait OptiMLDSL extends OptiLADSL
     })
 
     direct (Env) ("getNumCpp", Nil, MUnit :: MInt) implements codegen ($cala, ${
-      ppl.delite.runtime.Config.numThreads
+      ppl.delite.runtime.Config.numCpp
     })
 
     direct (Env) ("getNumCuda", Nil, MUnit :: MInt) implements codegen ($cala, ${
-      ppl.delite.runtime.Config.numThreads
+      ppl.delite.runtime.Config.numCuda
     })
 
     direct (Env) ("getNumOpenCL", Nil, MUnit :: MInt) implements codegen ($cala, ${
-      ppl.delite.runtime.Config.numThreads
+      ppl.delite.runtime.Config.numOpenCL
     })
   }
 
