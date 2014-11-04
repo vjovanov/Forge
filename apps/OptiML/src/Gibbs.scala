@@ -145,7 +145,7 @@ trait Gibbs extends OptiMLApplication {
       //timers(v) = sampleVariable(graph, variableIds(v), randomVals(v))
     }
     
-    val end = time(z)
+    val end = time()
     //println(timers.sum)
     // println(timers.slice(0, variableIds.length/4).sum)
     // println(timers.slice(variableIds.length/4, variableIds.length/2).sum)
@@ -191,7 +191,7 @@ trait Gibbs extends OptiMLApplication {
   // sampling factors takes ~.5s per iteration --> 50s overall
   // sampleVariables is ~.17s per call * 2x per iteration --> 34s overall
   def learnWeights(graph: Rep[FactorGraph], numIterations: Rep[Int], numSamples: Rep[Int], learningRate: Rep[Double], regularizationConstant: Rep[Double], diminishRate: Rep[Double], times: Rep[DenseVector[Tup2[Int,Long]]]): Rep[Unit] = {
-    tic("initLearnWeights")
+    //tic("initLearnWeights")
     //val allVariables = graph.variables.map(_.id)
     val queryVariables = graph.variables.filter(!_.isEvidence).map(_.id)
     val evidenceVariables = graph.variables.filter(_.isEvidence).map(_.id)
@@ -208,7 +208,7 @@ trait Gibbs extends OptiMLApplication {
     val queryWeightIds = queryFactorIds.map(r => graph.factors.apply(r).weightId).filter(wid => !graph.weights.apply(wid).isFixed)
     //val weightFactorIdsMap = queryFactorIds.map(fid => graph.factors.apply(fid)).groupBy(f => f.weightId, f => f.id)
     //toc("initLearnWeights", allVariables, queryVariables, evidenceValues, queryWeightIds, weightFactorIdsMap)
-    toc("initLearnWeights", queryVariables, evidenceValues, queryWeightIds)
+    //toc("initLearnWeights", queryVariables, evidenceValues, queryWeightIds)
 
     println("num_iterations="+numIterations)
     println("num_samples_per_iteration="+numSamples)
@@ -309,7 +309,7 @@ trait Gibbs extends OptiMLApplication {
       val localEndTIme = time()
       println("thread " + thread + " use " + (localEndTIme - localStartTime))
     }
-    val endTime = time(z)
+    val endTime = time()
     println("inference sample/sec " + (nonEvidenceVariables.length / ((endTime - startTime) / 1000.0) * numSamples))
     println("number of query variables " + nonEvidenceVariables.length)
     println("inference time " + (endTime - startTime))
@@ -328,21 +328,21 @@ trait Gibbs extends OptiMLApplication {
   def main() = {
     if (args.length < 5) print_usage
 
-    tic("io")
+    //tic("io")
     val G = readFactorGraph(args(0), args(1), args(2), args(3), args(4), ",")
-    toc("io", G)
+    //toc("io", G)
 
     val times1 = DenseVector[Tup2[Int,Long]](0, true)
     val times2 = DenseVector[Tup2[Int,Long]](0, true)
 
-    tic("learnWeights", G)
+    //tic("learnWeights", G)
     learnWeights(G, 300, 1, 0.01, 0.1, 0.95, times1)
-    toc("learnWeights", G)
+    //toc("learnWeights", G)
     writeVector(G.weights.map(w => w.id + "\t" + G.getWeightValue(w.id)), "weights.out")
 
-    tic("calculateMarginals", G)
+    //tic("calculateMarginals", G)
     val marginals = calculateMarginals(G, 500, G.variables, times2)
-    toc("calculateMarginals", marginals)
+    //toc("calculateMarginals", marginals)
     writeVector(marginals.map(t => t._1 + "\t" + t._4.toInt + "\t" + t._2), "marginals.out")
 
     val totalNumSamples1 = times1.map(_._1).sum

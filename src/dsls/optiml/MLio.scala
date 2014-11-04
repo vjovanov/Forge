@@ -80,7 +80,7 @@ trait MLIOOps {
       }
       dis.fclose()
       val z = println("read " + num_weights + " weights")
-      val end = time(z) - start
+      val end = time() - start
       println("readweights time " + end)
       out.unsafeImmutable
     }
@@ -123,7 +123,7 @@ trait MLIOOps {
       }
       dis.fclose()
       val z = println("read " + num_factors + " factors")
-      val end = time(z) - start
+      val end = time() - start
       println("fg_read_factors time " + end)
       out.unsafeImmutable
     }
@@ -144,7 +144,7 @@ trait MLIOOps {
       }
       dis.fclose()
       val z = println("read " + num_edges + " edges")
-      val end = time(z) - start
+      val end = time() - start
       println("fg_read_edges time " + end)
       //out.unsafeImmutable
       edges
@@ -199,7 +199,7 @@ trait MLIOOps {
       val variableStart = DenseVector[Int](variableRows.length, true)
       val nFactors = DenseVector[Int](variableRows.length, true)
       val zz = calStart[Int](variableFactorsMap, variableStart, nFactors)
-      val point3 = time(zz)
+      val point3 = time()
       println("point 3")
       val variables = variableRows.indices.map { r => 
         val row = variableRows(r)
@@ -210,7 +210,7 @@ trait MLIOOps {
       val factorStart = DenseVector[Int](factorRows.length, true)
       val nVariables = DenseVector[Int](factorRows.length, true)
       val z = calStart[Int](factorVariablesMap, factorStart, nVariables)
-      val point5 = time(z)
+      val point5 = time()
       println("point 5")
       val factors = factorRows.indices.map { r =>
         val t = factorRows(r)
@@ -275,7 +275,7 @@ trait MLIOOps {
           variablesToFactors(iStart + j) = VariableFactor(factorId, factor.funcId, factor.nVariables, factor.iStart, factor.weightId)
         }
       }
-      val point7c = time(z)
+      val point7c = time()
       println(point7b - point7a)
       println(point7c - point7b)
       variablesToFactors
