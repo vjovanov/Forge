@@ -337,6 +337,21 @@ trait Gibbs extends OptiMLApplication {
     val G = readFactorGraph(args(0), args(1), args(2), args(3), args(4), ",")
     //toc("io", G)
 
+    //replicated
+    // val factorsNumaArray = array_numa_empty[VariableFactor](G.factors.length)
+    // for (i <- 0::G.factors.length){
+    //   array_update[VariableFactor](factorsNumaArray, i, G.factors(i))
+    // }
+    // val factorsNuma = DenseVector(factorsNumaArray)
+    // val factorsNuma = G.factors DenseVector[VariableFactor](factors.numaReplicate())
+    //   val variablesNuma = DenseVector[Variable](variables.numaReplicate())
+    //   val weightsNuma = DenseVector[Weight](weights.numaReplicate())
+    //   val variablesToFactorsNuma = DenseVector[VariableFactor](variablesToFactors.numaReplicate())
+    //   val factorsToVariablesNuma = DenseVector[FactorVariable](factorsToVariables.numaReplicate())
+    //   val variableValuesNuma = DenseVector[MDouble](variableValues.numaReplicate())
+    //   val weightValuesNuma = DenseVector[MDouble](weightValues.numaReplicate())
+    //   FactorGraph(factorsNuma, variablesNuma, weightsNuma, variablesToFactorsNuma, factorsToVariablesNuma, variableValuesNuma, weightValuesNuma)
+
     val times1 = DenseVector[Tup2[Int,Long]](0, true)
     val times2 = DenseVector[Tup2[Int,Long]](0, true)
 

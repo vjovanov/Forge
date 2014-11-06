@@ -105,7 +105,7 @@ trait MLIOOps {
       val z = println("read " + num_variables + " variables")
       val end = time() - start
       println("fg_read_variables time " + end)
-      out
+      out.unsafeImmutable
     }
 
     compiler (IO) ("fg_read_factors", Nil, (("path",MString), ("num_factors", MInt)) :: DenseVector(Tup3(MInt,MInt,MInt))) implements single ${
@@ -147,21 +147,26 @@ trait MLIOOps {
       val end = time() - start
       println("fg_read_edges time " + end)
       //out.unsafeImmutable
-      edges
+      edges.unsafeImmutable
     }
 
-    compiler(IO) ("calStart", T, (("factorVariablesMap", MHashMap(MInt, DenseVector(T))), ("factorStart", DenseVector(MInt)), ("nVariables", DenseVector(MInt))) :: MUnit, effect = write(0)) implements single ${
+    compiler(IO) ("calVariableStart", T, (("factorVariablesMap", MHashMap(MInt, DenseVector(T))), ("len", MInt)) :: Tup2(DenseVector(MInt), DenseVector(MInt))) implements single ${
+      val variableStart = DenseVector[Int](len, true)
+      val nFactors = DenseVector[Int](len, true)
       var i = 0
       var count = 0
-      val z = while (i < factorStart.length) {
-        factorStart(i) = count
-        nVariables(i) = factorVariablesMap(i).length
-        count = count + nVariables(i)
+      val z = while (i < variableStart.length) {
+        variableStart(i) = count
+        nFactors(i) = factorVariablesMap(i).length
+        count = count + nFactors(i)
         i += 1
       }
+      pack((variableStart.unsafeImmutable, nFactors.unsafeImmutable))
     }
 
-    compiler(IO) ("calFactorStart", Nil, (("factorVariables", DenseVector(Tup4(MInt,MInt,MBoolean,MInt))), ("factorStart", DenseVector(MInt)), ("nVariables", DenseVector(MInt))) :: MUnit, effect = write(0)) implements single ${
+    compiler(IO) ("calFactorStart", Nil, (("factorVariables", DenseVector(Tup4(MInt,MInt,MBoolean,MInt))), ("len", MInt)) :: Tup2(DenseVector(MInt), DenseVector(MInt))) implements single ${
+      val factorStart = DenseVector[Int](len, true)
+      val nVariables = DenseVector[Int](len, true)
       var i = 0
       var factorId = 0
       var count = 0
@@ -181,6 +186,7 @@ trait MLIOOps {
         }
         i += 1
       }
+      pack((factorStart.unsafeImmutable, nVariables.unsafeImmutable))
     }
 
     direct (IO) ("readFactorGraph", Nil, MethodSignature(List(("metaPath", MString), ("factorsPath", MString), ("variablesPath", MString), ("weightsPath", MString), ("edgesPath", MString), ("delim",MString,"unit(\"\\t\")")), FactorGraph)) implements composite ${
@@ -221,9 +227,12 @@ trait MLIOOps {
       val factorsToVariables = factorVariables.map(r => FactorVariable(r._1, r._3, r._4))
       val point3 = time(factorsToVariables)
       println("point 3")
-      val factorStart = DenseVector[Int](factorRows.length, true)
-      val nVariables = DenseVector[Int](factorRows.length, true)
-      val z = calFactorStart(factorVariables, factorStart, nVariables)
+      val temp1 = calFactorStart(factorVariables, factorRows.length)
+      // val factorStart = DenseVector[Int](factorRows.length, true).mutable
+      // val nVariables = DenseVector[Int](factorRows.length, true).mutable
+      val factorStart = temp1._1
+      val nVariables = temp1._2
+      //val z = calFactorStart(factorVariables, factorStart, nVariables)
       val point4 = time()
       println("point 4")
       val factors = factorRows.indices.map { r =>
@@ -240,9 +249,12 @@ trait MLIOOps {
       val variableFactorsMap = edges.groupBy(r => r._1, r => r._2)
       val point6 = time(variableFactorsMap)
       println("point6")
-      val variableStart = DenseVector[Int](variableRows.length, true)
-      val nFactors = DenseVector[Int](variableRows.length, true)
-      val zz = calStart[Int](variableFactorsMap, variableStart, nFactors)
+      val temp2 = calVariableStart[Int](variableFactorsMap, variableRows.length)
+      val variableStart = temp2._1
+      val nFactors = temp2._2
+      // val variableStart = DenseVector[Int](variableRows.length, true).mutable
+      // val nFactors = DenseVector[Int](variableRows.length, true).mutable
+      // val zz = calStart[Int](variableFactorsMap, variableStart, nFactors)
       val point7 = time()
       println("point 7")
       val variables = variableRows.indices.map { r => 
@@ -283,14 +295,21 @@ trait MLIOOps {
       println(point9 - point8)
       println(point10 - point9)
       println(point11 - point10)
-      factors.numaReplicate()
-      variables.numaReplicate()
-      weights.numaReplicate()
-      variablesToFactors.numaReplicate()
-      factorsToVariables.numaReplicate()
-      variableValues.numaReplicate()
-      weightValues.numaReplicate()
-      FactorGraph(factors, variables, weights, variablesToFactors, factorsToVariables, variableValues, weightValues)
+      val factorsNuma = densevector_fromarray(factors.numaReplicate(), true)
+      val variablesNuma = densevector_fromarray(variables.numaReplicate(), true)
+      val weightsNuma = densevector_fromarray(weights.numaReplicate(), true)
+      val variablesToFactorsNuma = densevector_fromarray(variablesToFactors.numaReplicate(), true)
+      val factorsToVariablesNuma = densevector_fromarray(factorsToVariables.numaReplicate(), true)
+      val variableValuesNuma = densevector_fromarray(variableValues.numaReplicate(), true).mutable
+      val weightValuesNuma = densevector_fromarray(weightValues.numaReplicate(), true).mutable
+      // factors.numaReplicate()
+      // variables.numaReplicate()
+      // weights.numaReplicate()
+      // variablesToFactors.numaReplicate()
+      // factorsToVariables.numaReplicate()
+      // variableValues.numaReplicate()
+      // weightValues.numaReplicate()
+      FactorGraph(factorsNuma, variablesNuma, weightsNuma, variablesToFactorsNuma, factorsToVariablesNuma, variableValuesNuma, weightValuesNuma)
     }
     // -- utility
 

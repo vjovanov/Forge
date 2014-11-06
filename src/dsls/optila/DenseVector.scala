@@ -271,14 +271,15 @@ trait DenseVectorOps {
       infix ("initialSynch") (Nil :: MUnit, effect = write(0)) implements single ${
         array_numa_initial_synch[T](densevector_raw_data($self))
       }
-      infix ("numaReplicate") (Nil :: MUnit, effect = write(0)) implements composite ${
+      infix ("numaReplicate") (Nil :: MArray(T)) implements composite ${
         val data = densevector_raw_data($self)
         val numaData = array_numa_empty[T]($self.length)
         for (i <- 0 until $self.length) {
           array_update(numaData, i, data(i))
         }
         array_numa_initial_synch[T](numaData)
-        densevector_set_raw_data($self, numaData.unsafeImmutable)
+        numaData
+        // densevector_fromarray(numaData, $self.isRow)
       }
 
 
