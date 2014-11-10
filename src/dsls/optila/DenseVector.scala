@@ -264,23 +264,23 @@ trait DenseVectorOps {
         densevector_set_raw_data($self, d.unsafeImmutable)
       }
 
-      // NUMA operation
-      infix ("combineAvg") (Nil :: MUnit, effect = write(0)) implements single ${
-        array_numa_combine_average[T](densevector_raw_data($self))
-      }
-      infix ("initialSynch") (Nil :: MUnit, effect = write(0)) implements single ${
-        array_numa_initial_synch[T](densevector_raw_data($self))
-      }
-      infix ("numaReplicate") (Nil :: MArray(T)) implements composite ${
-        val data = densevector_raw_data($self)
-        val numaData = array_numa_empty[T]($self.length)
-        for (i <- 0 until $self.length) {
-          array_update(numaData, i, data(i))
-        }
-        array_numa_initial_synch[T](numaData)
-        numaData
-        // densevector_fromarray(numaData, $self.isRow)
-      }
+      // // NUMA operation
+      // infix ("combineAvg") (Nil :: MUnit, effect = write(0)) implements single ${
+      //   array_numa_combine_average[T](densevector_raw_data($self))
+      // }
+      // infix ("initialSynch") (Nil :: MUnit, effect = write(0)) implements single ${
+      //   array_numa_initial_synch[T](densevector_raw_data($self))
+      // }
+      // infix ("numaReplicate") (Nil :: MArray(T)) implements composite ${
+      //   val data = densevector_raw_data($self)
+      //   val numaData = array_numa_empty[T]($self.length)
+      //   for (i <- 0 until $self.length) {
+      //     array_update(numaData, i, data(i))
+      //   }
+      //   array_numa_initial_synch[T](numaData)
+      //   numaData
+      //   // densevector_fromarray(numaData, $self.isRow)
+      // }
 
 
       /**
