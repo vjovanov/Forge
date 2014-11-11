@@ -295,13 +295,14 @@ trait MLIOOps {
       println(point9 - point8)
       println(point10 - point9)
       println(point11 - point10)
-      val factorsNuma = densevector_fromarray(factors.numaReplicate(), true)
-      val variablesNuma = densevector_fromarray(variables.numaReplicate(), true)
-      val weightsNuma = densevector_fromarray(weights.numaReplicate(), true)
-      val variablesToFactorsNuma = densevector_fromarray(variablesToFactors.numaReplicate(), true)
-      val factorsToVariablesNuma = densevector_fromarray(factorsToVariables.numaReplicate(), true)
-      val variableValuesNuma = densevector_fromarray(variableValues.numaReplicate(), true).mutable
-      val weightValuesNuma = densevector_fromarray(weightValues.numaReplicate(), true).mutable
+      FactorGraph(factors, variables, weights, variablesToFactors, factorsToVariables, variableValues, weightValues)
+      // val factorsNuma = densevector_fromarray(factors.numaReplicate(), true)
+      // val variablesNuma = densevector_fromarray(variables.numaReplicate(), true)
+      // val weightsNuma = densevector_fromarray(weights.numaReplicate(), true)
+      // val variablesToFactorsNuma = densevector_fromarray(variablesToFactors.numaReplicate(), true)
+      // val factorsToVariablesNuma = densevector_fromarray(factorsToVariables.numaReplicate(), true)
+      // val variableValuesNuma = densevector_fromarray(variableValues.numaReplicate(), true).mutable
+      // val weightValuesNuma = densevector_fromarray(weightValues.numaReplicate(), true).mutable
       // factors.numaReplicate()
       // variables.numaReplicate()
       // weights.numaReplicate()
@@ -309,7 +310,7 @@ trait MLIOOps {
       // factorsToVariables.numaReplicate()
       // variableValues.numaReplicate()
       // weightValues.numaReplicate()
-      FactorGraph(factorsNuma, variablesNuma, weightsNuma, variablesToFactorsNuma, factorsToVariablesNuma, variableValuesNuma, weightValuesNuma)
+      // FactorGraph(factorsNuma, variablesNuma, weightsNuma, variablesToFactorsNuma, factorsToVariablesNuma, variableValuesNuma, weightValuesNuma)
     }
     // -- utility
 
