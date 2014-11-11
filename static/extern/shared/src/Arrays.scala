@@ -27,9 +27,9 @@ trait ForgeArrayOps extends Base with OverloadHack {
   def array_apply[T:Manifest](__arg0: Rep[ForgeArray[T]],__arg1: Rep[Int])(implicit __imp0: SourceContext): Rep[T]
   def array_length[T:Manifest](__arg0: Rep[ForgeArray[T]])(implicit __imp0: SourceContext): Rep[Int]
 
-  // def array_numa_empty[T:Manifest](len: Rep[Int]): Rep[ForgeArray[T]]
-  // def array_numa_combine_average[T:Manifest](x: Rep[ForgeArray[T]]): Rep[Unit]
-  // def array_numa_initial_synch[T:Manifest](x: Rep[ForgeArray[T]]): Rep[Unit]
+  def array_numa_empty[T:Manifest](len: Rep[Int]): Rep[ForgeArray[T]]
+  def array_numa_combine_average[T:Manifest](x: Rep[ForgeArray[T]]): Rep[Unit]
+  def array_numa_initial_synch[T:Manifest](x: Rep[ForgeArray[T]]): Rep[Unit]
 
   /* Required for apps to be able use 'args' */
   implicit class ScalaArrayOps[T:Manifest](x: Rep[Array[T]]) {
