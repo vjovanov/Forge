@@ -17,10 +17,10 @@ trait FactorGraphOps {
   def importVariableOps() {
     val DenseVector = lookupTpe("DenseVector")
     val Variable = tpe("RandomVariable")
-    data(Variable, ("_id", MInt), ("_domain", DenseVector(MDouble)), ("_value", MDouble), ("_isEvidence", MBoolean), ("_isQuery", MBoolean))
+    data(Variable, ("_id", MInt), ("_lowBound", MDouble), ("_upBound", MDouble), ("_value", MDouble), ("_isEvidence", MBoolean), ("_nFactors", MInt), ("_iStart", MInt))
 
-    static (Variable) ("apply", Nil, (("id", MInt), ("domain", DenseVector(MDouble)), ("value", MDouble), ("isEvidence", MBoolean), ("isQuery", MBoolean)) :: Variable) implements
-      allocates(Variable, ${$0}, ${$1}, ${$2}, ${$3}, ${$4})
+    static (Variable) ("apply", Nil, MethodSignature(List(("id", MInt), ("lowBound", MDouble), ("upBound", MDouble), ("value", MDouble), ("isEvidence", MBoolean), ("nFactors", MInt), ("iStart", MInt)), Variable)) implements
+      allocates(Variable, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5}, ${$6})
 
     // how do we add Ordering[Variable] in Forge? no way in Forge to get Ordering(Variable) now, since Ordering is built-in
     // currently we can work-around this using sortBy, but this should really be possible in general..
@@ -32,10 +32,12 @@ trait FactorGraphOps {
     val VariableOps = withTpe(Variable)
     VariableOps {
       infix ("id") (Nil :: MInt) implements getter(0, "_id")
-      infix ("domain") (Nil :: DenseVector(MDouble)) implements getter(0, "_domain")
+      infix ("lowBound") (Nil :: MDouble) implements getter(0, "_lowBound")
+      infix ("upBound") (Nil :: MDouble) implements getter(0, "_upBound")
       infix ("value") (Nil :: MDouble) implements getter(0, "_value")
       infix ("isEvidence") (Nil :: MBoolean) implements getter(0, "_isEvidence")
-      infix ("isQuery") (Nil :: MBoolean) implements getter(0, "_isQuery")
+      infix ("nFactors") (Nil :: MInt) implements getter(0, "_nFactors")
+      infix ("iStart") (Nil :: MInt) implements getter(0, "_iStart")
     }
   }
 
@@ -57,29 +59,33 @@ trait FactorGraphOps {
     val DenseVector = lookupTpe("DenseVector")
     val Variable = lookupTpe("RandomVariable")
     val Weight = lookupTpe("Weight")
-    val F = tpePar("F") withBound TFactor
-    val FactorGraph = tpe("FactorGraph", F)
+    //val F = tpePar("F") withBound TFactor
+    val FactorGraph = tpe("FactorGraph")//, F)
+    val VariableFactor = lookupTpe("VariableFactor")
+    val FactorVariable = lookupTpe("FactorVariable")
 
     // we require a dense id space for factors, variables, and weights (from 0 to numX) so that we can store them as vectors instead of maps
     // (deepdive input format must have changed: previously weight ids were sparse (and could even be negative), variable ids were also sparse)
 
-    data(FactorGraph, ("_factors", DenseVector(F)), ("_variables", DenseVector(Variable)), ("_weights", DenseVector(Weight)),
-                      ("_variablesToFactors", DenseVector(DenseVector(MInt))), ("_variableValues", DenseVector(MDouble)), ("_weightValues", DenseVector(MDouble)))
+    data(FactorGraph, ("_factors", DenseVector(VariableFactor)), ("_variables", DenseVector(Variable)), ("_weights", DenseVector(Weight)),
+                      ("_variablesToFactors", DenseVector(VariableFactor)), ("_factorsToVariables", DenseVector(FactorVariable)), ("_variableValues", DenseVector(MDouble)), ("_weightValues", DenseVector(MDouble)))
 
     // all input vectors must be sorted by id!
-    val a = static (FactorGraph) ("apply", F, MethodSignature(List(("factors", DenseVector(F)), ("variables", DenseVector(Variable)), ("weights", DenseVector(Weight)),
-                                                                   ("variablesToFactors", DenseVector(DenseVector(MInt))), ("variableValues", DenseVector(MDouble)), ("weightValues", DenseVector(MDouble))), FactorGraph))
+    val a = static (FactorGraph) ("apply", Nil, MethodSignature(List(("factors", DenseVector(VariableFactor)), ("variables", DenseVector(Variable)), ("weights", DenseVector(Weight)),
+                                                                   ("variablesToFactors", DenseVector(VariableFactor)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableValues", DenseVector(MDouble)), ("weightValues", DenseVector(MDouble))), FactorGraph))
      // implements allocates(FactorGraph, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5})
-     impl (a) (allocates(FactorGraph, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5}))
+     impl (a) (allocates(FactorGraph, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5}, ${$6}))
 
 
     val FactorGraphOps = withTpe(FactorGraph)
     FactorGraphOps {      
-      infix ("factors") (Nil :: DenseVector(F)) implements getter(0, "_factors")
+      infix ("factors") (Nil :: DenseVector(VariableFactor)) implements getter(0, "_factors")
       infix ("variables") (Nil :: DenseVector(Variable)) implements getter(0, "_variables")
       infix ("weights") (Nil :: DenseVector(Weight)) implements getter(0, "_weights")
-      infix ("variablesToFactors") (Nil :: DenseVector(DenseVector(MInt))) implements getter(0, "_variablesToFactors")
-      compiler ("infix_variableValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_variableValues")
+      infix ("variablesToFactors") (Nil :: DenseVector(VariableFactor)) implements getter(0, "_variablesToFactors")
+      infix ("factorsToVariables") (Nil :: DenseVector(FactorVariable)) implements getter(0, "_factorsToVariables")
+      infix ("variableValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_variableValues")
+      //compiler ("infix_variableValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_variableValues")
       compiler ("infix_weightsValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_weightValues")
 
       infix ("getVariableValue") (MethodSignature(List(("id",MInt), ("isPositive",MBoolean,"unit(true)")), MDouble)) implements composite ${

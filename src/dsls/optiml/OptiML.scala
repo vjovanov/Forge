@@ -11,7 +11,7 @@ object OptiMLDSLRunner extends ForgeApplicationRunner with OptiMLDSL
 trait OptiMLDSL extends OptiLADSL
   with MLIOOps with FeatureOps with SetOps with BufferableOps with StreamOps with ImageOps
   with FactorOps with FactorGraphOps
-  with ClassifierOps with ValidateOps with TreeOps {
+  with ClassifierOps with ValidateOps /* with TreeOps */ {
 
   override def dslName = "OptiML"
 
@@ -38,7 +38,29 @@ trait OptiMLDSL extends OptiLADSL
     importImageOps()    
     importClassifierOps()
     importValidateOps()
-    importTreeOps()
+    // importTreeOps()
+    importEnvOps()
+  }
+
+  def importEnvOps() {
+
+    val Env = grp("Env")
+
+    direct (Env) ("getNumThreads", Nil, MUnit :: MInt) implements codegen ($cala, ${
+      ppl.delite.runtime.Config.numThreads
+    })
+
+    direct (Env) ("getNumCpp", Nil, MUnit :: MInt) implements codegen ($cala, ${
+      ppl.delite.runtime.Config.numCpp
+    })
+
+    direct (Env) ("getNumCuda", Nil, MUnit :: MInt) implements codegen ($cala, ${
+      ppl.delite.runtime.Config.numCuda
+    })
+
+    direct (Env) ("getNumOpenCL", Nil, MUnit :: MInt) implements codegen ($cala, ${
+      ppl.delite.runtime.Config.numOpenCL
+    })
   }
 
   def importUntilConverged() {
