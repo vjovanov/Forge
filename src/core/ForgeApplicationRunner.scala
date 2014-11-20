@@ -20,6 +20,7 @@ trait ForgeApplicationRunner extends ForgeApplication with ForgeExp {
     info("DSL Being Staged:[" + this.getClass.getName + "] (" + dsl + ")")
 
     // -- stage forge primitives
+    extern(grp("ForgeArrayNuma"))
     extern(grp("ForgeArray"))
     extern(grp("ForgeArrayBuffer"))
     extern(grp("ForgeHashMap"))

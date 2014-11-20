@@ -68,6 +68,7 @@ trait Definitions extends DerivativeTypes {
   lazy val MVar = tpe("Var", tpePar("A"))
   lazy val CVar = tpe("Var", tpePar("A"), stage = compile)
   lazy val MArray = tpe("ForgeArray", tpePar("A"))
+  lazy val MArrayNuma = tpe("ForgeArrayNuma", tpePar("A"))
   lazy val MArrayBuffer = tpe("ForgeArrayBuffer", tpePar("A"))
   lazy val MHashMap = tpe("ForgeHashMap",(tpePar("K"),tpePar("V"))) // Forge HashMap (immutable)
   lazy val MInputStream = tpe("ForgeFileInputStream")
