@@ -32,6 +32,7 @@ trait OptiMLDSL extends OptiLADSL
     importFeatureOps()
     importSetOps()
     importUntilConverged()
+    importDenseVectorNumaOps()
     importAllFactorGraphOps() 
     importMLIOOps()
     // importStreamOps()
@@ -40,7 +41,6 @@ trait OptiMLDSL extends OptiLADSL
     // importValidateOps()
     // importTreeOps()
     importEnvOps()
-    importDenseVectorNumaOps()
   }
 
   def importEnvOps() {
@@ -61,6 +61,14 @@ trait OptiMLDSL extends OptiLADSL
 
     direct (Env) ("getNumOpenCL", Nil, MUnit :: MInt) implements codegen ($cala, ${
       ppl.delite.runtime.Config.numOpenCL
+    })
+
+    direct (Env) ("getNumSockets", Nil, MUnit :: MInt) implements codegen (cpp, ${
+      config->activeSockets()
+    })
+
+    direct (Env) ("threadToSocket", Nil, MInt :: MInt) implements codegen (cpp, ${
+      config->threadToSocket($1)
     })
   }
 

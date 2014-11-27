@@ -57,6 +57,7 @@ trait FactorGraphOps {
 
   def importFactorGraphOps() {
     val DenseVector = lookupTpe("DenseVector")
+    val DenseVectorNuma = lookupTpe("DenseVectorNuma")
     val Variable = lookupTpe("RandomVariable")
     val Weight = lookupTpe("Weight")
     //val F = tpePar("F") withBound TFactor
@@ -67,26 +68,27 @@ trait FactorGraphOps {
     // we require a dense id space for factors, variables, and weights (from 0 to numX) so that we can store them as vectors instead of maps
     // (deepdive input format must have changed: previously weight ids were sparse (and could even be negative), variable ids were also sparse)
 
-    data(FactorGraph, ("_factors", DenseVector(VariableFactor)), ("_variables", DenseVector(Variable)), ("_weights", DenseVector(Weight)),
-                      ("_variablesToFactors", DenseVector(VariableFactor)), ("_factorsToVariables", DenseVector(FactorVariable)), ("_variableValues", DenseVector(MDouble)), ("_weightValues", DenseVector(MDouble)))
+    data(FactorGraph, ("_factors", DenseVectorNuma(VariableFactor)), ("_variables", DenseVectorNuma(Variable)), ("_weights", DenseVectorNuma(Weight)),
+                      ("_variablesToFactors", DenseVectorNuma(VariableFactor)), ("_factorsToVariables", DenseVectorNuma(FactorVariable)), ("_variableValues", DenseVectorNuma(MDouble)), ("_weightValues", DenseVectorNuma(MDouble)), ("_queryVariables", DenseVectorNuma(MInt)))
 
     // all input vectors must be sorted by id!
-    val a = static (FactorGraph) ("apply", Nil, MethodSignature(List(("factors", DenseVector(VariableFactor)), ("variables", DenseVector(Variable)), ("weights", DenseVector(Weight)),
-                                                                   ("variablesToFactors", DenseVector(VariableFactor)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableValues", DenseVector(MDouble)), ("weightValues", DenseVector(MDouble))), FactorGraph))
+    val a = static (FactorGraph) ("apply", Nil, MethodSignature(List(("factors", DenseVectorNuma(VariableFactor)), ("variables", DenseVectorNuma(Variable)), ("weights", DenseVectorNuma(Weight)),
+                                                                   ("variablesToFactors", DenseVectorNuma(VariableFactor)), ("factorsToVariables", DenseVectorNuma(FactorVariable)), ("variableValues", DenseVectorNuma(MDouble)), ("weightValues", DenseVectorNuma(MDouble)), ("queryVariables", DenseVectorNuma(MInt))), FactorGraph))
      // implements allocates(FactorGraph, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5})
-     impl (a) (allocates(FactorGraph, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5}, ${$6}))
+     impl (a) (allocates(FactorGraph, ${$0}, ${$1}, ${$2}, ${$3}, ${$4}, ${$5}, ${$6}, ${$7}))
 
 
     val FactorGraphOps = withTpe(FactorGraph)
-    FactorGraphOps {      
-      infix ("factors") (Nil :: DenseVector(VariableFactor)) implements getter(0, "_factors")
-      infix ("variables") (Nil :: DenseVector(Variable)) implements getter(0, "_variables")
-      infix ("weights") (Nil :: DenseVector(Weight)) implements getter(0, "_weights")
-      infix ("variablesToFactors") (Nil :: DenseVector(VariableFactor)) implements getter(0, "_variablesToFactors")
-      infix ("factorsToVariables") (Nil :: DenseVector(FactorVariable)) implements getter(0, "_factorsToVariables")
-      infix ("variableValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_variableValues")
+    FactorGraphOps {
+      infix ("factors") (Nil :: DenseVectorNuma(VariableFactor)) implements getter(0, "_factors")
+      infix ("variables") (Nil :: DenseVectorNuma(Variable)) implements getter(0, "_variables")
+      infix ("weights") (Nil :: DenseVectorNuma(Weight)) implements getter(0, "_weights")
+      infix ("variablesToFactors") (Nil :: DenseVectorNuma(VariableFactor)) implements getter(0, "_variablesToFactors")
+      infix ("factorsToVariables") (Nil :: DenseVectorNuma(FactorVariable)) implements getter(0, "_factorsToVariables")
+      infix ("variableValues") (Nil :: DenseVectorNuma(MDouble)) implements getter(0, "_variableValues")
+      infix ("queryVariables") (Nil :: DenseVectorNuma(MInt)) implements getter(0, "_queryVariables")
       //compiler ("infix_variableValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_variableValues")
-      compiler ("infix_weightsValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_weightValues")
+      compiler ("infix_weightsValues") (Nil :: DenseVectorNuma(MDouble)) implements getter(0, "_weightValues")
 
       infix ("getVariableValue") (MethodSignature(List(("id",MInt), ("isPositive",MBoolean,"unit(true)")), MDouble)) implements composite ${
         if (isPositive) $self.variableValues.apply(id) else 1.0 - $self.variableValues.apply(id)
@@ -95,7 +97,7 @@ trait FactorGraphOps {
       infix ("getWeightValue") (MInt :: MDouble) implements composite ${ $self.weightsValues.apply($1) }
 
       infix ("updateVariableValue") ((("id",MInt), ("newValue",MDouble)) :: MUnit, effect = write(0)) implements composite ${
-        $self.variableValues(id) = newValue
+        $self.variableValues.update(id, newValue)
       }
       infix ("updateVariableValues") ((("ids",DenseVector(MInt)), ("newValues",DenseVector(MDouble))) :: MUnit, effect = write(0)) implements composite ${
         for (i <- ids.indices) {
@@ -104,7 +106,7 @@ trait FactorGraphOps {
       }
 
       infix ("updateWeightValue") ((("id",MInt), ("newValue",MDouble)) :: MUnit, effect = write(0)) implements composite ${
-        $self.weightsValues(id) = newValue
+        $self.weightsValues.update(id, newValue)
       }
       infix ("updateWeightValues") ((("ids",DenseVector(MInt)), ("newValues",DenseVector(MDouble))) :: MUnit, effect = write(0)) implements composite ${
         for (i <- ids.indices) {

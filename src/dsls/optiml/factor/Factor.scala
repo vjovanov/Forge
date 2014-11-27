@@ -34,6 +34,7 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
  
   def importVariableFactorOps() {
     val DenseVector = lookupTpe("DenseVector")
+    val DenseVectorNuma = lookupTpe("DenseVectorNuma")
     val FactorVariable = lookupTpe("FactorVariable")
     val Tup2 = lookupTpe("Tup2")
  
@@ -73,7 +74,7 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
       
     }
  
-    compiler (VFactor) ("or_factor", Nil, (("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+    compiler (VFactor) ("or_factor", Nil, (("factor", VFactor), ("vals", DenseVectorNuma(MDouble)), ("factorsToVariables", DenseVectorNuma(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
       val nVariables = factor.nVariables
       val iStart = factor.iStart
       if (nVariables == 0) 1.0
@@ -81,8 +82,8 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
         var i = 0
         var flag = true
         while (i < nVariables && flag) {
-          val variable = factorsToVariables(iStart + i)
-          flag = (getValue(variable, variableId, sampleValue, vals(variable.id)) == 0.0)
+          val variable = factorsToVariables.apply(iStart + i)
+          flag = (getValue(variable, variableId, sampleValue, vals.apply(variable.id)) == 0.0)
           i += 1
         }
         if (flag) {
@@ -94,7 +95,7 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
       }
     }
  
-    compiler (VFactor) ("and_factor", Nil, (("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+    compiler (VFactor) ("and_factor", Nil, (("factor", VFactor), ("vals", DenseVectorNuma(MDouble)), ("factorsToVariables", DenseVectorNuma(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
       val nVariables = factor.nVariables
       val iStart = factor.iStart
       if (nVariables == 0) 1.0
@@ -102,8 +103,8 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
         var i = 0
         var flag = true
         while (i < nVariables && flag) {
-          val variable = factorsToVariables(iStart + i)
-          flag = (getValue(variable, variableId, sampleValue, vals(variable.id)) == 1.0)
+          val variable = factorsToVariables.apply(iStart + i)
+          flag = (getValue(variable, variableId, sampleValue, vals.apply(variable.id)) == 1.0)
           i += 1
         }
         if (flag) {
@@ -115,11 +116,11 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
       }
     }
  
-    compiler (VFactor) ("imply_factor", Nil, (("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+    compiler (VFactor) ("imply_factor", Nil, (("factor", VFactor), ("vals", DenseVectorNuma(MDouble)), ("factorsToVariables", DenseVectorNuma(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
       val nVariables = factor.nVariables
       val iStart = factor.iStart
       if (nVariables == 1) {
-        val variable = factorsToVariables(iStart)
+        val variable = factorsToVariables.apply(iStart)
         if (variable.id == variableId) {
           variableSample(variable.isPositive, sampleValue)
         }
@@ -129,13 +130,13 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
         var i = 0
         var flag = true
         while (i < nVariables - 1 && flag) {
-          val variable = factorsToVariables(iStart + i)
-          flag = (getValue(variable, variableId, sampleValue, vals(variable.id)) == 1.0)
+          val variable = factorsToVariables.apply(iStart + i)
+          flag = (getValue(variable, variableId, sampleValue, vals.apply(variable.id)) == 1.0)
           i += 1
         }
         if (flag) {
-          val variable = factorsToVariables(iStart + nVariables - 1)
-          getValue(variable, variableId, sampleValue, vals(variable.id))
+          val variable = factorsToVariables.apply(iStart + nVariables - 1)
+          getValue(variable, variableId, sampleValue, vals.apply(variable.id))
         }
         else {
           1.0
@@ -143,14 +144,14 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
       }
     }
  
-    compiler (VFactor) ("equal_factor", Nil, (("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+    compiler (VFactor) ("equal_factor", Nil, (("factor", VFactor), ("vals", DenseVectorNuma(MDouble)), ("factorsToVariables", DenseVectorNuma(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
       val nVariables = factor.nVariables
       val iStart = factor.iStart
       if (nVariables == 2) {
-        val var1 = factorsToVariables(iStart)
-        val var2 = factorsToVariables(iStart + 1)
-        val value1 = getValue(var1, variableId, sampleValue, vals(var1.id))
-        val value2 = getValue(var2, variableId, sampleValue, vals(var2.id))
+        val var1 = factorsToVariables.apply(iStart)
+        val var2 = factorsToVariables.apply(iStart + 1)
+        val value1 = getValue(var1, variableId, sampleValue, vals.apply(var1.id))
+        val value2 = getValue(var2, variableId, sampleValue, vals.apply(var2.id))
         if (value1 == value2) 1.0
         else 0.0
       }
@@ -159,11 +160,11 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
       }
     }
  
-    compiler (VFactor) ("istrue_factor", Nil, (("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
+    compiler (VFactor) ("istrue_factor", Nil, (("factor", VFactor), ("vals", DenseVectorNuma(MDouble)), ("factorsToVariables", DenseVectorNuma(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${
       val nVariables = factor.nVariables
       val iStart = factor.iStart
       if (nVariables == 1) {
-        val variable = factorsToVariables(iStart)
+        val variable = factorsToVariables.apply(iStart)
         if (variable.id == variableId) {
           variableSample(variable.isPositive, sampleValue)
         }
@@ -173,7 +174,7 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
     }
  
  
-    compiler (VFactor) ("evaluate_factor", Nil, MethodSignature(List(("factor", VFactor), ("vals", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)), MDouble)) implements composite ${
+    compiler (VFactor) ("evaluate_factor", Nil, MethodSignature(List(("factor", VFactor), ("vals", DenseVectorNuma(MDouble)), ("factorsToVariables", DenseVectorNuma(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)), MDouble)) implements composite ${
       // if the conditional is known at staging time, we can inline the exact function
       // and as a consequence, the back-end 'funcId' field in the factor should be DFE'd
       val funcId = factor.funcId
@@ -205,7 +206,7 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
       infix ("nVariables") (Nil :: MInt) implements getter(0, "_nVariables")
       infix ("iStart") (Nil :: MInt) implements getter(0, "_iStart")
       infix ("weightId") (Nil :: MInt) implements getter(0, "_weightId")
-      infix ("evaluate") ((("variableValues", DenseVector(MDouble)), ("factorsToVariables", DenseVector(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${ evaluate_factor($self, variableValues, factorsToVariables, variableId, sampleValue) }
+      infix ("evaluate") ((("variableValues", DenseVectorNuma(MDouble)), ("factorsToVariables", DenseVectorNuma(FactorVariable)), ("variableId", MInt), ("sampleValue", MDouble)) :: MDouble) implements composite ${ evaluate_factor($self, variableValues, factorsToVariables, variableId, sampleValue) }
     }
   }
  

@@ -61,6 +61,18 @@ trait DenseVectorNumaOps {
       infix ("initialSynch") (Nil :: MUnit, effect = write(0)) implements single ${
         array_numa_initial_synch[T]($self.data)
       }
+
+      infix ("copyFromNormal") (DenseVector(T) :: MUnit, effect = write(0)) implements composite ${
+        if ($1.length == $self.length){
+          for (i <- $1.indices) {
+            $self.update(i, $1.apply(i))
+          }
+          $self.initialSynch()
+        }
+        else {
+          fatal("normal vector length must equals numa vector length")
+        }
+      }
     }
   }
 }
