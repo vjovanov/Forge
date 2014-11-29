@@ -63,13 +63,19 @@ trait OptiMLDSL extends OptiLADSL
       ppl.delite.runtime.Config.numOpenCL
     })
 
-    direct (Env) ("getNumSockets", Nil, MUnit :: MInt) implements codegen (cpp, ${
-      config->activeSockets()
-    })
+    val getNumSockets = direct (Env) ("getNumSockets", Nil, MUnit :: MInt)
+    impl(getNumSockets) (codegen (cpp, ${ config->activeSockets() }))
+    impl(getNumSockets) (codegen ($cala, ${ 
+      println("cannot query socket number in scala")
+      1
+    }))
 
-    direct (Env) ("threadToSocket", Nil, MInt :: MInt) implements codegen (cpp, ${
-      config->threadToSocket($1)
-    })
+    val threadToSocket = direct (Env) ("threadToSocket", Nil, MInt :: MInt) 
+    impl(threadToSocket) (codegen (cpp, ${ config->threadToSocket($0) }))
+    impl(threadToSocket) (codegen ($cala, ${ 
+      println("cannot query thread to socket in scala")
+      1
+    }))
   }
 
   def importUntilConverged() {
