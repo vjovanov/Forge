@@ -71,7 +71,9 @@ trait ForgeArrayNumaWrapper extends HUMAN_DSL_NAMEBase {
 
   // def array_numa_empty[T:Manifest](len: Rep[Int]): Rep[ForgeArrayNuma[T]]
   //   = new ForgeArrayNuma[T](len)
-  def array_numa_combine_average[T:Manifest](x: Rep[ForgeArrayNuma[T]]): Rep[Unit]
+  def array_numa_combine_average[T:Manifest](x: Rep[ForgeArrayNuma[T]], i: Rep[Int]): Rep[Unit]
+    = {}
+  def array_numa_combine_replace[T:Manifest](x: Rep[ForgeArrayNuma[T]], i: Rep[Int]): Rep[Unit]
     = {}
   def array_numa_initial_synch[T:Manifest](x: Rep[ForgeArrayNuma[T]]): Rep[Unit]
     = {}

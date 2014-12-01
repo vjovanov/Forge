@@ -281,7 +281,9 @@ trait Gibbs extends OptiMLApplication {
         sampleSums(v) = sampleSums(v) + sampleResult
         sampleSums2(v) = sampleSums2(v) + sampleResultSq
       }
-      graph.variableValues.combineAvg()
+      for (v <- (0::nonEvidenceVariables.length)) {
+        graph.variableValues.combineReplace(nonEvidenceVariables.apply(v))
+      }
       val end = time()
       i += 1
     }
@@ -332,7 +334,7 @@ trait Gibbs extends OptiMLApplication {
     // writeVector(G.weights.map(w => w.id + "\t" + G.getWeightValue(w.id)), "weights.out")
 
     //tic("calculateMarginals", G)
-    val marginals = calculateMarginals(G, 500, times2)
+    val marginals = calculateMarginals(G, 50, times2)
     //toc("calculateMarginals", marginals)
     // writeVector(marginals.map(t => t._1 + "\t" + t._4.toInt + "\t" + t._2), "marginals.out")
 

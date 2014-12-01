@@ -28,7 +28,8 @@ trait ForgeArrayNumaOps extends Base with OverloadHack {
   def array_numa_length[T:Manifest](__arg0: Rep[ForgeArrayNuma[T]])(implicit __imp0: SourceContext): Rep[Int]
 
   // def array_numa_empty[T:Manifest](__arg0: Rep[Int]): Rep[ForgeArrayNuma[T]]
-  def array_numa_combine_average[T:Manifest](x: Rep[ForgeArrayNuma[T]]): Rep[Unit]
+  def array_numa_combine_average[T:Manifest](x: Rep[ForgeArrayNuma[T]], i: Rep[Int]): Rep[Unit]
+  def array_numa_combine_replace[T:Manifest](x: Rep[ForgeArrayNuma[T]], i: Rep[Int]): Rep[Unit]
   def array_numa_initial_synch[T:Manifest](x: Rep[ForgeArrayNuma[T]]): Rep[Unit]
 
   /* Required for apps to be able use 'args' */

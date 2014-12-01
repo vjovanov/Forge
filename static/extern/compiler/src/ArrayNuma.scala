@@ -99,8 +99,10 @@ trait ForgeArrayNumaOpsExp extends DeliteArrayFatExp {
   /* NUMA-aware arrays */
   // def array_numa_empty[T:Manifest](len: Rep[Int]): Rep[ForgeArrayNuma[T]]
   //   = darray_numa_empty[T](len, len)
-  def array_numa_combine_average[T:Manifest](x: Rep[ForgeArrayNuma[T]]): Rep[Unit]
-    = darray_numa_combine_average[T](x)
+  def array_numa_combine_average[T:Manifest](x: Rep[ForgeArrayNuma[T]], i: Rep[Int]): Rep[Unit]
+    = darray_numa_combine_average[T](x, i)
+  def array_numa_combine_replace[T:Manifest](x: Rep[ForgeArrayNuma[T]], i: Rep[Int]): Rep[Unit]
+    = darray_numa_combine_replace[T](x, i)
   def array_numa_initial_synch[T:Manifest](x: Rep[ForgeArrayNuma[T]]): Rep[Unit]
     = darray_numa_initial_synch[T](x)
 }

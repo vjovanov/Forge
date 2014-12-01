@@ -55,8 +55,11 @@ trait DenseVectorNumaOps {
           array_numa_update($self.data, indices(i), v(i))
         }
       }
-      infix ("combineAvg") (Nil :: MUnit, effect = write(0)) implements single ${
-        array_numa_combine_average[T]($self.data)
+      infix ("combineAverage") (MInt :: MUnit, effect = write(0)) implements single ${
+        array_numa_combine_average[T]($self.data, $1)
+      }
+      infix ("combineReplace") (MInt :: MUnit, effect = write(0)) implements single ${
+        array_numa_combine_replace[T]($self.data, $1)
       }
       infix ("initialSynch") (Nil :: MUnit, effect = write(0)) implements single ${
         array_numa_initial_synch[T]($self.data)
