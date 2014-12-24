@@ -69,7 +69,12 @@ trait OptiMLDSL extends OptiLADSL
       println("cannot query socket number in scala")
       1
     }))
-
+    val getNumCoresPerSocket = direct (Env) ("getNumCoresPerSocket", Nil, MUnit :: MInt)
+    impl(getNumCoresPerSocket) (codegen (cpp, ${ config->numCoresPerSocket }))
+    impl(getNumCoresPerSocket) (codegen ($cala, ${ 
+      println("cannot query socket number in scala")
+      1
+    }))
     val threadToSocket = direct (Env) ("threadToSocket", Nil, MInt :: MInt) 
     impl(threadToSocket) (codegen (cpp, ${ config->threadToSocket($0) }))
     impl(threadToSocket) (codegen ($cala, ${ 

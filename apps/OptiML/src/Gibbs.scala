@@ -36,101 +36,6 @@ trait Gibbs extends OptiMLApplication {
     //val end = time(newValue)
     val z = graph.updateVariableValue(variableId, newValue)
     newValue
-    
-    //end - start
-
-    //version 3
-
-    // val variable = graph.variables.apply(variableId)
-    // val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
-    // var allSum = 0.0
-    // var negativeSum = 0.0
-    // val factorsToVariables = graph.factorsToVariables
-    // val values = graph.variableValues
-    // var i = variableIStart
-    // while (i < variableIEnd) {
-    //   val factor = graph.variablesToFactors.apply(i)
-    //   val positive = factor.evaluate(values, factorsToVariables, variableId, 1.0)
-    //   val negative = factor.evaluate(values, factorsToVariables, variableId, 0.0)
-    //   val factorWeightValue = graph.getWeightValue(factor.weightId)
-    //   allSum += (negative - positive) * factorWeightValue
-    //   i += 1
-    // }
-    // val newValue = if ((random[Double] * (1.0 + exp(allSum))) <= 1.0) 1.0 else 0.0
-    // graph.updateVariableValue(variableId, newValue)
-
-    //version 2
-
-    // val variable = graph.variables.apply(variableId)
-    // val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
-    // var positiveSum = 0.0
-    // var negativeSum = 0.0
-    // var i = variableIStart
-    // while (i < variableIEnd) {
-    //   val factor = graph.variablesToFactors.apply(i)
-    //   val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
-    //   //val positive = DenseVector[Double](factor.nVariables, true)
-    //   //val negative = DenseVector[Double](factor.nVariables, true)
-    //   var j = factorIStart
-    //   var l = 0
-    //   while (j < facotrIEnd) {
-    //     val v = graph.factorsToVariables.apply(j)
-    //     if (v.id == variableId && v.isPositive) {
-    //       positive(l) = unit(1.0)
-    //       negative(l) = unit(0.0)
-    //     }
-    //     else if (v.id == variableId && !v.isPositive) {
-    //       positive(l) = unit(0.0)
-    //       negative(l) = unit(1.0)
-    //     }
-    //     else {
-    //       val value = graph.getVariableValue(v.id, v.isPositive)
-    //       positive(l) = value
-    //       negative(l) = value
-    //     }
-    //     l += 1
-    //     j += 1
-    //   }
-    //   val factorWeightValue = graph.getWeightValue(factor.weightId)
-    //   positiveSum += factor.evaluate(positive) * factorWeightValue
-    //   negativeSum += factor.evaluate(negative) * factorWeightValue
-    //   i += 1
-    // }
-    // val newValue = if ((random[Double] * (1.0 + exp(negativeSum - positiveSum))) <= 1.0) 1.0 else 0.0
-    // graph.updateVariableValue(variableId, newValue)
-
-    // version 1
-
-    // // all factors that connect to the variable
-    // val variable = graph.variables.apply(variableId)
-    // val (variableIStart, variableIEnd) = (variable.iStart, variable.iStart + variable.nFactors)
-    // val variableFactors = graph.variablesToFactors.apply(variableIStart::variableIEnd)
-
-    // // TODO: be domain-independent
-
-    // val allValues = variableFactors.map { factor =>
-    //   // consider positive and negative cases
-    //   val (factorIStart, facotrIEnd) = (factor.iStart, factor.iStart + factor.nVariables)
-    //   val vars = graph.factorsToVariables.apply(factorIStart::facotrIEnd)
-    //   val cases = vars.map { v =>
-    //     if (v.id == variableId && v.isPositive) pack(unit(1.0), unit(0.0))
-    //     else if (v.id == variableId && !v.isPositive) pack(unit(0.0), unit(1.0))
-    //     else {
-    //       val value = graph.getVariableValue(v.id, v.isPositive)
-    //       pack(value,value)
-    //     }
-    //   }
-
-    //   val factorWeightValue = graph.getWeightValue(factor.weightId)
-    //   pack(factor.evaluate(cases.map(_._1)) * factorWeightValue,
-    //        factor.evaluate(cases.map(_._2)) * factorWeightValue)
-
-    // }
-
-    // val (positiveValues, negativeValues) = (allValues.map(_._1), allValues.map(_._2))
-
-    // val newValue = if ((random[Double] * (1.0 + exp(negativeValues.sum - positiveValues.sum))) <= 1.0) 1.0 else 0.0
-    // graph.updateVariableValue(variableId, newValue)
   }
 
   /* Samples multiple variables and updates the variable values in the graph */
@@ -265,30 +170,81 @@ trait Gibbs extends OptiMLApplication {
   // }
 
   def calculateMarginals(graph: Rep[FactorGraph], numSamples: Rep[Int], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
+    // val nonEvidenceVariables = graph.queryVariables
+    // println("calculating marginals for num_vars="+nonEvidenceVariables.length)
+    // val sampleSums = DenseVectorNuma[Double](nonEvidenceVariables.length, true)
+    // val sampleSums2 = DenseVectorNuma[Double](nonEvidenceVariables.length, true)
+    // var i = 1
+    // val startTime = time(i)
+    // while (i <= numSamples) {
+    //   println("iteration=" + i + "/" + numSamples)
+    //   // samples all variables that are not evidence
+    //   val start = time()
+    //   val z = for (v <- (0::nonEvidenceVariables.length)) {
+    //     val sampleResult = sampleVariable(graph, nonEvidenceVariables.apply(v))
+    //     val sampleResultSq = sampleResult*sampleResult
+    //     sampleSums(v) = sampleSums(v) + sampleResult
+    //     sampleSums2(v) = sampleSums2(v) + sampleResultSq
+    //   }
+    //   for (v <- (0::nonEvidenceVariables.length)) {
+    //     graph.variableValues.combineReplace(nonEvidenceVariables.apply(v))
+    //   }
+    //   val end = time()
+    //   i += 1
+    // }
+    // val iter = i
+    // val endTime = time(iter)
+    // println("inference sample/sec " + (nonEvidenceVariables.length / ((endTime - startTime) / 1000.0) * numSamples))
+    // println("number of query variables " + nonEvidenceVariables.length)
+    // println("inference time " + (endTime - startTime))
+
+    // // generate the inference results
+    // (0::nonEvidenceVariables.length).map { k =>
+    //   val variableId = nonEvidenceVariables.apply(k)
+    //   pack((variableId,
+    //        sampleSums(k) / numSamples.toDouble,
+    //        sqrt(numSamples * sampleSums2(k) - sampleSums(k)*sampleSums(k)) / numSamples,
+    //        graph.getVariableValue(variableId)))
+    // }
     val nonEvidenceVariables = graph.queryVariables
     println("calculating marginals for num_vars="+nonEvidenceVariables.length)
     val sampleSums = DenseVectorNuma[Double](nonEvidenceVariables.length, true)
-    val sampleSums2 = DenseVectorNuma[Double](nonEvidenceVariables.length, true)
-    var i = 1
-    val startTime = time(i)
-    while (i <= numSamples) {
-      println("iteration=" + i + "/" + numSamples)
-      // samples all variables that are not evidence
-      val start = time()
-      val z = for (v <- (0::nonEvidenceVariables.length)) {
-        val sampleResult = sampleVariable(graph, nonEvidenceVariables.apply(v))
-        val sampleResultSq = sampleResult*sampleResult
-        sampleSums(v) = sampleSums(v) + sampleResult
-        sampleSums2(v) = sampleSums2(v) + sampleResultSq
-      }
-      for (v <- (0::nonEvidenceVariables.length)) {
-        graph.variableValues.combineReplace(nonEvidenceVariables.apply(v))
-      }
-      val end = time()
-      i += 1
+    // val sampleSums2 = DenseVectorNuma[Double](nonEvidenceVariables.length, true)
+    val numCoresPerSocket = getNumCoresPerSocket()
+    val numSockets = getNumSockets()
+    val numCpp = getNumCpp()
+    val numThread = {
+      if (numCpp > numCoresPerSocket * numSockets) numCoresPerSocket * numSockets
+      else numCpp
     }
-    val iter = i
-    val endTime = time(iter)
+    val numThreadLast = (numThread - 1) % numCoresPerSocket + 1
+    var iter = 1
+    val startTime = time(iter)
+    while (iter <= numSamples / numSockets) {
+      println("iteration=" + iter + "/" + numSamples)
+      // samples all variables that are not evidence
+      for (tid <- (0::numThread)) {
+        val localTid = tid % numCoresPerSocket
+        val localNumThread = {
+          if (tid / numCoresPerSocket == numSockets - 1) numThreadLast
+          else numCoresPerSocket
+        }
+        val start = (nonEvidenceVariables.length / localNumThread + 1) * localTid
+        val temp = start + (nonEvidenceVariables.length / localNumThread + 1)
+        val end = if (temp > nonEvidenceVariables.length) nonEvidenceVariables.length else temp
+        var i = start
+        while (i < end) {
+          val sampleResult = sampleVariable(graph, nonEvidenceVariables.apply(i))
+          sampleSums(i) = sampleSums(i) + sampleResult
+          i += 1
+        }
+      }
+      iter += 1
+    }
+    for (v <- (0::sampleSums.length)) {
+      sampleSums.combineAverage(v)
+    }
+    val endTime = time()
     println("inference sample/sec " + (nonEvidenceVariables.length / ((endTime - startTime) / 1000.0) * numSamples))
     println("number of query variables " + nonEvidenceVariables.length)
     println("inference time " + (endTime - startTime))
@@ -298,7 +254,6 @@ trait Gibbs extends OptiMLApplication {
       val variableId = nonEvidenceVariables.apply(k)
       pack((variableId,
            sampleSums(k) / numSamples.toDouble,
-           sqrt(numSamples * sampleSums2(k) - sampleSums(k)*sampleSums(k)) / numSamples,
            graph.getVariableValue(variableId)))
     }
   }
