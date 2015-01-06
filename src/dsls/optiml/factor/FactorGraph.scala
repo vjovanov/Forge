@@ -86,6 +86,7 @@ trait FactorGraphOps {
       infix ("variablesToFactors") (Nil :: DenseVectorNuma(VariableFactor)) implements getter(0, "_variablesToFactors")
       infix ("factorsToVariables") (Nil :: DenseVectorNuma(FactorVariable)) implements getter(0, "_factorsToVariables")
       infix ("variableValues") (Nil :: DenseVectorNuma(MDouble)) implements getter(0, "_variableValues")
+      infix ("weightValues") (Nil :: DenseVectorNuma(MDouble)) implements getter(0, "_weightValues")
       infix ("queryVariables") (Nil :: DenseVectorNuma(MInt)) implements getter(0, "_queryVariables")
       //compiler ("infix_variableValues") (Nil :: DenseVector(MDouble)) implements getter(0, "_variableValues")
       compiler ("infix_weightsValues") (Nil :: DenseVectorNuma(MDouble)) implements getter(0, "_weightValues")

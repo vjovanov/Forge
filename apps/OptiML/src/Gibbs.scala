@@ -13,7 +13,7 @@ trait Gibbs extends OptiMLApplication {
   }
 
   /* Samples a variable and updates its value in the graph */
-  def sampleVariable(graph: Rep[FactorGraph], variableId: Rep[Int]) = { //: Rep[Long] = {
+  def sampleVariable(graph: Rep[FactorGraph], variableId: Rep[Int]) = { 
     //version 4
     
     val variable = graph.variables.apply(variableId)
@@ -48,15 +48,15 @@ trait Gibbs extends OptiMLApplication {
     times <<= pack(variableIds.length, end - start)
   }
 
-  // def evaluateFactor(graph: Rep[FactorGraph], factorId: Rep[Int]): Rep[Double] = {
-  //   val factor = graph.factors.apply(factorId)
-  //   val values = graph.variableValues
-  //   val factorsToVariables = graph.factorsToVariables
-  //   val variableId = factorsToVariables(factor.iStart).id
-  //   factor.evaluate(values, factorsToVariables, variableId, values(variableId))
-  //   // val factorVariableValues = factor.vars.map(fv => graph.getVariableValue(fv.id, fv.isPositive))
-  //   // factor.evaluate(factorVariableValues)
-  // }
+  def evaluateFactor(graph: Rep[FactorGraph], factorId: Rep[Int]) = {
+    val factor = graph.factors.apply(factorId)
+    val values = graph.variableValues
+    val factorsToVariables = graph.factorsToVariables
+    val variableId = factorsToVariables(factor.iStart).id
+    factor.evaluate(values, factorsToVariables, variableId, values(variableId))
+    // val factorVariableValues = factor.vars.map(fv => graph.getVariableValue(fv.id, fv.isPositive))
+    // factor.evaluate(factorVariableValues)
+  }
 
   // // computes the marginal probability that each factor is true
   // def sampleFactors(graph: Rep[FactorGraph], variableIds: Rep[DenseVector[Int]], factorIds: Rep[DenseVector[Int]], numSamples: Rep[Int], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
@@ -79,95 +79,79 @@ trait Gibbs extends OptiMLApplication {
   // //   factorIds.indices.groupByReduce[Int,Double](i => factorIds(i), i => res(i), (a,b) => a)
   // // }
 
-  // // TIME BREAKDOWN: sequential total is ~53s
-  // // sampling factors takes ~.5s per iteration --> 50s overall
-  // // sampleVariables is ~.17s per call * 2x per iteration --> 34s overall
-  // def learnWeights(graph: Rep[FactorGraph], numIterations: Rep[Int], numSamples: Rep[Int], learningRate: Rep[Double], regularizationConstant: Rep[Double], diminishRate: Rep[Double], times: Rep[DenseVector[Tup2[Int,Long]]]): Rep[Unit] = {
-  //   //tic("initLearnWeights")
-  //   //val allVariables = graph.variables.map(_.id)
-  //   val queryVariables = graph.variables.filter(!_.isEvidence).map(_.id)
-  //   val evidenceVariables = graph.variables.filter(_.isEvidence).map(_.id)
-  //   val evidenceValues = evidenceVariables.map(id => graph.getVariableValue(id))
+  def learnWeights(graph: Rep[FactorGraph], numIterations: Rep[Int], numSamples: Rep[Int], learningRate: Rep[Double], regularizationConstant: Rep[Double], diminishRate: Rep[Double], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
+    val evidenceVariables = DenseVector[Int](graph.variables.length - graph.queryVariables.length, true)
+    var i = 0
+    var j = 0
+    while (j < graph.variables.length) {
+      if (graph.variables.apply(j).isEvidence){
+        evidenceVariables(i) = graph.variables.apply(j).id
+        i += 1
+      }
+      j += 1
+    }
+    val evidenceValues = evidenceVariables.map(id => graph.getVariableValue(id))
 
-  //   // we only learn weights for factors that are connected to evidence
-  //   val queryFactorIds = evidenceVariables.flatMap { vid =>
-  //     val iStart = graph.variables.apply(vid).iStart
-  //     val queryFactorindices = (0::graph.variables.apply(vid).nFactors) {e => e + iStart}
-  //     queryFactorindices.map(i => graph.variablesToFactors.apply(i).id)
-  //   }.distinct
-  //   val factorWeightIds = queryFactorIds.map(fid => graph.factors.apply(fid).weightId).distinct
-  //   //val queryWeightIds = factorWeightIds.filter(wid => !graph.weights.apply(wid).isFixed)
-  //   val queryWeightIds = queryFactorIds.map(r => graph.factors.apply(r).weightId).filter(wid => !graph.weights.apply(wid).isFixed)
-  //   //val weightFactorIdsMap = queryFactorIds.map(fid => graph.factors.apply(fid)).groupBy(f => f.weightId, f => f.id)
-  //   //toc("initLearnWeights", allVariables, queryVariables, evidenceValues, queryWeightIds, weightFactorIdsMap)
-  //   //toc("initLearnWeights", queryVariables, evidenceValues, queryWeightIds)
+    println("num_iterations="+numIterations)
+    println("num_samples_per_iteration="+numSamples)
+    println("learning_rate="+learningRate)
+    println("diminish_rate="+diminishRate)
+    println("regularization_constant="+regularizationConstant)
 
-  //   println("num_iterations="+numIterations)
-  //   println("num_samples_per_iteration="+numSamples)
-  //   println("learning_rate="+learningRate)
-  //   println("diminish_rate="+diminishRate)
-  //   println("regularization_constant="+regularizationConstant)
-  //   println("num_factors="+graph.factors.length+" num_query_factors="+queryFactorIds.length)
-  //   println("num_weights="+graph.weights.length+" num_query_weights="+queryWeightIds.length)
-  //   println("num_query_variables="+queryVariables.length+" num_evidence_variables="+evidenceVariables.length)
-
-  //   if (queryWeightIds.length == 0) {
-  //     println("no query weights, nothing to learn!")
-  //   }
-  //   else {
-  //     //val conditionedEx = sampleFactorsConditioned(graph, queryFactorIds)
-  //     val conditionedEx = queryFactorIds.map(fid => evaluateFactor(graph, fid))
-  //     untilconverged(0, minIter = numIterations, maxIter = numIterations) { i =>
-  //       val iterLearningRate = pow(diminishRate, i) * learningRate
-
-  //       println("iteration="+i+" learning_rate="+iterLearningRate)
-
-  //       //tic("sampleFactors")
-  //       // compute the expectation for all factors sampling only query variables
-  //       // compute the expectation for all factors sampling all variables
-  //       val unconditionedEx = sampleFactors(graph, evidenceVariables, queryFactorIds, numSamples, times)
-  //       //toc("sampleFactors", conditionedEx, unconditionedEx)
-
-  //       // compute new weights
-  //       val weightUpdates = queryFactorIds.indices.map { i =>
-  //         val weightId = graph.factors.apply(queryFactorIds(i)).weightId
-  //         val weightChange = conditionedEx(i) - unconditionedEx(i)
-  //         pack(weightId, weightChange)
-  //       }.groupByReduce[Int, Double](r => r._1, r => r._2, (a, b) => a + b)
-  //       val weightChanges = queryWeightIds.map {r =>
-  //         val weightChange = weightUpdates(r)
-  //         val currentWeight = graph.getWeightValue(r)
-  //         val newWeight = currentWeight + (weightChange * iterLearningRate) * (1.0/(1.0+regularizationConstant*iterLearningRate))
-  //         graph.updateWeightValue(r, newWeight)
-  //         weightChange
-  //       }
-
-  //       // val weightUpdates = queryWeightIds.map { weightId =>
-  //       //   val factors = weightFactorIdsMap(weightId)
-  //       //   val currentWeight = graph.getWeightValue(weightId)
-  //       //   def withDefaultZero(m: Rep[ForgeHashMap[Int,Double]], key: Rep[Int]) = if (m.contains(key)) m(key) else 0.0
-  //       //   val weightChange = factors.map(id => (withDefaultZero(conditionedEx,id) - withDefaultZero(unconditionedEx,id))).sum
-  //       //   val newWeight = currentWeight + (weightChange * iterLearningRate) * (1.0/(1.0+regularizationConstant*iterLearningRate))
-  //       //   pack(weightChange, newWeight)
-  //       // }
-
-  //       // graph.updateWeightValues(queryWeightIds, weightUpdates.map(_._2))
-  //       // val weightChanges = weightUpdates.map(t => t._1)
-
-  //       // calculate the L2 norm of the weight changes and the maximum gradient
-  //       val gradientNorm = sqrt(sum(square(weightChanges)))
-  //       val maxGradient = max(abs(weightChanges))
-  //       println("gradient_norm="+gradientNorm+" max_gradient="+maxGradient)
-
-  //       // reset the evidence variables to their evidence values (we changed their values by sampling them above)
-
-  //       i + 1
-  //     }
-  //     graph.updateVariableValues(evidenceVariables, evidenceValues)
-  //     ()
-  //   }
-
-  // }
+      val numCoresPerSocket = getNumCoresPerSocket()
+      val numSockets = getNumSockets()
+      println(numSockets)
+      val numCpp = getNumCpp()
+      val numThread = {
+        if (numCpp > numCoresPerSocket * numSockets) numCoresPerSocket * numSockets
+        else numCpp
+      }
+      val numThreadLast = (numThread - 1) % numCoresPerSocket + 1
+      var iter = 0
+      val startTime = time(iter)
+      val conditionedEx = (0::graph.factors.length).map(f => evaluateFactor(graph, f))
+      var iterLearningRate = learningRate
+      while (iter < numIterations / numSockets) {
+         val regularization = 1.0/(1.0+regularizationConstant*iterLearningRate)
+         println("iteration="+iter+" learning_rate="+iterLearningRate)
+         for (tid <- (0::numThread)) {
+           val localTid = tid % numCoresPerSocket
+           val localNumThread = {
+             if (tid / numCoresPerSocket == numSockets - 1) numThreadLast
+             else numCoresPerSocket
+           }
+           val start = (evidenceVariables.length / localNumThread + 1) * localTid
+           val temp = start + (evidenceVariables.length / localNumThread + 1)
+           val end = if (temp > evidenceVariables.length) evidenceVariables.length else temp
+           var id = start
+           while (id < end) {
+             val variableId = evidenceVariables.apply(id)
+             sampleVariable(graph, variableId)
+             val iStart = graph.variables.apply(variableId).iStart
+             val nFactors = graph.variables.apply(variableId).nFactors
+             var index = iStart
+             while (index < iStart + nFactors) {
+               val factor = graph.variablesToFactors.apply(index)
+               if (!graph.weights.apply(factor.weightId).isFixed) {
+                 val weightValue = graph.getWeightValue(factor.weightId) + iterLearningRate * (conditionedEx(factor.id) - evaluateFactor(graph, factor.id)) * regularization
+                 graph.weightValues.update(factor.weightId, weightValue)
+               }
+               index += 1
+             }
+             id += 1
+           }
+         }
+         for (weightId <- (0::graph.weights.length)){
+           graph.weightValues.combineAverage(weightId)
+         }
+        iter += 1
+        iterLearningRate = iterLearningRate * diminishRate
+      }
+       graph.updateVariableValues(evidenceVariables, evidenceValues)
+       for (variableId <- evidenceVariables){
+         graph.variableValues.combineReplace(variableId)
+       }
+  }
 
   def calculateMarginals(graph: Rep[FactorGraph], numSamples: Rep[Int], times: Rep[DenseVector[Tup2[Int,Long]]]) = {
     // val nonEvidenceVariables = graph.queryVariables
@@ -253,7 +237,7 @@ trait Gibbs extends OptiMLApplication {
     (0::nonEvidenceVariables.length).map { k =>
       val variableId = nonEvidenceVariables.apply(k)
       pack((variableId,
-           sampleSums(k) / numSamples.toDouble,
+           sampleSums(k) / numSamples.toDouble * numSockets,
            graph.getVariableValue(variableId)))
     }
   }
@@ -265,33 +249,18 @@ trait Gibbs extends OptiMLApplication {
     val G = readFactorGraph(args(0), args(1), args(2), args(3), args(4), ",")
     //toc("io", G)
 
-    //replicated
-    // val factorsNumaArray = array_numa_empty[VariableFactor](G.factors.length)
-    // for (i <- 0::G.factors.length){
-    //   array_update[VariableFactor](factorsNumaArray, i, G.factors(i))
-    // }
-    // val factorsNuma = DenseVector(factorsNumaArray)
-    // val factorsNuma = G.factors DenseVector[VariableFactor](factors.numaReplicate())
-    //   val variablesNuma = DenseVector[Variable](variables.numaReplicate())
-    //   val weightsNuma = DenseVector[Weight](weights.numaReplicate())
-    //   val variablesToFactorsNuma = DenseVector[VariableFactor](variablesToFactors.numaReplicate())
-    //   val factorsToVariablesNuma = DenseVector[FactorVariable](factorsToVariables.numaReplicate())
-    //   val variableValuesNuma = DenseVector[MDouble](variableValues.numaReplicate())
-    //   val weightValuesNuma = DenseVector[MDouble](weightValues.numaReplicate())
-    //   FactorGraph(factorsNuma, variablesNuma, weightsNuma, variablesToFactorsNuma, factorsToVariablesNuma, variableValuesNuma, weightValuesNuma)
-
     val times1 = DenseVector[Tup2[Int,Long]](0, true)
     val times2 = DenseVector[Tup2[Int,Long]](0, true)
 
     //tic("learnWeights", G)
-    // learnWeights(G, 30, 1, 0.01, 0.1, 0.95, times1)
+    learnWeights(G, 30, 1, 0.01, 0.01, 0.95, times1)
     // //toc("learnWeights", G)
     // writeVector(G.weights.map(w => w.id + "\t" + G.getWeightValue(w.id)), "weights.out")
 
     //tic("calculateMarginals", G)
-    val marginals = calculateMarginals(G, 50, times2)
+    val marginals = calculateMarginals(G, 500, times2)
     //toc("calculateMarginals", marginals)
-    // writeVector(marginals.map(t => t._1 + "\t" + t._4.toInt + "\t" + t._2), "marginals.out")
+    writeVector(marginals.map(t => t._1 + "\t" + "\t" + t._2), "marginals.out")
 
     // val totalNumSamples1 = times1.map(_._1).sum
     // val totalMillis1 = times1.map(_._2).sum

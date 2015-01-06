@@ -124,7 +124,10 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
         if (variable.id == variableId) {
           variableSample(variable.isPositive, sampleValue)
         }
-        else fatal("cannot evaluate imply: variableId not match")
+        else {
+          println("cannot evaluate imply: variableId not match")
+          0.0
+        }
       }
       else {
         var i = 0
@@ -156,7 +159,8 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
         else 0.0
       }
       else {
-        fatal("cannot evaluate equality between more than 2 variables")
+        println("cannot evaluate equality between more than 2 variables")
+        0.0
       }
     }
  
@@ -168,9 +172,15 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
         if (variable.id == variableId) {
           variableSample(variable.isPositive, sampleValue)
         }
-        else fatal("cannot evaluate isTrue: variableId not match")
+        else {
+          println("cannot evaluate isTrue: variableId not match")
+          0.0
+        }
       }
-      else fatal("cannot evaluate isTrue for more than 1 variable")
+      else {
+        println("cannot evaluate isTrue for more than 1 variable")
+        0.0
+      }
     }
  
  
@@ -194,7 +204,8 @@ trait FactorOps extends TableFactorOps with FunctionFactorOps {
         istrue_factor(factor, vals, factorsToVariables, variableId, sampleValue)
       }
       else {
-        fatal("no factor func with id " + funcId + " found")
+        println("no factor func with id " + funcId + " found")
+        0.0
       }
     }
  
