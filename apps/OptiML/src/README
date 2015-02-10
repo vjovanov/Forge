@@ -1,0 +1,30 @@
+A brief README of Gibbs Sampler on Optiml
+
+--------------------------------------------------------------------------------
+Features:
+NUMA-aware: use multiple chains among NUMA node, achieve near linear speed-up, 10% better than dimmwitted Gibbs sampler
+Factor rules supported: imply, or, and, equal, isTrue
+
+--------------------------------------------------------------------------------
+Usage:
+Inside hyperdsl/ directory, running with N cpp threads:
+
+sbt compile
+forge/bin/update ppl.dsl.forge.dsls.optiml.OptiMLDSLRunner OptiML
+cd published/OptiML/
+sbt compile
+bin/delitec GibbsCompiler --cpp
+bin/delite GibbsCompiler <meta file> <factors file> <variables file> <weights file> <edges file> --cpp N
+
+--------------------------------------------------------------------------------
+Code structure:
+
+Gibbs sampler: Forge/apps/OptiML/src/Gibbs.scala
+Factor graph: Forge/src/dsls/optiml/factor/*
+              Forge/src/dsls/optiml/MLio.scala
+NUMA datastructure: Forge/src/dsls/optiml/DenseVectorNuma.scala
+                    Forge/static/extern/compiler/src/ArrayNuma.scala
+                    Forge/static/extern/library/src/ArrayNuma.scala
+                    Forge/static/extern/shared/src/ArrayNuma.scala
+                    Delite/framework/src/ppl/delite/framework/datastructures/DeliteArray.scala
+
