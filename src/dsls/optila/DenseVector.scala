@@ -53,6 +53,7 @@ trait DenseVectorOps {
     }
     static (DenseVector) ("zeros", Nil, MInt :: DenseVector(MDouble)) implements composite ${ densevector_fromfunc($0, i => 0.0 )}
     static (DenseVector) ("zerosf", Nil, MInt :: DenseVector(MFloat)) implements composite ${ densevector_fromfunc($0, i => 0f )}
+    static (DenseVector) ("range", Nil, (MInt,MInt) :: DenseVector(MInt)) implements composite ${ densevector_fromfunc($0 - $1, i => i + $1) }
     static (DenseVector) ("ones", Nil, MInt :: DenseVector(MDouble)) implements composite ${ densevector_fromfunc($0, i => 1.0) }
     static (DenseVector) ("onesf", Nil, MInt :: DenseVector(MFloat)) implements composite ${ densevector_fromfunc($0, i => 1f) }
     static (DenseVector) ("rand", Nil, MInt :: DenseVector(MDouble)) implements composite ${ densevector_fromfunc($0, i => random[Double]) }
